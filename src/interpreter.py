@@ -21,8 +21,17 @@ class Interpreter:
 
     def factor(self) -> int:
         token = self.current_token
-        self.eat(TokenType.INTEGER)
-        return int(token.value)
+        if token.token_type == TokenType.INTEGER:
+            self.eat(TokenType.INTEGER)
+            return int(token.value)
+        elif token.token_type == TokenType.OPEN_PARANTH:
+            self.eat(TokenType.OPEN_PARANTH)
+            result = self.expr()
+            self.eat(TokenType.CLOSE_PARANTH)
+            return result
+        raise InterpreterError(
+            f"expected {TokenType.INTEGER} or {TokenType.OPEN_PARANTH}, got {token.token_type}"
+        )
 
     def term(self) -> int:
         result = self.factor()
