@@ -1,5 +1,6 @@
 from src.interpreter import Interpreter
 from src.lexer import Lexer
+from src.parser import Parser
 
 
 def main():
@@ -9,10 +10,9 @@ def main():
         except KeyboardInterrupt:
             break
         lexer = Lexer(inp)
-        # for t in lexer:
-        #     print(t)
-        interpreter = Interpreter(lexer)
-        print(f"Operation result: {interpreter.expr()}")
+        parser = Parser(lexer)
+        interpreter = Interpreter(parser)
+        print(f"Operation result: {interpreter.interpret()}")
 
 
 if __name__ == "__main__":

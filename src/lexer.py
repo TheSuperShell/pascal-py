@@ -46,22 +46,22 @@ class Lexer:
         self.skip_space()
         if self.char == "+":
             self.advance()
-            return Token(TokenType.PLUS)
+            return Token.plus()
         if self.char == "-":
             self.advance()
-            return Token(TokenType.MINUS)
+            return Token.minus()
         if self.char == "*":
             self.advance()
-            return Token(TokenType.MULTIPLICATION)
+            return Token.mult()
         if self.char == "/":
             self.advance()
-            return Token(TokenType.DIVISION)
+            return Token.div()
         if self.char == "(":
             self.advance()
-            return Token(TokenType.OPEN_PARANTH)
+            return Token.open_p()
         if self.char == ")":
             self.advance()
-            return Token(TokenType.CLOSE_PARANTH)
+            return Token.close_p()
         if self.char.isdigit():
-            return Token(TokenType.INTEGER, self.integer())
+            return Token.integer(self.integer())
         raise ScriptParsingError()

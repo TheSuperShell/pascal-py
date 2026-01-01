@@ -2,6 +2,7 @@ from hypothesis import given, strategies as st
 import pytest
 from src.interpreter import Interpreter
 from src.lexer import Lexer
+from src.parser import Parser
 
 
 OPS = ["+", "-", "*", "/"]
@@ -37,11 +38,12 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
         inp.append(")")
     code = "".join(inp)
     lexer = Lexer(code)
-    interpreter = Interpreter(lexer)
+    parser = Parser(lexer)
+    interpreter = Interpreter(parser)
     try:
         result = eval(code.replace("/", "//"))
     except ZeroDivisionError:
         with pytest.raises(ZeroDivisionError):
-            interpreter.expr()
+            interpreter.interpret()
         return
-    assert result == interpreter.expr()
+    assert result == interpreter.interpret()

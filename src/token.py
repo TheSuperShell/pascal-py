@@ -31,3 +31,35 @@ class Token:
 
     def __repr__(self) -> str:
         return str(self)
+
+    @classmethod
+    def plus(cls) -> "Token":
+        return Token(TokenType.PLUS, "+")
+
+    @classmethod
+    def minus(cls) -> "Token":
+        return Token(TokenType.MINUS, "-")
+
+    @classmethod
+    def mult(cls) -> "Token":
+        return Token(TokenType.MULTIPLICATION, "*")
+
+    @classmethod
+    def div(cls) -> "Token":
+        return Token(TokenType.DIVISION, "/")
+
+    @classmethod
+    def integer(cls, value: str) -> "Token":
+        return Token(TokenType.INTEGER, value)
+
+    @classmethod
+    def eof(cls) -> "Token":
+        return Token(TokenType.EOF)
+
+    @classmethod
+    def open_p(cls) -> "Token":
+        return Token(TokenType.OPEN_PARANTH)
+
+    @classmethod
+    def close_p(cls) -> "Token":
+        return Token(TokenType.CLOSE_PARANTH)

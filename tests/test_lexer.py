@@ -1,24 +1,24 @@
 from src.lexer import Lexer
-from src.token import Token, TokenType
+from src.token import Token
 
 
 def test_lexer_math():
     lexer = Lexer("10 + 9 - (2 / (4)) * 123")
     assert list(lexer) == [
-        Token(TokenType.INTEGER, "10"),
-        Token(TokenType.PLUS),
-        Token(TokenType.INTEGER, "9"),
-        Token(TokenType.MINUS),
-        Token(TokenType.OPEN_PARANTH),
-        Token(TokenType.INTEGER, "2"),
-        Token(TokenType.DIVISION),
-        Token(TokenType.OPEN_PARANTH),
-        Token(TokenType.INTEGER, "4"),
-        Token(TokenType.CLOSE_PARANTH),
-        Token(TokenType.CLOSE_PARANTH),
-        Token(TokenType.MULTIPLICATION),
-        Token(TokenType.INTEGER, "123"),
-        Token(TokenType.EOF),
+        Token.integer("10"),
+        Token.plus(),
+        Token.integer("9"),
+        Token.minus(),
+        Token.open_p(),
+        Token.integer("2"),
+        Token.div(),
+        Token.open_p(),
+        Token.integer("4"),
+        Token.close_p(),
+        Token.close_p(),
+        Token.mult(),
+        Token.integer("123"),
+        Token.eof(),
     ]
 
 
