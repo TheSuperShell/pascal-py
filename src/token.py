@@ -8,6 +8,8 @@ class TokenType(IntEnum):
     MINUS = auto()
     MULTIPLICATION = auto()
     DIVISION = auto()
+    OPEN_PARANTH = auto()
+    CLOSE_PARANTH = auto()
     EOF = auto()
 
     def __str__(self) -> str:

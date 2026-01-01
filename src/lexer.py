@@ -56,6 +56,12 @@ class Lexer:
         if self.char == "/":
             self.advance()
             return Token(TokenType.DIVISION)
+        if self.char == "(":
+            self.advance()
+            return Token(TokenType.OPEN_PARANTH)
+        if self.char == ")":
+            self.advance()
+            return Token(TokenType.CLOSE_PARANTH)
         if self.char.isdigit():
             return Token(TokenType.INTEGER, self.integer())
         raise ScriptParsingError()
