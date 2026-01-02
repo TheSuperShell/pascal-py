@@ -37,7 +37,8 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
     for _ in range(opened_p):
         inp.append(")")
     code = "".join(inp)
-    lexer = Lexer(code)
+    pascal_code = f"BEGIN a:={code}; END."
+    lexer = Lexer(pascal_code)
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
     try:
@@ -46,4 +47,23 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
         with pytest.raises(ZeroDivisionError):
             interpreter.process()
         return
-    assert result == interpreter.process()
+    interpreter.process()
+    assert result == interpreter.global_scope["a"]
+
+
+def test_intepreter_assign():
+    lexer = Lexer("BEGIN a:= 5; b:=10; c:= a + b; END.")
+    parser = Parser(lexer)
+    interpreter = Interpreter(parser)
+    interpreter.process()
+    assert interpreter.global_scope["a"] == 5
+    assert interpreter.global_scope["b"] == 10
+    assert interpreter.global_scope["c"] == 15
+
+
+def test_intepreter_assign_error():
+    lexer = Lexer("BEGIN a:= 5; c:= a + k; END.")
+    parser = Parser(lexer)
+    interpreter = Interpreter(parser)
+    with pytest.raises(NameError):
+        interpreter.process()
