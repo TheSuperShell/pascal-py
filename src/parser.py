@@ -187,12 +187,26 @@ class Type(AST):
 class Procedure(AST):
     name: str
     block: Block
+    params: "tuple[Param, ...]"
 
     def __str__(self) -> str:
-        return f"{self.name}: {self.block}"
+        params = ", ".join(str(param) for param in self.params)
+        return f"{self.name}({params}):\n{self.block}"
 
     def __repr__(self) -> str:
-        return f"Procedure({self.name=}, {self.block=})"
+        return f"Procedure({self.name=}, {self.params=}, {self.block=})"
+
+
+@dataclass(frozen=True, slots=True)
+class Param(AST):
+    var_node: Var
+    type_node: Type
+
+    def __str__(self) -> str:
+        return f"{self.var_node}: {self.type_node}"
+
+    def __repr__(self) -> str:
+        return f"Param({self.var_node=}, {self.type_node})"
 
 
 class Parser:
@@ -250,7 +264,7 @@ class Parser:
             self.eat(TokenType.SEMI)
             block = self.block()
             self.eat(TokenType.SEMI)
-            decls.append(Procedure(proc_name, block))
+            decls.append(Procedure(proc_name, block, ()))
         return decls
 
     def variable_declaration(self) -> list[VarDecl]:
