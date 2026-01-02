@@ -4,6 +4,9 @@ from src.token import Token, TokenType
 class ScriptParsingError(Exception): ...
 
 
+_RESERVED_KEYWORDS: dict[str, Token] = {"BEGIN": Token.begin(), "END": Token.end()}
+
+
 class Lexer:
     __slots__ = ("file_text", "index", "stop", "char")
 
@@ -27,11 +30,24 @@ class Lexer:
         while self.file_text[self.index] in (" ", "\t", "\n"):
             self.advance()
 
-    def integer(self) -> str:
+    def integer(self) -> Token:
         current_index = self.index
         while self.char is not None and self.char.isdigit():
             self.advance()
-        return self.file_text[current_index : self.index]
+        return Token.integer(self.file_text[current_index : self.index])
+
+    def _id(self) -> Token:
+        current_index = self.index
+        while self.char is not None and self.char.isalnum():
+            self.advance()
+        word = self.file_text[current_index : self.index]
+        return _RESERVED_KEYWORDS.get(word, Token.Id(word))
+
+    def peek(self) -> str | None:
+        peek_pos = self.index + 1
+        if peek_pos > len(self.file_text) - 1:
+            return None
+        return self.file_text[peek_pos]
 
     def __next__(self) -> Token:
         if self.stop:
@@ -63,5 +79,18 @@ class Lexer:
             self.advance()
             return Token.close_p()
         if self.char.isdigit():
-            return Token.integer(self.integer())
-        raise ScriptParsingError()
+            return self.integer()
+        if self.char.isalnum():
+            return self._id()
+        if self.char == ";":
+            self.advance()
+            return Token.semi()
+        if self.char == ":":
+            if self.peek() == "=":
+                self.advance()
+                self.advance()
+                return Token.assign()
+        if self.char == ".":
+            self.advance()
+            return Token.dot()
+        raise ScriptParsingError(f"Uknown symbol {self.char}")
