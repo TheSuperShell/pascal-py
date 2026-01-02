@@ -1,15 +1,15 @@
 from hypothesis import given, strategies as st
 from src.lexer import Lexer
-from src.parser import Num, Parser, BinOp
+from src.parser import Num, Parser, BinOp, UnaryOp
 from src.token import Token
 
 
 def test_parser_math():
-    lexer = Lexer("1 + 2 / 3 - 4")
+    lexer = Lexer("-1 + 2 / 3 - 4")
     parser = Parser(lexer)
     expected = BinOp(
         BinOp(
-            Num(Token.integer("1")),
+            UnaryOp(Token.minus(), Num(Token.integer("1"))),
             Token.plus(),
             BinOp(
                 Num(Token.integer("2")),
@@ -30,7 +30,7 @@ OPS = ["+", "-", "*", "/"]
 @given(
     st.lists(
         st.tuples(
-            st.integers(min_value=1),
+            st.integers(),
             st.integers(min_value=0, max_value=3),
         ),
         min_size=1,

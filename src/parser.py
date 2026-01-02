@@ -68,6 +68,26 @@ class Num(AST):
         return f"{self.value}"
 
 
+class UnaryOp(AST):
+    __slots__ = "op", "expr"
+
+    def __init__(self, op: Token, expr: AST) -> None:
+        super().__init__(op)
+        self.op = op
+        self.expr = expr
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, UnaryOp):
+            return False
+        return self.expr == other.expr and self.op == other.op
+
+    def __repr__(self) -> str:
+        return f"UnaryOp(\n\top={self.op},\n\texpr={self.expr}\n)"
+
+    def __str__(self) -> str:
+        return f"{self.op.value}{str(self.expr)}"
+
+
 class Parser:
     __slots__ = "lexer", "current_token"
 
@@ -85,10 +105,13 @@ class Parser:
 
     def factor(self) -> AST:
         token = self.current_token
+        if token.token_type in (TokenType.MINUS, TokenType.PLUS):
+            self.eat(TokenType.PLUS, TokenType.MINUS)
+            return UnaryOp(token, self.factor())
         if token.token_type == TokenType.INTEGER:
             self.eat(TokenType.INTEGER)
             return Num(token)
-        elif token.token_type == TokenType.OPEN_PARANTH:
+        if token.token_type == TokenType.OPEN_PARANTH:
             self.eat(TokenType.OPEN_PARANTH)
             result = self.expr()
             self.eat(TokenType.CLOSE_PARANTH)

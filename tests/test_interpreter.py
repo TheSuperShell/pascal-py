@@ -11,7 +11,7 @@ OPS = ["+", "-", "*", "/"]
 @given(
     st.lists(
         st.tuples(
-            st.integers(min_value=1),
+            st.integers(),
             st.integers(min_value=0, max_value=3),
             st.integers(min_value=1, max_value=3),
         ),

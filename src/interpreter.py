@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
-from src.parser import AST, Num, Parser, BinOp
+from src.parser import AST, Num, Parser, BinOp, UnaryOp
 from src.token import TokenType
 
 
@@ -29,11 +29,18 @@ _OPERATIONS: dict[TokenType, Callable[[int, int], int]] = {
     TokenType.DIVISION: lambda x, y: x // y,
 }
 
+_UNARY_OP: dict[TokenType, Callable[[int], int]] = {
+    TokenType.PLUS: lambda x: x,
+    TokenType.MINUS: lambda x: -x,
+}
+
 
 class Interpreter(TreeProcessor):
     def visit(self, node: AST) -> int:
         if isinstance(node, Num):
             return node.value
+        if isinstance(node, UnaryOp):
+            return _UNARY_OP[node.op.token_type](self.visit(node.expr))
         if not isinstance(node, BinOp):
             raise NotImplementedError()
         left = self.visit(node.left)
