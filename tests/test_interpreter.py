@@ -48,7 +48,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
             interpreter.process()
         return
     interpreter.process()
-    assert result == interpreter.global_scope["a"]
+    assert result == interpreter.global_scope["A"]
 
 
 def test_intepreter_assign():
@@ -56,9 +56,9 @@ def test_intepreter_assign():
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
     interpreter.process()
-    assert interpreter.global_scope["a"] == 5
-    assert interpreter.global_scope["b"] == 10
-    assert interpreter.global_scope["c"] == 15
+    assert interpreter.global_scope["A"] == 5
+    assert interpreter.global_scope["B"] == 10
+    assert interpreter.global_scope["C"] == 15
 
 
 def test_intepreter_assign_error():

@@ -40,7 +40,7 @@ class Lexer:
         current_index = self.index
         while self.char is not None and self.char.isalnum():
             self.advance()
-        word = self.file_text[current_index : self.index]
+        word = self.file_text[current_index : self.index].upper()
         return _RESERVED_KEYWORDS.get(word, Token.Id(word))
 
     def peek(self) -> str | None:

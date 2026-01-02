@@ -8,15 +8,15 @@ from src.token import Token
 data = [
     [
         "BEGIN\na:=5 END.",
-        Compund((Assign(Var(Token.Id("a")), Token.assign(), Num(Token.integer("5"))),)),
+        Compund((Assign(Var(Token.Id("A")), Token.assign(), Num(Token.integer("5"))),)),
     ],
     ["BEGIN END.", Compund((NoOp(),))],
     [
         "BEGIN a:=5; b:=a; END.",
         Compund(
             (
-                Assign(Var(Token.Id("a")), Token.assign(), Num(Token.integer("5"))),
-                Assign(Var(Token.Id("b")), Token.assign(), Var(Token.Id("a"))),
+                Assign(Var(Token.Id("A")), Token.assign(), Num(Token.integer("5"))),
+                Assign(Var(Token.Id("B")), Token.assign(), Var(Token.Id("A"))),
                 NoOp(),
             )
         ),
@@ -26,7 +26,7 @@ data = [
         Compund(
             (
                 Assign(
-                    Var(Token.Id("val")),
+                    Var(Token.Id("VAL")),
                     Token.assign(),
                     BinOp(
                         Num(Token.integer("5")),
@@ -50,7 +50,7 @@ def test_parser(code, result):
     lexer = Lexer("BEGIN\na:=5 END.")
     parser = Parser(lexer)
     expected = Compund(
-        (Assign(Var(Token.Id("a")), Token.assign(), Num(Token.integer("5"))),)
+        (Assign(Var(Token.Id("A")), Token.assign(), Num(Token.integer("5"))),)
     )
     res = parser.parse()
     assert res == expected
@@ -69,7 +69,7 @@ OPS = ["+", "-", "*", "/"]
     )
 )
 def test_parser_rand_math(int_op: list[tuple[int, int]]):
-    inp = ["BEGIN\nval:="]
+    inp = ["BEGIN\nVAL:="]
     inp.append(str(int_op[0][0]))
     for i in range(0, len(int_op) - 1):
         inp.append(OPS[int_op[i][1]])
