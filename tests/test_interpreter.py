@@ -44,6 +44,6 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
         result = eval(code.replace("/", "//"))
     except ZeroDivisionError:
         with pytest.raises(ZeroDivisionError):
-            interpreter.interpret()
+            interpreter.process()
         return
-    assert result == interpreter.interpret()
+    assert result == interpreter.process()

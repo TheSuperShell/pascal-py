@@ -1,9 +1,25 @@
+from abc import ABC, abstractmethod
 from collections.abc import Callable
+from typing import Any
 from src.parser import AST, Num, Parser, BinOp
 from src.token import TokenType
 
 
 class InterpreterError(Exception): ...
+
+
+class TreeProcessor(ABC):
+    __slots__ = "parser"
+
+    def __init__(self, parser: Parser) -> None:
+        self.parser = parser
+
+    @abstractmethod
+    def visit(self, node: AST) -> Any: ...
+
+    def process(self) -> Any:
+        tree = self.parser.parse()
+        return self.visit(tree)
 
 
 _OPERATIONS: dict[TokenType, Callable[[int, int], int]] = {
@@ -14,12 +30,7 @@ _OPERATIONS: dict[TokenType, Callable[[int, int], int]] = {
 }
 
 
-class Interpreter:
-    __slots__ = "parser"
-
-    def __init__(self, parser: Parser) -> None:
-        self.parser = parser
-
+class Interpreter(TreeProcessor):
     def visit(self, node: AST) -> int:
         if isinstance(node, Num):
             return node.value
@@ -28,7 +39,3 @@ class Interpreter:
         left = self.visit(node.left)
         right = self.visit(node.right)
         return _OPERATIONS[node.op.token_type](left, right)
-
-    def interpret(self) -> int:
-        tree = self.parser.parse()
-        return self.visit(tree)
