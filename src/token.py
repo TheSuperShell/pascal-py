@@ -52,7 +52,7 @@ class Token:
 
     @classmethod
     def div(cls) -> "Token":
-        return Token(TokenType.DIVISION, "/")
+        return Token(TokenType.DIVISION, "DIV")
 
     @classmethod
     def integer(cls, value: str) -> "Token":

@@ -4,7 +4,11 @@ from src.token import Token, TokenType
 class ScriptParsingError(Exception): ...
 
 
-_RESERVED_KEYWORDS: dict[str, Token] = {"BEGIN": Token.begin(), "END": Token.end()}
+_RESERVED_KEYWORDS: dict[str, Token] = {
+    "BEGIN": Token.begin(),
+    "END": Token.end(),
+    "DIV": Token.div(),
+}
 
 
 class Lexer:
@@ -69,9 +73,6 @@ class Lexer:
         if self.char == "*":
             self.advance()
             return Token.mult()
-        if self.char == "/":
-            self.advance()
-            return Token.div()
         if self.char == "(":
             self.advance()
             return Token.open_p()

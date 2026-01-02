@@ -4,7 +4,7 @@ from src.token import Token
 
 data = [
     [
-        "a := 10 + 9 - (2 / (4)) * 123;",
+        "a := 10 + 9 - (2 div (4)) * 123;",
         [
             Token.Id("A"),
             Token.assign(),
@@ -48,6 +48,6 @@ def test_lexer_math(code, result):
 
 
 def test_remove_spaces():
-    lexer_space = Lexer("10   +\t20/\n30")
-    lexer = Lexer("10+20/30")
+    lexer_space = Lexer("10   +\t20-\n30")
+    lexer = Lexer("10+20-30")
     assert list(lexer) == list(lexer_space)

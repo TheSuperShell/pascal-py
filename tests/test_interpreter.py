@@ -5,7 +5,7 @@ from src.lexer import Lexer
 from src.parser import Parser
 
 
-OPS = ["+", "-", "*", "/"]
+OPS = ["+", "-", "*", "DIV"]
 
 
 @given(
@@ -29,7 +29,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
         if opened_p > 0 and int_op[i + 1][2] == 3:
             inp.append(")")
             opened_p -= 1
-        inp.append(OPS[int_op[i][1]])
+        inp.append(f" {OPS[int_op[i][1]]} ")
         if int_op[i + 1][2] == 2:
             inp.append("(")
             opened_p += 1
@@ -42,7 +42,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
     try:
-        result = eval(code.replace("/", "//"))
+        result = eval(code.replace("DIV", "//"))
     except ZeroDivisionError:
         with pytest.raises(ZeroDivisionError):
             interpreter.process()
