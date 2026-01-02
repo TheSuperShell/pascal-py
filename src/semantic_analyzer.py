@@ -2,13 +2,15 @@ from dataclasses import dataclass, field
 from typing import Any, override
 
 from src.parser import Assign, BinOp, Num, UnaryOp, Var, VarDecl, Type
-from src.symbols import SymbolTable, VarSymbol
+from src.symbols import ScopedSymbolTable, VarSymbol
 from src.visitor import Visitor
 
 
 @dataclass(slots=True)
 class SymbolTableVisitor(Visitor):
-    symtab: SymbolTable = field(default_factory=SymbolTable)
+    symtab: ScopedSymbolTable = field(
+        default=ScopedSymbolTable("global", scope_level=1)
+    )
 
     @override
     def visit_Num(self, node: Num) -> Any:

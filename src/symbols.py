@@ -30,16 +30,25 @@ class VarSymbol(Symbol):
         super().__init__(name, symbol_type)
 
 
-class SymbolTable:
-    __slots__ = "_symbols"
+class ScopedSymbolTable:
+    __slots__ = "_symbols", "scope_name", "scope_level"
 
-    def __init__(self) -> None:
+    def __init__(self, scope_name: str, *, scope_level: int) -> None:
         self._symbols: dict[str, Symbol] = {}
+        self.scope_level = scope_level
+        self.scope_name = scope_name
         self._init_builtins()
 
     def __str__(self) -> str:
-        header = "Symbol table contents"
-        lines = ["\n", header, "_" * len(header)]
+        h1 = "SCOPE (SCOPED SYMBOL TABLE)"
+        lines = ["\n", h1, "=" * len(h1)]
+        for header_name, header_value in (
+            ("Scope name", self.scope_name),
+            ("Scope level", self.scope_level),
+        ):
+            lines.append(f"{header_name:<15}: {header_value}")
+        h2 = "Scope (Scoped symbol table) contents"
+        lines.extend([h2, "-" * len(h2)])
         lines.extend(f"{k:>7}: {v}" for k, v in self._symbols.items())
         lines.append("\n")
         return "\n".join(lines)
