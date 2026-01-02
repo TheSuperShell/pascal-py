@@ -233,6 +233,12 @@ class Parser:
                 var_decl = self.variable_declaration()
                 decls.extend(var_decl)
                 self.eat(TokenType.SEMI)
+        while self.current_token.token_type == TokenType.VAR:
+            self.eat(TokenType.VAR)
+            while self.current_token.token_type == TokenType.ID:
+                var_decl = self.variable_declaration()
+                decls.extend(var_decl)
+                self.eat(TokenType.SEMI)
         while self.current_token.token_type == TokenType.PROCEDURE:
             self.eat(TokenType.PROCEDURE)
             proc_name = self.current_token.value
