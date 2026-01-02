@@ -41,9 +41,10 @@ data = [
         ],
     ],
     [
-        "PROGRAM\nVAR:\nA, B:INTEGER { other } BEGIN { some comment }; END.",
+        "PROGRAM\n PROCEDURE VAR:\nA, B:INTEGER { other } BEGIN { some comment }; END.",
         [
             Token.program(),
+            Token.procedure(),
             Token.var(),
             Token.colon(),
             Token.Id("A"),

@@ -1,18 +1,20 @@
+from pathlib import Path
+import sys
 from src.interpreter import Interpreter
 from src.lexer import Lexer
 from src.parser import Parser
 
 
 def main():
-    while True:
-        try:
-            inp = input("enter expression: ")
-        except KeyboardInterrupt:
-            break
-        lexer = Lexer(inp)
-        parser = Parser(lexer)
-        interpreter = Interpreter(parser)
-        print(f"Operation result: {interpreter.interpret()}")
+    assert len(sys.argv) >= 2, "no file name provided"
+    file = Path(sys.argv[1])
+    assert file.is_file(), f"file {file} does not exist"
+    with file.open() as f:
+        code = f.read()
+    lexer = Lexer(code)
+    parser = Parser(lexer)
+    interpreter = Interpreter(parser)
+    interpreter.process()
 
 
 if __name__ == "__main__":

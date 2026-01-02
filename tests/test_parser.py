@@ -8,6 +8,7 @@ from src.parser import (
     NoOp,
     Num,
     Parser,
+    Procedure,
     Program,
     Type,
     Var,
@@ -18,11 +19,29 @@ from src.token import Token
 
 data = [
     [
-        "PROGRAM name;{ name } BEGIN\na:=5 END.",
+        "PROGRAM name;{ name } PROCEDURE proc; BEGIN b:=3 END; BEGIN\na:=5 END.",
         Program(
             "NAME",
             Block(
-                (),
+                (
+                    Procedure(
+                        "PROC",
+                        Block(
+                            (),
+                            Compound(
+                                (
+                                    Assign(
+                                        Var(
+                                            Token.Id("B"),
+                                        ),
+                                        Token.assign(),
+                                        Num(Token.const_int("3")),
+                                    ),
+                                )
+                            ),
+                        ),
+                    ),
+                ),
                 Compound(
                     (
                         Assign(

@@ -11,6 +11,7 @@ from src.parser import (
     Num,
     Parser,
     BinOp,
+    Procedure,
     Program,
     Type,
     UnaryOp,
@@ -42,6 +43,9 @@ class Visitor(ABC):
         return self.visit(node.compund_statement)
 
     def visit_NoOp(self, node: NoOp) -> Any:
+        return None
+
+    def visit_Procedure(self, node: Procedure) -> Any:
         return None
 
     @abstractmethod

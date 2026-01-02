@@ -24,6 +24,7 @@ class TokenType(IntEnum):
     ASSIGN = auto()
     SEMI = auto()
     VAR = auto()
+    PROCEDURE = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -133,3 +134,7 @@ class Token:
     @classmethod
     def assign(cls) -> "Token":
         return Token(TokenType.ASSIGN, ":=")
+
+    @classmethod
+    def procedure(cls) -> "Token":
+        return Token(TokenType.PROCEDURE, "PROCEDURE")

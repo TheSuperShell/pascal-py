@@ -142,7 +142,7 @@ class Program(AST):
 
 @dataclass(frozen=True, slots=True)
 class Block(AST):
-    declarations: "tuple[VarDecl, ...]"
+    declarations: "tuple[VarDecl | Procedure, ...]"
     compund_statement: Compound
 
     def __str__(self) -> str:
@@ -179,6 +179,18 @@ class Type(AST):
         return self.value
 
 
+@dataclass(frozen=True, slots=True)
+class Procedure(AST):
+    name: str
+    block: Block
+
+    def __str__(self) -> str:
+        return f"{self.name}: {self.block}"
+
+    def __repr__(self) -> str:
+        return f"Procedure({self.name=}, {self.block=})"
+
+
 class Parser:
     __slots__ = "lexer", "current_token"
 
@@ -208,14 +220,22 @@ class Parser:
         comp_node = self.compound_statement()
         return Block(tuple(nodes), comp_node)
 
-    def declarations(self) -> list[VarDecl]:
-        decls: list[VarDecl] = []
+    def declarations(self) -> list[VarDecl | Procedure]:
+        decls: list[VarDecl | Procedure] = []
         if self.current_token.token_type == TokenType.VAR:
             self.eat(TokenType.VAR)
             while self.current_token.token_type == TokenType.ID:
                 var_decl = self.variable_declaration()
                 decls.extend(var_decl)
                 self.eat(TokenType.SEMI)
+        while self.current_token.token_type == TokenType.PROCEDURE:
+            self.eat(TokenType.PROCEDURE)
+            proc_name = self.current_token.value
+            self.eat(TokenType.ID)
+            self.eat(TokenType.SEMI)
+            block = self.block()
+            self.eat(TokenType.SEMI)
+            decls.append(Procedure(proc_name, block))
         return decls
 
     def variable_declaration(self) -> list[VarDecl]:

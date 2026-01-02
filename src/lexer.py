@@ -12,6 +12,7 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "VAR": Token.var(),
     "INTEGER": Token.integer(),
     "REAL": Token.real(),
+    "PROCEDURE": Token.procedure(),
 }
 
 
@@ -35,6 +36,8 @@ class Lexer:
         self.char = self.file_text[self.index]
 
     def skip_space(self) -> None:
+        if self.index >= len(self.file_text) - 1:
+            return
         while self.file_text[self.index] in (" ", "\t", "\n"):
             self.advance()
 
@@ -73,14 +76,13 @@ class Lexer:
             self.stop = False
             raise StopIteration()
 
-        if self.char is None:
-            self.stop = True
-            return Token(TokenType.EOF)
-
         self.skip_space()
         if self.char == "{":
             self.comment()
         self.skip_space()
+        if self.char is None:
+            self.stop = True
+            return Token(TokenType.EOF)
         if self.char == "+":
             self.advance()
             return Token.plus()
