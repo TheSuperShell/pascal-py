@@ -47,8 +47,12 @@ class Num(AST):
     token: Token
 
     @property
-    def value(self) -> int:
-        return int(self.token.value)
+    def value(self) -> int | float:
+        return (
+            int(self.token.value)
+            if self.token.token_type == TokenType.INTEGER_CONST
+            else float(self.token.value)
+        )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Num):

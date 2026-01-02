@@ -42,7 +42,6 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
     parser = Parser(lexer)
     visitor = DefaultVisitor()
     interpreter = Interpreter(parser, visitor)
-    print(code)
     try:
         result = eval(code.replace("DIV", "//"))
     except ZeroDivisionError:
