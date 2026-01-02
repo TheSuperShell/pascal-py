@@ -2,7 +2,21 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
-from src.parser import AST, Assign, Compund, NoOp, Num, Parser, BinOp, UnaryOp, Var
+from src.parser import (
+    AST,
+    Assign,
+    Block,
+    Compund,
+    NoOp,
+    Num,
+    Parser,
+    BinOp,
+    Program,
+    Type,
+    UnaryOp,
+    Var,
+    VarDecl,
+)
 from src.token import TokenType
 
 
@@ -23,11 +37,12 @@ class TreeProcessor(ABC):
         return self.visit(tree)
 
 
-_OPERATIONS: dict[TokenType, Callable[[int, int], int]] = {
+_OPERATIONS: dict[TokenType, Callable[[int | float, int | float], int | float]] = {
     TokenType.PLUS: lambda x, y: x + y,
     TokenType.MINUS: lambda x, y: x - y,
     TokenType.MULTIPLICATION: lambda x, y: x * y,
-    TokenType.DIVISION: lambda x, y: x // y,
+    TokenType.INTEGER_DIV: lambda x, y: x // y,
+    TokenType.FLOAT_DIV: lambda x, y: x / y,
 }
 
 _UNARY_OP: dict[TokenType, Callable[[int], int]] = {
@@ -42,6 +57,16 @@ class Interpreter(TreeProcessor):
     global_scope: dict[str, Any] = field(default_factory=dict)
 
     def visit(self, node: AST) -> Any:
+        if isinstance(node, Program):
+            return self.visit(node.block)
+        if isinstance(node, Block):
+            for decl in node.declarations:
+                self.visit(decl)
+            return self.visit(node.compund_statement)
+        if isinstance(node, VarDecl):
+            return
+        if isinstance(node, Type):
+            return
         if isinstance(node, NoOp):
             return
         if isinstance(node, Compund):

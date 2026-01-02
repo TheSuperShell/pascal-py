@@ -7,7 +7,11 @@ class ScriptParsingError(Exception): ...
 _RESERVED_KEYWORDS: dict[str, Token] = {
     "BEGIN": Token.begin(),
     "END": Token.end(),
-    "DIV": Token.div(),
+    "DIV": Token.int_div(),
+    "PROGRAM": Token.program(),
+    "VAR": Token.var(),
+    "INTEGER": Token.integer(),
+    "REAL": Token.real(),
 }
 
 
@@ -34,11 +38,21 @@ class Lexer:
         while self.file_text[self.index] in (" ", "\t", "\n"):
             self.advance()
 
-    def integer(self) -> Token:
+    def comment(self) -> None:
+        while self.file_text[self.index] != "}":
+            self.advance()
+        self.advance()
+
+    def number(self) -> Token:
         current_index = self.index
         while self.char is not None and self.char.isdigit():
             self.advance()
-        return Token.integer(self.file_text[current_index : self.index])
+        if self.char != ".":
+            return Token.const_int(self.file_text[current_index : self.index])
+        self.advance()
+        while self.char is not None and self.char.isdigit():
+            self.advance()
+        return Token.const_float(self.file_text[current_index : self.index])
 
     def _id(self) -> Token:
         current_index = self.index
@@ -64,6 +78,9 @@ class Lexer:
             return Token(TokenType.EOF)
 
         self.skip_space()
+        if self.char == "{":
+            self.comment()
+        self.skip_space()
         if self.char == "+":
             self.advance()
             return Token.plus()
@@ -73,6 +90,9 @@ class Lexer:
         if self.char == "*":
             self.advance()
             return Token.mult()
+        if self.char == "/":
+            self.advance()
+            return Token.float_div()
         if self.char == "(":
             self.advance()
             return Token.open_p()
@@ -80,17 +100,22 @@ class Lexer:
             self.advance()
             return Token.close_p()
         if self.char.isdigit():
-            return self.integer()
+            return self.number()
         if self.char.isalnum() or self.char == "_":
             return self._id()
         if self.char == ";":
             self.advance()
             return Token.semi()
+        if self.char == ",":
+            self.advance()
+            return Token.comma()
         if self.char == ":":
             if self.peek() == "=":
                 self.advance()
                 self.advance()
                 return Token.assign()
+            self.advance()
+            return Token.colon()
         if self.char == ".":
             self.advance()
             return Token.dot()

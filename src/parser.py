@@ -128,6 +128,57 @@ class NoOp(AST):
         return "NoOp()"
 
 
+@dataclass(frozen=True, slots=True)
+class Program(AST):
+    name: str
+    block: "Block"
+
+    def __str__(self) -> str:
+        return f"-- {self.name} --\n"
+
+    def __repr__(self) -> str:
+        return f"Program(name={self.name}, block={self.block})"
+
+
+@dataclass(frozen=True, slots=True)
+class Block(AST):
+    declarations: "tuple[VarDecl, ...]"
+    compund_statement: Compund
+
+    def __str__(self) -> str:
+        return str(self.compund_statement)
+
+    def __repr__(self) -> str:
+        return f"Block({self.declarations=}, {self.compund_statement=})"
+
+
+@dataclass(frozen=True, slots=True)
+class VarDecl(AST):
+    var_node: Var
+    type_node: "Type"
+
+    def __str__(self) -> str:
+        return f"{self.var_node}: {self.type_node}"
+
+    def __repr__(self) -> str:
+        return f"VarDecl({self.var_node}:{self.type_node})"
+
+
+@dataclass(frozen=True, slots=True)
+class Type(AST):
+    token: Token
+
+    @property
+    def value(self) -> str:
+        return self.token.value
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __repr__(self) -> str:
+        return self.value
+
+
 class Parser:
     __slots__ = "lexer", "current_token"
 
@@ -143,12 +194,50 @@ class Parser:
             )
         self.current_token = next(self.lexer)
 
-    def program(self) -> AST:
-        node = self.compound_statement()
+    def program(self) -> Program:
+        self.eat(TokenType.PROGRAM)
+        var_node = self.variable()
+        prog_name = var_node.value
+        self.eat(TokenType.SEMI)
+        block_node = self.block()
         self.eat(TokenType.DOT)
-        return node
+        return Program(prog_name, block_node)
 
-    def compound_statement(self) -> AST:
+    def block(self) -> Block:
+        nodes = self.declarations()
+        comp_node = self.compound_statement()
+        return Block(tuple(nodes), comp_node)
+
+    def declarations(self) -> list[VarDecl]:
+        decls: list[VarDecl] = []
+        if self.current_token.token_type == TokenType.VAR:
+            self.eat(TokenType.VAR)
+            while self.current_token.token_type == TokenType.ID:
+                var_decl = self.variable_declaration()
+                decls.extend(var_decl)
+                self.eat(TokenType.SEMI)
+        return decls
+
+    def variable_declaration(self) -> list[VarDecl]:
+        var_nodes = [Var(self.current_token)]
+        self.eat(TokenType.ID)
+
+        while self.current_token.token_type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            var_nodes.append(Var(self.current_token))
+            self.eat(TokenType.ID)
+
+        self.eat(TokenType.COLON)
+
+        type_node = self.type_spec()
+        return [VarDecl(var_node, type_node) for var_node in var_nodes]
+
+    def type_spec(self) -> Type:
+        token = self.current_token
+        self.eat(TokenType.INTEGER, TokenType.REAL)
+        return Type(token)
+
+    def compound_statement(self) -> Compund:
         self.eat(TokenType.BEGIN)
         nodes = self.statement_list()
         self.eat(TokenType.END)
@@ -187,8 +276,8 @@ class Parser:
         if token.token_type in (TokenType.MINUS, TokenType.PLUS):
             self.eat(TokenType.PLUS, TokenType.MINUS)
             return UnaryOp(token, self.factor())
-        if token.token_type == TokenType.INTEGER:
-            self.eat(TokenType.INTEGER)
+        if token.token_type in (TokenType.INTEGER_CONST, TokenType.REAL_CONST):
+            self.eat(TokenType.INTEGER_CONST, TokenType.REAL_CONST)
             return Num(token)
         if token.token_type == TokenType.OPEN_PARANTH:
             self.eat(TokenType.OPEN_PARANTH)
@@ -202,10 +291,13 @@ class Parser:
 
         while self.current_token.token_type in (
             TokenType.MULTIPLICATION,
-            TokenType.DIVISION,
+            TokenType.INTEGER_DIV,
+            TokenType.FLOAT_DIV,
         ):
             token = self.current_token
-            self.eat(TokenType.MULTIPLICATION, TokenType.DIVISION)
+            self.eat(
+                TokenType.MULTIPLICATION, TokenType.INTEGER_DIV, TokenType.FLOAT_DIV
+            )
             node = BinOp(node, token, self.factor())
 
         return node

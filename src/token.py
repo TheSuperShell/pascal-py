@@ -3,11 +3,18 @@ from enum import IntEnum, auto
 
 
 class TokenType(IntEnum):
+    PROGRAM = auto()
     INTEGER = auto()
+    REAL = auto()
+    INTEGER_CONST = auto()
+    REAL_CONST = auto()
+    COMMA = auto()
+    COLON = auto()
     PLUS = auto()
     MINUS = auto()
     MULTIPLICATION = auto()
-    DIVISION = auto()
+    INTEGER_DIV = auto()
+    FLOAT_DIV = auto()
     OPEN_PARANTH = auto()
     CLOSE_PARANTH = auto()
     BEGIN = auto()
@@ -16,6 +23,7 @@ class TokenType(IntEnum):
     ID = auto()
     ASSIGN = auto()
     SEMI = auto()
+    VAR = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -39,6 +47,14 @@ class Token:
         return str(self)
 
     @classmethod
+    def program(cls) -> "Token":
+        return Token(TokenType.PROGRAM, "PROGRAM")
+
+    @classmethod
+    def var(cls) -> "Token":
+        return Token(TokenType.VAR, "VAR")
+
+    @classmethod
     def plus(cls) -> "Token":
         return Token(TokenType.PLUS, "+")
 
@@ -51,12 +67,36 @@ class Token:
         return Token(TokenType.MULTIPLICATION, "*")
 
     @classmethod
-    def div(cls) -> "Token":
-        return Token(TokenType.DIVISION, "DIV")
+    def int_div(cls) -> "Token":
+        return Token(TokenType.INTEGER_DIV, "DIV")
 
     @classmethod
-    def integer(cls, value: str) -> "Token":
-        return Token(TokenType.INTEGER, value)
+    def float_div(cls) -> "Token":
+        return Token(TokenType.FLOAT_DIV, "/")
+
+    @classmethod
+    def const_int(cls, value: str) -> "Token":
+        return Token(TokenType.INTEGER_CONST, value)
+
+    @classmethod
+    def const_float(cls, value: str) -> "Token":
+        return Token(TokenType.REAL_CONST, value)
+
+    @classmethod
+    def integer(cls) -> "Token":
+        return Token(TokenType.INTEGER, "INTEGER")
+
+    @classmethod
+    def real(cls) -> "Token":
+        return Token(TokenType.REAL, "REAL")
+
+    @classmethod
+    def colon(cls) -> "Token":
+        return Token(TokenType.COLON, ":")
+
+    @classmethod
+    def comma(cls) -> "Token":
+        return Token(TokenType.COMMA, ",")
 
     @classmethod
     def eof(cls) -> "Token":

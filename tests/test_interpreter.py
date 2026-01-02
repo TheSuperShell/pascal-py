@@ -5,7 +5,7 @@ from src.lexer import Lexer
 from src.parser import Parser
 
 
-OPS = ["+", "-", "*", "DIV"]
+OPS = ["+", "-", "*", "DIV", "/"]
 
 
 @given(
@@ -37,7 +37,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
     for _ in range(opened_p):
         inp.append(")")
     code = "".join(inp)
-    pascal_code = f"BEGIN a:={code}; END."
+    pascal_code = f"PROGRAM name; BEGIN a:={code}; END."
     lexer = Lexer(pascal_code)
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
@@ -52,7 +52,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
 
 
 def test_intepreter_assign():
-    lexer = Lexer("BEGIN a:= 5; b:=10; c:= a + b; END.")
+    lexer = Lexer("PROGRAM name; BEGIN a:= 5; b:=10; c:= a + b; END.")
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
     interpreter.process()
@@ -62,7 +62,7 @@ def test_intepreter_assign():
 
 
 def test_intepreter_assign_error():
-    lexer = Lexer("BEGIN a:= 5; c:= a + k; END.")
+    lexer = Lexer("PROGRAM name; BEGIN a:= 5; c:= a + k; END.")
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
     with pytest.raises(NameError):
