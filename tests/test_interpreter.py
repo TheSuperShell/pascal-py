@@ -12,7 +12,7 @@ OPS = ["+", "-", "*", "DIV", "/"]
     st.lists(
         st.tuples(
             st.integers(),
-            st.integers(min_value=0, max_value=3),
+            st.integers(min_value=0, max_value=4),
             st.integers(min_value=1, max_value=3),
         ),
         min_size=1,
@@ -41,6 +41,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
     lexer = Lexer(pascal_code)
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
+    print(code)
     try:
         result = eval(code.replace("DIV", "//"))
     except ZeroDivisionError:
