@@ -26,10 +26,10 @@ data = [
         ],
     ],
     [
-        "BEGIN\n\ta:=10;end.",
+        "BEGIN\n\t_a_4:=10;end.",
         [
             Token.begin(),
-            Token.Id("A"),
+            Token.Id("_A_4"),
             Token.assign(),
             Token.integer("10"),
             Token.semi(),

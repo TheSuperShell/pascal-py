@@ -42,7 +42,7 @@ class Lexer:
 
     def _id(self) -> Token:
         current_index = self.index
-        while self.char is not None and self.char.isalnum():
+        while self.char is not None and (self.char.isalnum() or self.char == "_"):
             self.advance()
         word = self.file_text[current_index : self.index].upper()
         return _RESERVED_KEYWORDS.get(word, Token.Id(word))
@@ -81,7 +81,7 @@ class Lexer:
             return Token.close_p()
         if self.char.isdigit():
             return self.integer()
-        if self.char.isalnum():
+        if self.char.isalnum() or self.char == "_":
             return self._id()
         if self.char == ";":
             self.advance()
