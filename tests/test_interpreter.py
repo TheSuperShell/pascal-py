@@ -50,7 +50,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
             interpreter.process()
         return
     interpreter.process()
-    assert result == visitor.global_scope["A"]
+    assert result == visitor.global_scope["a"]
 
 
 def test_intepreter_assign():
@@ -59,9 +59,9 @@ def test_intepreter_assign():
     visitor = DefaultVisitor()
     interpreter = Interpreter(parser, visitor)
     interpreter.process()
-    assert visitor.global_scope["A"] == 5
-    assert visitor.global_scope["B"] == 10
-    assert visitor.global_scope["C"] == 15
+    assert visitor.global_scope["a"] == 5
+    assert visitor.global_scope["b"] == 10
+    assert visitor.global_scope["c"] == 15
 
 
 def test_intepreter_assign_error():

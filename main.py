@@ -1,8 +1,9 @@
 from pathlib import Path
 import sys
-from src.interpreter import Interpreter
+from src.interpreter import DefaultVisitor, Interpreter
 from src.lexer import Lexer
 from src.parser import Parser
+from src.semantic_analyzer import SymbolTableVisitor
 
 
 def main():
@@ -13,8 +14,13 @@ def main():
         code = f.read()
     lexer = Lexer(code)
     parser = Parser(lexer)
-    interpreter = Interpreter(parser)
+    symbols = SymbolTableVisitor()
+    default_visitor = DefaultVisitor()
+    interpreter = Interpreter(parser, symbols, default_visitor)
     interpreter.process()
+    print(str(symbols.symtab))
+    for k, v in default_visitor.global_scope.items():
+        print(f"{k} = {v}")
 
 
 if __name__ == "__main__":

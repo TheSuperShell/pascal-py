@@ -6,7 +6,7 @@ data = [
     [
         "a := 10 + 9 / 4.3 - (2 div (4)) * 123;",
         [
-            Token.Id("A"),
+            Token.Id("a"),
             Token.assign(),
             Token.const_int("10"),
             Token.plus(),
@@ -31,7 +31,7 @@ data = [
         "BEGIN\n\t_a_4:=10;end.",
         [
             Token.begin(),
-            Token.Id("_A_4"),
+            Token.Id("_a_4"),
             Token.assign(),
             Token.const_int("10"),
             Token.semi(),

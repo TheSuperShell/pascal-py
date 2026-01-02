@@ -21,18 +21,18 @@ data = [
     [
         "PROGRAM name;{ name } PROCEDURE proc; BEGIN b:=3 END; BEGIN\na:=5 END.",
         Program(
-            "NAME",
+            "name",
             Block(
                 (
                     Procedure(
-                        "PROC",
+                        "proc",
                         Block(
                             (),
                             Compound(
                                 (
                                     Assign(
                                         Var(
-                                            Token.Id("B"),
+                                            Token.Id("b"),
                                         ),
                                         Token.assign(),
                                         Num(Token.const_int("3")),
@@ -45,7 +45,7 @@ data = [
                 Compound(
                     (
                         Assign(
-                            Var(Token.Id("A")),
+                            Var(Token.Id("a")),
                             Token.assign(),
                             Num(Token.const_int("5")),
                         ),
@@ -54,24 +54,24 @@ data = [
             ),
         ),
     ],
-    ["PROGRAM empty; BEGIN END.", Program("EMPTY", Block((), Compound((NoOp(),))))],
+    ["PROGRAM empty; BEGIN end.", Program("empty", Block((), Compound((NoOp(),))))],
     [
         "PROGRAM nums; VAR a, b: INTEGER; BEGIN a:=5; b:=a; END.",
         Program(
-            "NUMS",
+            "nums",
             Block(
                 (
-                    VarDecl(Var(Token.Id("A")), Type(Token.integer())),
-                    VarDecl(Var(Token.Id("B")), Type(Token.integer())),
+                    VarDecl(Var(Token.Id("a")), Type(Token.integer())),
+                    VarDecl(Var(Token.Id("b")), Type(Token.integer())),
                 ),
                 Compound(
                     (
                         Assign(
-                            Var(Token.Id("A")),
+                            Var(Token.Id("a")),
                             Token.assign(),
                             Num(Token.const_int("5")),
                         ),
-                        Assign(Var(Token.Id("B")), Token.assign(), Var(Token.Id("A"))),
+                        Assign(Var(Token.Id("b")), Token.assign(), Var(Token.Id("a"))),
                         NoOp(),
                     )
                 ),
@@ -79,15 +79,15 @@ data = [
         ),
     ],
     [
-        "PROGRAM fl; VAR VAL : REAL; BEGIN val:=5 + (10 / 3); END.",
+        "PROGRAM fl; VAR val : REAL; BEGIN val:=5 + (10 / 3); END.",
         Program(
-            "FL",
+            "fl",
             Block(
-                (VarDecl(Var(Token.Id("VAL")), Type(Token.real())),),
+                (VarDecl(Var(Token.Id("val")), Type(Token.real())),),
                 Compound(
                     (
                         Assign(
-                            Var(Token.Id("VAL")),
+                            Var(Token.Id("val")),
                             Token.assign(),
                             BinOp(
                                 Num(Token.const_int("5")),

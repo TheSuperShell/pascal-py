@@ -21,12 +21,19 @@ class Lexer:
 
     def __init__(self, file_text: str) -> None:
         self.file_text: str = file_text.strip()
-        self.index: int = 0
-        self.char: str | None = file_text[0]
-        self.stop: bool = False
+        self.restart()
 
     def __iter__(self) -> "Lexer":
         return self
+
+    def get_cursor_pos(self) -> tuple[int, int]:
+        lines = self.file_text[: self.index].split("\n")
+        return len(lines), len(lines[-1])
+
+    def restart(self) -> None:
+        self.index: int = 0
+        self.char: str | None = self.file_text[0]
+        self.stop: bool = False
 
     def advance(self) -> None:
         self.index += 1
@@ -61,8 +68,8 @@ class Lexer:
         current_index = self.index
         while self.char is not None and (self.char.isalnum() or self.char == "_"):
             self.advance()
-        word = self.file_text[current_index : self.index].upper()
-        return _RESERVED_KEYWORDS.get(word, Token.Id(word))
+        word = self.file_text[current_index : self.index]
+        return _RESERVED_KEYWORDS.get(word.upper(), Token.Id(word))
 
     def peek(self) -> str | None:
         peek_pos = self.index + 1
@@ -72,8 +79,7 @@ class Lexer:
 
     def __next__(self) -> Token:
         if self.stop:
-            self.index = 0
-            self.stop = False
+            self.restart()
             raise StopIteration()
 
         self.skip_space()

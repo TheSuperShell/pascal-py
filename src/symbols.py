@@ -1,27 +1,33 @@
 from abc import ABC
-from dataclasses import dataclass
 
 
-@dataclass(frozen=True, slots=True)
 class Symbol(ABC):
-    name: str
-    symbol_type: "None | Symbol" = None
+    __slots__ = "name", "symbol_type"
+
+    def __init__(self, name: str, symbol_type: "None | Symbol" = None) -> None:
+        self.name: str = name
+        self.symbol_type: "None | Symbol" = symbol_type
+
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__}(name='{self.name}'" + (
+            f", type='{self.symbol_type.name}')" if self.symbol_type else ")"
+        )
+
+    __repr__ = __str__
 
 
-@dataclass(frozen=True, slots=True)
 class BuiltinTypeSymbol(Symbol):
-    def __str__(self) -> str:
-        return self.name
+    __slots__ = "name"
 
-    __repr__ = __str__
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
 
 
-@dataclass(frozen=True, slots=True)
 class VarSymbol(Symbol):
-    def __str__(self) -> str:
-        return f"<{self.name}:{self.symbol_type}>"
+    __slots__ = "name", "symbol_type"
 
-    __repr__ = __str__
+    def __init__(self, name: str, symbol_type: Symbol | None) -> None:
+        super().__init__(name, symbol_type)
 
 
 class SymbolTable:
@@ -32,7 +38,11 @@ class SymbolTable:
         self._init_builtins()
 
     def __str__(self) -> str:
-        return f"Symbols: {[str(val) for val in self._symbols.values()]}"
+        header = "Symbol table contents"
+        lines = ["\n", header, "_" * len(header)]
+        lines.extend(f"{k:>7}: {v}" for k, v in self._symbols.items())
+        lines.append("\n")
+        return "\n".join(lines)
 
     def define(self, symbol: Symbol) -> None:
         print(f"Define: {symbol}")

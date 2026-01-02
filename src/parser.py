@@ -198,11 +198,16 @@ class Parser:
         self.lexer = lexer
         self.current_token = next(lexer)
 
+    def restart(self) -> None:
+        self.lexer.restart()
+        self.current_token = next(self.lexer)
+
     def eat(self, token_type: TokenType, *token_types: TokenType) -> None:
         expected = (token_type,) + token_types
         if self.current_token.token_type not in expected:
+            line_no, pos = self.lexer.get_cursor_pos()
             raise ParsingError(
-                f"expected {expected}, got {self.current_token.token_type}"
+                f"parsing error at line no {line_no}: expected {expected} as pos {pos}, got {self.current_token.token_type}"
             )
         self.current_token = next(self.lexer)
 
@@ -335,4 +340,5 @@ class Parser:
         node = self.program()
         if self.current_token.token_type != TokenType.EOF:
             raise ParsingError("EOF not found")
+        self.restart()
         return node
