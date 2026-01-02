@@ -4,7 +4,7 @@ from src.parser import (
     Assign,
     BinOp,
     Block,
-    Compund,
+    Compound,
     NoOp,
     Num,
     Parser,
@@ -23,7 +23,7 @@ data = [
             "NAME",
             Block(
                 (),
-                Compund(
+                Compound(
                     (
                         Assign(
                             Var(Token.Id("A")),
@@ -35,7 +35,7 @@ data = [
             ),
         ),
     ],
-    ["PROGRAM empty; BEGIN END.", Program("EMPTY", Block((), Compund((NoOp(),))))],
+    ["PROGRAM empty; BEGIN END.", Program("EMPTY", Block((), Compound((NoOp(),))))],
     [
         "PROGRAM nums; VAR a, b: INTEGER; BEGIN a:=5; b:=a; END.",
         Program(
@@ -45,7 +45,7 @@ data = [
                     VarDecl(Var(Token.Id("A")), Type(Token.integer())),
                     VarDecl(Var(Token.Id("B")), Type(Token.integer())),
                 ),
-                Compund(
+                Compound(
                     (
                         Assign(
                             Var(Token.Id("A")),
@@ -65,7 +65,7 @@ data = [
             "FL",
             Block(
                 (VarDecl(Var(Token.Id("VAL")), Type(Token.real())),),
-                Compund(
+                Compound(
                     (
                         Assign(
                             Var(Token.Id("VAL")),

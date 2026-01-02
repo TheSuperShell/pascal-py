@@ -80,7 +80,7 @@ class UnaryOp(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Compund(AST):
+class Compound(AST):
     children: tuple[AST, ...]
 
     def __str__(self) -> str:
@@ -143,7 +143,7 @@ class Program(AST):
 @dataclass(frozen=True, slots=True)
 class Block(AST):
     declarations: "tuple[VarDecl, ...]"
-    compund_statement: Compund
+    compund_statement: Compound
 
     def __str__(self) -> str:
         return str(self.compund_statement)
@@ -237,11 +237,11 @@ class Parser:
         self.eat(TokenType.INTEGER, TokenType.REAL)
         return Type(token)
 
-    def compound_statement(self) -> Compund:
+    def compound_statement(self) -> Compound:
         self.eat(TokenType.BEGIN)
         nodes = self.statement_list()
         self.eat(TokenType.END)
-        return Compund(tuple(nodes))
+        return Compound(tuple(nodes))
 
     def statement_list(self) -> list[AST]:
         results = [self.statement()]

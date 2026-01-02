@@ -1,6 +1,6 @@
 from hypothesis import given, strategies as st
 import pytest
-from src.interpreter import Interpreter
+from src.interpreter import DefaultVisitor, Interpreter
 from src.lexer import Lexer
 from src.parser import Parser
 
@@ -40,7 +40,8 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
     pascal_code = f"PROGRAM name; BEGIN a:={code}; END."
     lexer = Lexer(pascal_code)
     parser = Parser(lexer)
-    interpreter = Interpreter(parser)
+    visitor = DefaultVisitor()
+    interpreter = Interpreter(parser, visitor)
     print(code)
     try:
         result = eval(code.replace("DIV", "//"))
@@ -49,17 +50,18 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
             interpreter.process()
         return
     interpreter.process()
-    assert result == interpreter.global_scope["A"]
+    assert result == visitor.global_scope["A"]
 
 
 def test_intepreter_assign():
     lexer = Lexer("PROGRAM name; BEGIN a:= 5; b:=10; c:= a + b; END.")
     parser = Parser(lexer)
-    interpreter = Interpreter(parser)
+    visitor = DefaultVisitor()
+    interpreter = Interpreter(parser, visitor)
     interpreter.process()
-    assert interpreter.global_scope["A"] == 5
-    assert interpreter.global_scope["B"] == 10
-    assert interpreter.global_scope["C"] == 15
+    assert visitor.global_scope["A"] == 5
+    assert visitor.global_scope["B"] == 10
+    assert visitor.global_scope["C"] == 15
 
 
 def test_intepreter_assign_error():
