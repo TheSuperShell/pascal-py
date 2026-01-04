@@ -7,6 +7,7 @@ from src.parser import (
     Compound,
     NoOp,
     Num,
+    Param,
     Parser,
     Procedure,
     Program,
@@ -39,6 +40,48 @@ data = [
                                     ),
                                 )
                             ),
+                        ),
+                        (),
+                    ),
+                ),
+                Compound(
+                    (
+                        Assign(
+                            Var(Token.Id("a")),
+                            Token.assign(),
+                            Num(Token.const_int("5")),
+                        ),
+                    )
+                ),
+            ),
+        ),
+    ],
+    [
+        "PROGRAM name; PROCEDURE proc(a, b: integer; c: real); BEGIN b:=3 END; BEGIN\na:=5 END.",
+        Program(
+            "name",
+            Block(
+                (
+                    Procedure(
+                        "proc",
+                        Block(
+                            (),
+                            Compound(
+                                (
+                                    Assign(
+                                        Var(
+                                            Token.Id("b"),
+                                        ),
+                                        Token.assign(),
+                                        Num(Token.const_int("3")),
+                                    ),
+                                )
+                            ),
+                        ),
+                        (
+                            Param(Var(Token.Id("a")), Type(Token.integer())),
+                            Param(Var(Token.Id("b")), Type(Token.integer())),
+                            Param(Var(Token.Id("c")), Type(Token.real())),
                         ),
                     ),
                 ),

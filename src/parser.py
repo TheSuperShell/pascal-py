@@ -261,11 +261,34 @@ class Parser:
             self.eat(TokenType.PROCEDURE)
             proc_name = self.current_token.value
             self.eat(TokenType.ID)
+            params = []
+            if self.current_token.token_type == TokenType.OPEN_PARANTH:
+                self.eat(TokenType.OPEN_PARANTH)
+                params = self.formal_parameter_list()
+                self.eat(TokenType.CLOSE_PARANTH)
             self.eat(TokenType.SEMI)
             block = self.block()
             self.eat(TokenType.SEMI)
-            decls.append(Procedure(proc_name, block, ()))
+            decls.append(Procedure(proc_name, block, tuple(params)))
         return decls
+
+    def formal_parameter_list(self) -> list[Param]:
+        params = self.formal_parameters()
+        if self.current_token.token_type == TokenType.SEMI:
+            self.eat(TokenType.SEMI)
+            params.extend(self.formal_parameter_list())
+        return params
+
+    def formal_parameters(self) -> list[Param]:
+        names = [self.current_token]
+        self.eat(TokenType.ID)
+        while self.current_token.token_type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            names.append(self.current_token)
+            self.eat(TokenType.ID)
+        self.eat(TokenType.COLON)
+        param_type = self.type_spec()
+        return [Param(Var(name), param_type) for name in names]
 
     def variable_declaration(self) -> list[VarDecl]:
         var_nodes = [Var(self.current_token)]
