@@ -18,7 +18,6 @@ def main():
     default_visitor = DefaultVisitor()
     interpreter = Interpreter(parser, symbols, default_visitor)
     interpreter.process()
-    print(str(symbols.symtab))
     for k, v in default_visitor.global_scope.items():
         print(f"{k} = {v}")
 

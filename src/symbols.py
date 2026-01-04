@@ -1,4 +1,5 @@
 from abc import ABC
+from collections.abc import Sequence
 
 
 class Symbol(ABC):
@@ -28,6 +29,19 @@ class VarSymbol(Symbol):
 
     def __init__(self, name: str, symbol_type: Symbol | None) -> None:
         super().__init__(name, symbol_type)
+
+
+class ProcedureSymbol(Symbol):
+    __slots__ = "name", "params"
+
+    def __init__(self, name: str, params: Sequence[Symbol] | None = None) -> None:
+        super().__init__(name)
+        self.params: list[Symbol] = list(params) if params is not None else []
+
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__}(name={self.name}, params={self.params})>"
+
+    __repr__ = __str__
 
 
 class ScopedSymbolTable:
