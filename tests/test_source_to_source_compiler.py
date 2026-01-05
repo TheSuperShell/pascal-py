@@ -5,7 +5,7 @@ from src.parser import Parser
 from src.source_to_source_compiler import S2SCompiler
 
 
-@pytest.mark.parametrize(("expected_file_number",), [[i] for i in range(1, 3)])
+@pytest.mark.parametrize(("expected_file_number",), [[i] for i in range(1, 4)])
 def test_source_to_source_compiler(expected_file_number):
     with open(f"tests/test_examples/s2s_source_{expected_file_number}.pas") as f:
         source_code = f.read()
