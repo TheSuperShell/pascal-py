@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, override
 
 from src.parser import (
@@ -12,13 +12,18 @@ from src.parser import (
     VarDecl,
     Type,
 )
-from src.symbols import ProcedureSymbol, ScopedSymbolTable, VarSymbol
+from src.symbols import ProcedureSymbol, ProgramSymbol, ScopedSymbolTable, VarSymbol
 from src.visitor import Visitor
+
+
+class SemanticError(Exception): ...
 
 
 @dataclass(slots=True)
 class SymbolTableVisitor(Visitor):
-    current_scope: ScopedSymbolTable | None = None
+    current_scope: ScopedSymbolTable | None = field(
+        default_factory=ScopedSymbolTable.create_builtin_scope
+    )
 
     def get_current_scope(self) -> ScopedSymbolTable:
         assert self.current_scope
@@ -26,11 +31,16 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Program(self, node: Program) -> Any:
+        program_name = node.name
+        self.get_current_scope().define(VarSymbol(program_name, ProgramSymbol()))
         print("ENTER scope: global")
-        global_scope = ScopedSymbolTable("global", scope_level=1)
+        global_scope = ScopedSymbolTable(
+            "global", scope_level=1, enclosing_sope=self.current_scope
+        )
         self.current_scope = global_scope
         self.visit(node.block)
         print(global_scope)
+        self.current_scope = self.current_scope.enclosing_scope
         print("LEAVE scope: global")
 
     @override
@@ -40,7 +50,12 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(proc_symbol)
 
         print(f"ENTER scope: {proc_name}")
-        procedure_scope = ScopedSymbolTable(proc_name, scope_level=2)
+        procedure_scope = ScopedSymbolTable(
+            proc_name,
+            scope_level=(self.current_scope.scope_level if self.current_scope else 0)
+            + 1,
+            enclosing_sope=self.current_scope,
+        )
         self.current_scope = procedure_scope
 
         for param in node.params:
@@ -52,6 +67,7 @@ class SymbolTableVisitor(Visitor):
 
         self.visit(node.block)
         print(procedure_scope)
+        self.current_scope = self.current_scope.enclosing_scope
         print(f"LEAVE scope: {proc_name}")
 
     @override
@@ -83,8 +99,11 @@ class SymbolTableVisitor(Visitor):
         var_name = node.var_node.value
         var_symbol = VarSymbol(var_name, type_symbol)
 
-        if self.get_current_scope().lookup(var_name) is not None:
-            raise Exception(f"duplicate identifier {var_name} found")
+        if (
+            self.get_current_scope().lookup(var_name, current_scope_only=True)
+            is not None
+        ):
+            raise SemanticError(f"duplicate identifier {var_name} found")
         self.get_current_scope().define(var_symbol)
 
     @override

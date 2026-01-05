@@ -44,14 +44,30 @@ class ProcedureSymbol(Symbol):
     __repr__ = __str__
 
 
-class ScopedSymbolTable:
-    __slots__ = "_symbols", "scope_name", "scope_level"
+class ProgramSymbol(Symbol):
+    def __init__(self) -> None:
+        super().__init__("PROGRAM")
 
-    def __init__(self, scope_name: str, *, scope_level: int) -> None:
+    def __str__(self) -> str:
+        return "PROGRAM"
+
+    __repr__ = __str__
+
+
+class ScopedSymbolTable:
+    __slots__ = "_symbols", "scope_name", "scope_level", "enclosing_scope"
+
+    def __init__(
+        self,
+        scope_name: str,
+        *,
+        scope_level: int,
+        enclosing_sope: "None | ScopedSymbolTable" = None,
+    ) -> None:
         self._symbols: dict[str, Symbol] = {}
         self.scope_level = scope_level
         self.scope_name = scope_name
-        self._init_builtins()
+        self.enclosing_scope = enclosing_sope
 
     def __str__(self) -> str:
         h1 = "SCOPE (SCOPED SYMBOL TABLE)"
@@ -59,6 +75,10 @@ class ScopedSymbolTable:
         for header_name, header_value in (
             ("Scope name", self.scope_name),
             ("Scope level", self.scope_level),
+            (
+                "Enclosing scope",
+                self.enclosing_scope.scope_name if self.enclosing_scope else None,
+            ),
         ):
             lines.append(f"{header_name:<15}: {header_value}")
         h2 = "Scope (Scoped symbol table) contents"
@@ -71,10 +91,21 @@ class ScopedSymbolTable:
         print(f"Define: {symbol}")
         self._symbols[symbol.name] = symbol
 
-    def lookup(self, name: str) -> Symbol | None:
-        print(f"Lookup: {name}")
-        return self._symbols.get(name)
+    def lookup(self, name: str, *, current_scope_only: bool = False) -> Symbol | None:
+        print(f"Lookup (scope name: {self.scope_name}): {name}")
+        symbol = self._symbols.get(name)
+        if symbol is not None:
+            return symbol
+        if current_scope_only:
+            return None
+        if self.enclosing_scope is not None:
+            return self.enclosing_scope.lookup(name)
 
-    def _init_builtins(self):
-        self.define(BuiltinTypeSymbol("INTEGER"))
-        self.define(BuiltinTypeSymbol("REAL"))
+    @classmethod
+    def create_builtin_scope(cls) -> "ScopedSymbolTable":
+        print("ENTER scope: builtins")
+        table = ScopedSymbolTable("builtins", scope_level=0)
+        table.define(BuiltinTypeSymbol("INTEGER"))
+        table.define(BuiltinTypeSymbol("REAL"))
+        print(table)
+        return table
