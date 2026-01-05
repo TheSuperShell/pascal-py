@@ -83,9 +83,9 @@ class Lexer:
             raise StopIteration()
 
         self.skip_space()
-        if self.char == "{":
+        while self.char == "{":
             self.comment()
-        self.skip_space()
+            self.skip_space()
         if self.char is None:
             self.stop = True
             return Token(TokenType.EOF)

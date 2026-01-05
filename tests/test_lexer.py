@@ -41,7 +41,7 @@ data = [
         ],
     ],
     [
-        "PROGRAM\n PROCEDURE VAR:\nA, B:INTEGER { other } BEGIN { some comment }; END.",
+        "PROGRAM\n PROCEDURE VAR:\nA, B:INTEGER { other } BEGIN { some comment }\n{other}; END.",
         [
             Token.program(),
             Token.procedure(),
