@@ -5,6 +5,7 @@ from src.parser import (
     Assign,
     BinOp,
     Num,
+    Param,
     Procedure,
     Program,
     UnaryOp,
@@ -114,4 +115,8 @@ class SymbolTableVisitor(Visitor):
     def visit_BinOp(self, node: BinOp) -> Any:
         self.visit(node.left)
         self.visit(node.right)
+        return None
+
+    @override
+    def visit_Param(self, node: Param) -> Any:
         return None

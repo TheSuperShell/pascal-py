@@ -101,6 +101,15 @@ class ScopedSymbolTable:
         if self.enclosing_scope is not None:
             return self.enclosing_scope.lookup(name)
 
+    def lookup_with_scope(self, name: str) -> tuple[Symbol | None, int]:
+        print(f"Lookup (scope name: {self.scope_name}): {name}")
+        symbol = self._symbols.get(name)
+        if symbol is not None:
+            return symbol, self.scope_level
+        if self.enclosing_scope is not None:
+            return self.enclosing_scope.lookup_with_scope(name)
+        return None, -1
+
     @classmethod
     def create_builtin_scope(cls) -> "ScopedSymbolTable":
         print("ENTER scope: builtins")

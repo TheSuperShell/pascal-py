@@ -4,6 +4,7 @@ from typing import Any, override
 from src.parser import (
     Assign,
     Num,
+    Param,
     Parser,
     BinOp,
     Type,
@@ -36,6 +37,10 @@ _UNARY_OP: dict[TokenType, Callable[[int | float], int | float]] = {
 @dataclass(slots=True)
 class DefaultVisitor(Visitor):
     global_scope: dict[str, Any] = field(default_factory=dict)
+
+    @override
+    def visit_Param(self, node: Param) -> Any:
+        return None
 
     @override
     def visit_Num(self, node: Num) -> Any:

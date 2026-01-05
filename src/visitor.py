@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from src.parser import AST, Block, Program
+from src.parser import AST, Block, Param, Program
 
 from src.parser import (
     Assign,
@@ -65,3 +65,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_UnaryOp(self, node: UnaryOp) -> Any: ...
+
+    @abstractmethod
+    def visit_Param(self, node: Param) -> Any: ...
