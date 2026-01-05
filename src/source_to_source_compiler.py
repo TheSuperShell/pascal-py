@@ -44,7 +44,6 @@ class S2SCompiler(Visitor):
         output = []
         output.append(f"program {program_name}0;")
 
-        print("ENTER scope: global")
         global_scope = ScopedSymbolTable(
             "global", scope_level=1, enclosing_sope=self.current_scope
         )
@@ -53,8 +52,6 @@ class S2SCompiler(Visitor):
         output.extend(self.visit(node.block))
         output.append(f"end. {{END OF {program_name}}}")  # "
 
-        print(global_scope)
-        print("LEAVING scope: global_scope")
         self.current_scope = self.current_scope.enclosing_scope
         return output
 
@@ -108,7 +105,6 @@ class S2SCompiler(Visitor):
     def visit_Procedure(self, node: Procedure) -> Any:
         proc_name = node.name
         previous_scope_level = self.get_current_scope().scope_level
-        print(f"ENTER scope: {proc_name}")
         proc_scope = ScopedSymbolTable(
             proc_name,
             scope_level=previous_scope_level + 1,
@@ -124,7 +120,6 @@ class S2SCompiler(Visitor):
         ]
         result.extend(self.visit(node.block))
         result.append(f"{self.tabs_previous}end; {{END OF {proc_name}}}")
-        print(f"LEAVE scope: {proc_name}")
         self.current_scope = self.get_current_scope().enclosing_scope
         return result
 
