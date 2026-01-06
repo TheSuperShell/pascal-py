@@ -4,15 +4,22 @@ from typing import Any
 
 
 class CallStack[T]:
-    __slots__ = "_records"
+    __slots__ = "_records", "_popped_records"
 
     def __init__(self) -> None:
         self._records: list[T] = []
+        self._popped_records: list[T] = []
+
+    def get_popped_records(self) -> list[T]:
+        return self._popped_records
 
     def pop(self) -> T:
         if len(self._records) == 0:
             raise Exception("stack is empty")
-        return self._records.pop()
+
+        record = self._records.pop()
+        self._popped_records.append(record)
+        return record
 
     def push(self, ar: T) -> None:
         self._records.append(ar)

@@ -53,7 +53,7 @@ class DefaultVisitor(Visitor):
         print(self.call_stack)
         self.visit(node.block)
         print(self.call_stack)
-        # self.call_stack.pop()
+        self.call_stack.pop()
 
     @override
     def visit_Block(self, node: Block) -> Any:

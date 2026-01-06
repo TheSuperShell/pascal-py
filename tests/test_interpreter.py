@@ -50,7 +50,7 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
             interpreter.process()
         return
     interpreter.process()
-    assert result == visitor.call_stack.peek()["a"]
+    assert result == visitor.call_stack.get_popped_records()[0]["a"]
 
 
 def test_intepreter_assign():
@@ -59,9 +59,9 @@ def test_intepreter_assign():
     visitor = DefaultVisitor()
     interpreter = Interpreter(parser, visitor)
     interpreter.process()
-    assert visitor.call_stack.peek()["a"] == 5
-    assert visitor.call_stack.peek()["b"] == 10
-    assert visitor.call_stack.peek()["c"] == 15
+    assert visitor.call_stack.get_popped_records()[0]["a"] == 5
+    assert visitor.call_stack.get_popped_records()[0]["b"] == 10
+    assert visitor.call_stack.get_popped_records()[0]["c"] == 15
 
 
 def test_intepreter_assign_error():
