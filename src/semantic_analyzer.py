@@ -23,6 +23,8 @@ from src.visitor import Visitor
 class ErrorCode(IntEnum):
     DUPLICATE_VARIABLE = auto()
     ID_NOT_FOUND = auto()
+    INCORRECT_CALL_TYPE = auto()
+    INCORRECT_NUMBER_OF_INPUTS = auto()
 
 
 class SemanticError(Exception):
@@ -146,5 +148,25 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
+        proc_name = node.proc_name
+        proc_symbol = self.get_current_scope().lookup(proc_name)
+        if proc_symbol is None:
+            raise SemanticError(
+                f"no procedure found: {proc_name}", ErrorCode.ID_NOT_FOUND, node
+            )
+        if not isinstance(proc_symbol, ProcedureSymbol):
+            raise SemanticError(
+                f"found {proc_name}, but it's not a procedure: {proc_symbol}",
+                ErrorCode.INCORRECT_CALL_TYPE,
+                node,
+            )
+        if len(proc_symbol.params) != len(node.actual_params):
+            raise SemanticError(
+                f"procedure {proc_name} expected "
+                f"{len(proc_symbol.params)} number of inputs, "
+                f"found {len(node.actual_params)}",
+                ErrorCode.INCORRECT_NUMBER_OF_INPUTS,
+                node,
+            )
         for param_node in node.actual_params:
             self.visit(param_node)
