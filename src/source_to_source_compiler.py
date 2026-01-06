@@ -12,12 +12,13 @@ from src.parser import (
     Procedure,
     ProcedureCall,
     Program,
+    ScopedSymbolTable,
     Type,
     UnaryOp,
     Var,
     VarDecl,
+    VarSymbol,
 )
-from src.symbols import ScopedSymbolTable, VarSymbol
 from src.visitor import Visitor
 
 
