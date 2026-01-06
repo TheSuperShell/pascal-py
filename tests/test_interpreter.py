@@ -3,6 +3,7 @@ import pytest
 from src.interpreter import DefaultVisitor, Interpreter
 from src.lexer import Lexer
 from src.parser import Parser
+from src.semantic_analyzer import SemanticError
 
 
 OPS = ["+", "-", "*", "DIV", "/"]
@@ -67,5 +68,5 @@ def test_intepreter_assign_error():
     lexer = Lexer("PROGRAM name; BEGIN a:= 5; c:= a + k; END.")
     parser = Parser(lexer)
     interpreter = Interpreter(parser)
-    with pytest.raises(NameError):
+    with pytest.raises(SemanticError):
         interpreter.process()

@@ -1,7 +1,9 @@
 from src.token import Token, TokenType
 
 
-class ScriptParsingError(Exception): ...
+class LexerError(Exception):
+    def __init__(self, message: str | None = None) -> None:
+        self.message = message
 
 
 _RESERVED_KEYWORDS: dict[str, Token] = {
@@ -127,4 +129,5 @@ class Lexer:
         if self.char == ".":
             self.advance()
             return Token.dot()
-        raise ScriptParsingError(f"Uknown symbol {self.char}")
+        lineno, pos = self.get_cursor_pos()
+        raise LexerError(f"uknown symbol {self.char} on {lineno} line number at {pos}")

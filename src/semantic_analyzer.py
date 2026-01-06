@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field
+from enum import IntEnum, auto
 from typing import Any, override
 
 from src.parser import (
+    AST,
     Assign,
     BinOp,
     Num,
@@ -17,7 +19,21 @@ from src.symbols import ProcedureSymbol, ProgramSymbol, ScopedSymbolTable, VarSy
 from src.visitor import Visitor
 
 
-class SemanticError(Exception): ...
+class ErrorCode(IntEnum):
+    DUPLICATE_VARIABLE = auto()
+    ID_NOT_FOUND = auto()
+
+
+class SemanticError(Exception):
+    def __init__(
+        self,
+        message: str | None = None,
+        error_code: ErrorCode | None = None,
+        node: AST | None = None,
+    ) -> None:
+        self.message = message
+        self.error_code = error_code
+        self.node = node
 
 
 @dataclass(slots=True)
@@ -85,7 +101,9 @@ class SymbolTableVisitor(Visitor):
         var_name = node.value
         var_symbol = self.get_current_scope().lookup(var_name)
         if var_symbol is None:
-            raise NameError(f"symbol not found {var_name}")
+            raise SemanticError(
+                f"symbol not found {var_name}", ErrorCode.ID_NOT_FOUND, node
+            )
         return
 
     @override
@@ -104,7 +122,11 @@ class SymbolTableVisitor(Visitor):
             self.get_current_scope().lookup(var_name, current_scope_only=True)
             is not None
         ):
-            raise SemanticError(f"duplicate identifier {var_name} found")
+            raise SemanticError(
+                f"duplicate identifier {var_name} found",
+                ErrorCode.DUPLICATE_VARIABLE,
+                node,
+            )
         self.get_current_scope().define(var_symbol)
 
     @override

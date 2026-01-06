@@ -1,12 +1,28 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import IntEnum, auto
 
 from src.lexer import Lexer
 
 from src.token import Token, TokenType
 
 
-class ParsingError(Exception): ...
+class ErrorCode(IntEnum):
+    UNEXPECTED_TOKEN = auto()
+    EOF_NOT_FOUND = auto()
+    UNASSIGNED_VARIABLE = auto()
+
+
+class ParserError(Exception):
+    def __init__(
+        self,
+        message: str | None = None,
+        error_code: ErrorCode | None = None,
+        token: Token | None = None,
+    ) -> None:
+        self.message = message
+        self.error_code = error_code
+        self.token = token
 
 
 class AST(ABC):
@@ -224,8 +240,11 @@ class Parser:
         expected = (token_type,) + token_types
         if self.current_token.token_type not in expected:
             line_no, pos = self.lexer.get_cursor_pos()
-            raise ParsingError(
-                f"parsing error at line no {line_no}: expected {expected} as pos {pos}, got {self.current_token.token_type}"
+            raise ParserError(
+                f"parsing error at line no {line_no}:"
+                f" expected {expected} as pos {pos}, got {self.current_token.token_type}",
+                ErrorCode.UNEXPECTED_TOKEN,
+                self.current_token,
             )
         self.current_token = next(self.lexer)
 
@@ -321,7 +340,12 @@ class Parser:
             self.eat(TokenType.SEMI)
             results.append(self.statement())
         if self.current_token.token_type == TokenType.ID:
-            raise ParsingError(f"unassigned variable {self.current_token.value}")
+            lineno, col = self.lexer.get_cursor_pos()
+            raise ParserError(
+                f"unassigned variable {self.current_token.value} at {lineno} line number, {col} column",
+                ErrorCode.UNASSIGNED_VARIABLE,
+                self.current_token,
+            )
         return results
 
     def statement(self) -> AST:
@@ -386,6 +410,8 @@ class Parser:
     def parse(self) -> AST:
         node = self.program()
         if self.current_token.token_type != TokenType.EOF:
-            raise ParsingError("EOF not found")
+            raise ParserError(
+                "EOF not found", ErrorCode.EOF_NOT_FOUND, self.current_token
+            )
         self.restart()
         return node
