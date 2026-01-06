@@ -9,6 +9,7 @@ from src.parser import (
     Num,
     Param,
     Procedure,
+    ProcedureCall,
     Program,
     UnaryOp,
     Var,
@@ -142,3 +143,8 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Param(self, node: Param) -> Any:
         return None
+
+    @override
+    def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
+        for param_node in node.actual_params:
+            self.visit(param_node)

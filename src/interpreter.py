@@ -7,6 +7,7 @@ from src.parser import (
     Param,
     Parser,
     BinOp,
+    ProcedureCall,
     Type,
     UnaryOp,
     Var,
@@ -77,6 +78,10 @@ class DefaultVisitor(Visitor):
         left = self.visit(node.left)
         right = self.visit(node.right)
         return _OPERATIONS[node.token.token_type](left, right)
+
+    @override
+    def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
+        return None
 
 
 @dataclass(slots=True)

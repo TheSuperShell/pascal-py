@@ -10,6 +10,7 @@ from src.parser import (
     Num,
     Param,
     Procedure,
+    ProcedureCall,
     Program,
     Type,
     UnaryOp,
@@ -160,6 +161,10 @@ class S2SCompiler(Visitor):
             raise Exception(f"unkown type {var_type}")
         self.get_current_scope().define(VarSymbol(var_name, type_symbol))
         return f"var {var_name}{scope_level} : {var_type};"
+
+    @override
+    def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
+        return ""
 
     def build_output(self, node: AST) -> str:
         output = self.visit(node)
