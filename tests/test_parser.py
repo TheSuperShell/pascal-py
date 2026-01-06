@@ -10,6 +10,7 @@ from src.parser import (
     Param,
     Parser,
     Procedure,
+    ProcedureCall,
     Program,
     Type,
     Var,
@@ -92,6 +93,32 @@ data = [
                             Token.assign(),
                             Num(Token.const_int("5")),
                         ),
+                    )
+                ),
+            ),
+        ),
+    ],
+    [
+        "PROGRAM name; BEGIN ProcCall(a, 1+2); END.",
+        Program(
+            "name",
+            Block(
+                (),
+                Compound(
+                    (
+                        ProcedureCall(
+                            "ProcCall",
+                            (
+                                Var(Token.Id("a")),
+                                BinOp(
+                                    Num(Token.const_int("1")),
+                                    Token.plus(),
+                                    Num(Token.const_int("2")),
+                                ),
+                            ),
+                            Token.Id("ProcCall"),
+                        ),
+                        NoOp(),
                     )
                 ),
             ),

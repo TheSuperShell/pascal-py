@@ -225,6 +225,19 @@ class Param(AST):
         return f"Param({self.var_node=}, {self.type_node})"
 
 
+@dataclass(frozen=True, slots=True)
+class ProcedureCall(AST):
+    proc_name: str
+    actual_params: tuple[AST, ...]
+    token: Token
+
+    def __str__(self) -> str:
+        return f"{self.proc_name}({self.actual_params})"
+
+    def __repr__(self) -> str:
+        return f"ProcedureCall({self.proc_name=}, {self.actual_params=})"
+
+
 class Parser:
     __slots__ = "lexer", "current_token"
 
@@ -354,6 +367,8 @@ class Parser:
     def statement(self) -> AST:
         if self.current_token.token_type == TokenType.BEGIN:
             return self.compound_statement()
+        if self.current_token.token_type == TokenType.ID and self.lexer.char == "(":
+            return self.proccall_statement()
         if self.current_token.token_type == TokenType.ID:
             return self.assignement_statement()
         return NoOp()
@@ -400,6 +415,20 @@ class Parser:
             node = BinOp(node, token, self.factor())
 
         return node
+
+    def proccall_statement(self) -> AST:
+        proc_token = self.current_token
+        proc_name = self.current_token.value
+        self.eat(TokenType.ID)
+        self.eat(TokenType.OPEN_PARANTH)
+        params = []
+        if self.current_token.token_type != TokenType.CLOSE_PARANTH:
+            params.append(self.expr())
+        while self.current_token.token_type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            params.append(self.expr())
+        self.eat(TokenType.CLOSE_PARANTH)
+        return ProcedureCall(proc_name, tuple(params), proc_token)
 
     def expr(self) -> AST:
         node = self.term()
