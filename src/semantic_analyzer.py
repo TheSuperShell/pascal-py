@@ -6,6 +6,8 @@ from src.parser import (
     AST,
     Assign,
     BinOp,
+    Block,
+    Compound,
     Num,
     Param,
     Procedure,
@@ -62,6 +64,17 @@ class SymbolTableVisitor(Visitor):
         print(global_scope)
         self.current_scope = self.current_scope.enclosing_scope
         print("LEAVE scope: global")
+
+    @override
+    def visit_Block(self, node: Block) -> Any:
+        for decls in node.declarations:
+            self.visit(decls)
+        return self.visit(node.compund_statement)
+
+    @override
+    def visit_Compound(self, node: Compound) -> Any:
+        for child in node.children:
+            self.visit(child)
 
     @override
     def visit_Procedure(self, node: Procedure) -> Any:

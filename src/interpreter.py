@@ -3,11 +3,15 @@ from dataclasses import dataclass, field
 from typing import Any, override
 from src.parser import (
     Assign,
+    Block,
+    Compound,
     Num,
     Param,
     Parser,
     BinOp,
+    Procedure,
     ProcedureCall,
+    Program,
     Type,
     UnaryOp,
     Var,
@@ -15,6 +19,7 @@ from src.parser import (
 )
 from src.semantic_analyzer import SymbolTableVisitor
 from src.token import TokenType
+from src.utils import ARType, ActivationRecord, CallStack
 from src.visitor import Visitor
 
 
@@ -37,7 +42,33 @@ _UNARY_OP: dict[TokenType, Callable[[int | float], int | float]] = {
 
 @dataclass(slots=True)
 class DefaultVisitor(Visitor):
-    global_scope: dict[str, Any] = field(default_factory=dict)
+    call_stack: CallStack[ActivationRecord] = field(default_factory=CallStack)
+
+    @override
+    def visit_Program(self, node: Program) -> Any:
+        program_name = node.name
+
+        ar = ActivationRecord(program_name, ARType.PROGRAM, 0)
+        self.call_stack.push(ar)
+        print(self.call_stack)
+        self.visit(node.block)
+        print(self.call_stack)
+        # self.call_stack.pop()
+
+    @override
+    def visit_Block(self, node: Block) -> Any:
+        for decl in node.declarations:
+            self.visit(decl)
+        return self.visit(node.compund_statement)
+
+    @override
+    def visit_Compound(self, node: Compound) -> Any:
+        for child in node.children:
+            self.visit(child)
+
+    @override
+    def visit_Procedure(self, node: Procedure) -> Any:
+        return
 
     @override
     def visit_Param(self, node: Param) -> Any:
@@ -50,13 +81,13 @@ class DefaultVisitor(Visitor):
     @override
     def visit_Assign(self, node: Assign) -> Any:
         var_name = node.left.value
-        self.global_scope[var_name] = self.visit(node.right)
+        self.call_stack.peek()[var_name] = self.visit(node.right)
         return None
 
     @override
     def visit_Var(self, node: Var) -> Any:
         var_name = node.value
-        val = self.global_scope.get(var_name)
+        val = self.call_stack.peek().get(var_name)
         if val is None:
             raise NameError(repr(var_name))
         return val

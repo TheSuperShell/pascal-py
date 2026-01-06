@@ -26,27 +26,23 @@ class Visitor(ABC):
             raise NotImplementedError(node)
         return method(node)
 
-    def visit_Program(self, node: Program) -> Any:
-        return self.visit(node.block)
+    @abstractmethod
+    def visit_Program(self, node: Program) -> Any: ...
 
-    def visit_Block(self, node: Block) -> Any:
-        for decl in node.declarations:
-            self.visit(decl)
-        return self.visit(node.compund_statement)
+    @abstractmethod
+    def visit_Block(self, node: Block) -> Any: ...
 
     def visit_NoOp(self, node: NoOp) -> Any:
         return None
 
-    def visit_Procedure(self, node: Procedure) -> Any:
-        return None
+    @abstractmethod
+    def visit_Procedure(self, node: Procedure) -> Any: ...
 
     @abstractmethod
     def visit_BinOp(self, node: BinOp) -> Any: ...
 
-    def visit_Compound(self, node: Compound) -> Any:
-        for child in node.children:
-            self.visit(child)
-        return None
+    @abstractmethod
+    def visit_Compound(self, node: Compound) -> Any: ...
 
     @abstractmethod
     def visit_VarDecl(self, node: VarDecl) -> Any: ...

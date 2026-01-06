@@ -6,4 +6,6 @@ begin
 x := a + x + y;
 end;
 begin { Main }
+    x := 10;
+    y := x + 15;
 end. { Main }
