@@ -12,13 +12,16 @@ from src.parser import (
     Param,
     Procedure,
     ProcedureCall,
+    ProcedureSymbol,
     Program,
+    ProgramSymbol,
+    ScopedSymbolTable,
     UnaryOp,
     Var,
     VarDecl,
     Type,
+    VarSymbol,
 )
-from src.symbols import ProcedureSymbol, ProgramSymbol, ScopedSymbolTable, VarSymbol
 from src.visitor import Visitor
 
 
@@ -103,6 +106,8 @@ class SymbolTableVisitor(Visitor):
         self.current_scope = self.current_scope.enclosing_scope
         print(f"LEAVE scope: {proc_name}")
 
+        proc_symbol.block_ast = node.block
+
     @override
     def visit_Num(self, node: Num) -> Any:
         return
@@ -163,6 +168,7 @@ class SymbolTableVisitor(Visitor):
     def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
         proc_name = node.proc_name
         proc_symbol = self.get_current_scope().lookup(proc_name)
+        node.proc_symbol = proc_symbol
         if proc_symbol is None:
             raise SemanticError(
                 f"no procedure found: {proc_name}", ErrorCode.ID_NOT_FOUND, node

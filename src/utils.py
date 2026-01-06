@@ -38,6 +38,7 @@ class CallStack[T]:
 
 class ARType(StrEnum):
     PROGRAM = auto()
+    PROCEDURE = auto()
 
 
 @dataclass(slots=True)

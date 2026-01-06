@@ -11,6 +11,7 @@ from src.parser import (
     BinOp,
     Procedure,
     ProcedureCall,
+    ProcedureSymbol,
     Program,
     Type,
     UnaryOp,
@@ -48,11 +49,17 @@ class DefaultVisitor(Visitor):
     def visit_Program(self, node: Program) -> Any:
         program_name = node.name
 
-        ar = ActivationRecord(program_name, ARType.PROGRAM, 0)
+        ar = ActivationRecord(program_name, ARType.PROGRAM, 1)
         self.call_stack.push(ar)
+
+        print(f"ENTER PROGRAM: {program_name}")
         print(self.call_stack)
+
         self.visit(node.block)
+
+        print(f"LEAVE PROGRAM: {program_name}")
         print(self.call_stack)
+
         self.call_stack.pop()
 
     @override
@@ -112,7 +119,31 @@ class DefaultVisitor(Visitor):
 
     @override
     def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
-        return None
+        proc_symbol = node.proc_symbol
+        if proc_symbol is None:
+            raise InterpreterError(f"procdure {node.proc_name} is not recognised")
+        assert isinstance(proc_symbol, ProcedureSymbol)
+        if proc_symbol.block_ast is None:
+            raise InterpreterError(f"procedure's {node.proc_name} body is not declared")
+        proc_name = node.proc_name
+
+        ar = ActivationRecord(proc_name, ARType.PROCEDURE, nesting_level=2)
+        formal_params = proc_symbol.params
+        actual_params = node.actual_params
+        for param_symbol, actual_param in zip(formal_params, actual_params):
+            ar[param_symbol.name] = self.visit(actual_param)
+
+        self.call_stack.push(ar)
+
+        print(f"ENTER PROCEDURE: {proc_name}")
+        print(self.call_stack)
+
+        self.visit(proc_symbol.block_ast)
+
+        print(f"LEAVE PROCEDURE: {proc_name}")
+        print(self.call_stack)
+
+        self.call_stack.pop()
 
 
 @dataclass(slots=True)
