@@ -241,11 +241,12 @@ class ProcedureCall(AST):
 
 
 class Symbol(ABC):
-    __slots__ = "name", "symbol_type"
+    __slots__ = "name", "symbol_type", "scope"
 
     def __init__(self, name: str, symbol_type: "None | Symbol" = None) -> None:
         self.name: str = name
         self.symbol_type: "None | Symbol" = symbol_type
+        self.scope: int = 0
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}(name='{self.name}'" + (
@@ -333,6 +334,7 @@ class ScopedSymbolTable:
 
     def define(self, symbol: Symbol) -> None:
         print(f"Define: {symbol}")
+        symbol.scope = self.scope_level
         self._symbols[symbol.name] = symbol
 
     def lookup(self, name: str, *, current_scope_only: bool = False) -> Symbol | None:

@@ -127,7 +127,9 @@ class DefaultVisitor(Visitor):
             raise InterpreterError(f"procedure's {node.proc_name} body is not declared")
         proc_name = node.proc_name
 
-        ar = ActivationRecord(proc_name, ARType.PROCEDURE, nesting_level=2)
+        ar = ActivationRecord(
+            proc_name, ARType.PROCEDURE, nesting_level=proc_symbol.scope + 1
+        )
         formal_params = proc_symbol.params
         actual_params = node.actual_params
         for param_symbol, actual_param in zip(formal_params, actual_params):
