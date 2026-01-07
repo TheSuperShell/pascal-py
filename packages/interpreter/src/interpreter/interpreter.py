@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, override
-from src.parser import (
+from parser import (
     Assign,
     Block,
     Compound,
@@ -18,10 +18,10 @@ from src.parser import (
     Var,
     VarDecl,
 )
-from src.semantic_analyzer import SymbolTableVisitor
-from src.token import TokenType
-from src.utils import ARType, ActivationRecord, CallStack
-from src.visitor import Visitor
+from interpreter.semantic_analyzer import SymbolTableVisitor
+from parser.token import TokenType
+from interpreter.utils import ARType, ActivationRecord, CallStack
+from interpreter.visitor import Visitor
 
 
 class InterpreterError(Exception): ...

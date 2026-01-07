@@ -1,6 +1,6 @@
 import pytest
-from src.lexer import Lexer
-from src.parser import (
+from parser.lexer import Lexer
+from parser import (
     Assign,
     BinOp,
     Block,
@@ -16,7 +16,7 @@ from src.parser import (
     Var,
     VarDecl,
 )
-from src.token import Token
+from parser.token import Token
 
 
 data = [

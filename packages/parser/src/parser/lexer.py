@@ -1,4 +1,4 @@
-from src.token import Token, TokenType
+from parser.token import Token, TokenType
 
 
 class LexerError(Exception):

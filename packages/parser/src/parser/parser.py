@@ -3,9 +3,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import IntEnum, auto
 
-from src.lexer import Lexer
+from parser.lexer import Lexer
 
-from src.token import Token, TokenType
+from parser.token import Token, TokenType
 
 
 class ErrorCode(IntEnum):

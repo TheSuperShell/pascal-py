@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from typing import Any, override
 
-from src.parser import (
+from parser import (
     AST,
     Assign,
     BinOp,
@@ -22,7 +22,7 @@ from src.parser import (
     Type,
     VarSymbol,
 )
-from src.visitor import Visitor
+from interpreter.visitor import Visitor
 
 
 class ErrorCode(IntEnum):

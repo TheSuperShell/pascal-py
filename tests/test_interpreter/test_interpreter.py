@@ -1,9 +1,9 @@
 from hypothesis import given, strategies as st
 import pytest
-from src.interpreter import DefaultVisitor, Interpreter
-from src.lexer import Lexer
-from src.parser import Parser
-from src.semantic_analyzer import SemanticError
+from interpreter.interpreter import DefaultVisitor, Interpreter
+from parser.lexer import Lexer
+from parser import Parser
+from interpreter.semantic_analyzer import SemanticError
 
 
 OPS = ["+", "-", "*", "DIV", "/"]

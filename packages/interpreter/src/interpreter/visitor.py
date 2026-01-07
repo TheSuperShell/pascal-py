@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from src.parser import AST, Block, Param, ProcedureCall, Program
+from parser import AST, Block, Param, ProcedureCall, Program
 
-from src.parser import (
+from parser import (
     Assign,
     Compound,
     NoOp,

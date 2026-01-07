@@ -2,6 +2,29 @@ version = 1
 revision = 3
 requires-python = ">=3.13"
 
+[manifest]
+members = [
+    "cli",
+    "interpreter",
+    "parser",
+    "pascal-py",
+]
+
+[[package]]
+name = "cli"
+version = "0.1.0"
+source = { editable = "packages/cli" }
+dependencies = [
+    { name = "interpreter" },
+    { name = "parser" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "interpreter", editable = "packages/interpreter" },
+    { name = "parser", editable = "packages/parser" },
+]
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -103,6 +126,17 @@ wheels = [
 ]
 
 [[package]]
+name = "interpreter"
+version = "0.1.0"
+source = { editable = "packages/interpreter" }
+dependencies = [
+    { name = "parser" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "parser", editable = "packages/parser" }]
+
+[[package]]
 name = "librt"
 version = "0.7.5"
 source = { registry = "https://pypi.org/simple" }
@@ -189,11 +223,23 @@ wheels = [
 ]
 
 [[package]]
+name = "parser"
+version = "0.1.0"
+source = { editable = "packages/parser" }
+
+[[package]]
 name = "pascal-py"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "interpreter" },
+    { name = "parser" },
+]
 
 [package.dev-dependencies]
+cli = [
+    { name = "cli" },
+]
 dev = [
     { name = "coverage" },
     { name = "hypothesis" },
@@ -203,8 +249,13 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [
+    { name = "interpreter", editable = "packages/interpreter" },
+    { name = "parser", editable = "packages/parser" },
+]
 
 [package.metadata.requires-dev]
+cli = [{ name = "cli", editable = "packages/cli" }]
 dev = [
     { name = "coverage", specifier = ">=7.13.1" },
     { name = "hypothesis", specifier = ">=6.148.9" },

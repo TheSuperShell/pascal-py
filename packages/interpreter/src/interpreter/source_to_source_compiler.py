@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any, override
-from src.parser import (
+from parser import (
     AST,
     Assign,
     BinOp,
@@ -19,7 +19,7 @@ from src.parser import (
     VarDecl,
     VarSymbol,
 )
-from src.visitor import Visitor
+from interpreter.visitor import Visitor
 
 
 @dataclass(slots=True)

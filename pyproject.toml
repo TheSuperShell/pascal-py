@@ -4,9 +4,15 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "interpreter",
+    "parser",
+]
 
 [dependency-groups]
+cli = [
+    "cli",
+]
 dev = [
     "coverage>=7.13.1",
     "hypothesis>=6.148.9",
@@ -15,5 +21,20 @@ dev = [
     "pytest-xdist>=3.8.0",
 ]
 
+[tool.uv]
+default-groups = ['cli', 'dev']
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.uv.workspace]
+members = [
+    "packages/parser",
+    "packages/interpreter",
+    "packages/cli",
+]
+
+[tool.uv.sources]
+parser = { workspace = true }
+interpreter = { workspace = true }
+cli = { workspace = true }

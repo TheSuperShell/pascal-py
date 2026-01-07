@@ -1,6 +1,6 @@
 import pytest
-from src.lexer import Lexer
-from src.token import Token
+from parser.lexer import Lexer
+from parser.token import Token
 
 data = [
     [
