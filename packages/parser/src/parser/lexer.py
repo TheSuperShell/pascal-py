@@ -20,6 +20,9 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "EXIT": Token.exit(),
     "TRUE": Token.const_bool(True),
     "FALSE": Token.const_bool(False),
+    "AND": Token.And(),
+    "OR": Token.Or(),
+    "NOT": Token.Not(),
 }
 
 

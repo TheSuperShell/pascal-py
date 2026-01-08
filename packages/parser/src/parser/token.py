@@ -23,6 +23,9 @@ class TokenType(IntEnum):
     LESS_OR_EQUAL = auto()
     EQUAL = auto()
     NOT_EQUAL = auto()
+    AND = auto()
+    OR = auto()
+    NOT = auto()
     OPEN_PARANTH = auto()
     CLOSE_PARANTH = auto()
     BEGIN = auto()
@@ -188,3 +191,15 @@ class Token:
     @classmethod
     def let(cls) -> "Token":
         return Token(TokenType.LESS_OR_EQUAL, "<=")
+
+    @classmethod
+    def And(cls) -> "Token":
+        return Token(TokenType.AND, "AND")
+
+    @classmethod
+    def Or(cls) -> "Token":
+        return Token(TokenType.OR, "OR")
+
+    @classmethod
+    def Not(cls) -> "Token":
+        return Token(TokenType.NOT, "NOT")
