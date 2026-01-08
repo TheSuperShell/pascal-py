@@ -31,6 +31,7 @@ class ErrorCode(IntEnum):
     ID_NOT_FOUND = auto()
     INCORRECT_CALL_TYPE = auto()
     INCORRECT_NUMBER_OF_INPUTS = auto()
+    INVALID_EXIT = auto()
 
 
 class SemanticError(Exception):
@@ -82,6 +83,15 @@ class SymbolTableVisitor(Visitor):
     def visit_Compound(self, node: Compound) -> Any:
         for child in node.children:
             if isinstance(child, Exit):
+                if (
+                    self.get_current_scope().scope_type != ScopeType.FUNCTION
+                    and child.expr is not None
+                ):
+                    raise SemanticError(
+                        "procedure or Program should not return anything",
+                        ErrorCode.INVALID_EXIT,
+                        child,
+                    )
                 print(f"EXIT {self.get_current_scope().scope_name}")
                 return
             self.visit(child)
