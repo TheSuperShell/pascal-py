@@ -22,7 +22,15 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
-from parser.parser import Bool, BuiltinTypeSymbol, Exit, Function, FunctionSymbol
+from parser.parser import (
+    Bool,
+    BuiltinTypeSymbol,
+    Condition,
+    Exit,
+    Function,
+    FunctionSymbol,
+    IfStatement,
+)
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
@@ -269,3 +277,17 @@ class SymbolTableVisitor(Visitor):
             )
         for param_node in node.actual_params:
             self.visit(param_node)
+
+    @override
+    def visit_IfStatement(self, node: IfStatement) -> Any:
+        self.visit(node.main_condition)
+        for other_cond in node.secondary_conditions:
+            self.visit(other_cond)
+        if node.else_condition:
+            self.visit(node.else_condition)
+        return None
+
+    @override
+    def visit_Condition(self, node: Condition) -> Any:
+        self.visit(node.condition)
+        self.visit(node.expr)

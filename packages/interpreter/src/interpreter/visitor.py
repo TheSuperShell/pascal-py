@@ -15,7 +15,7 @@ from parser import (
     Var,
     VarDecl,
 )
-from parser.parser import Bool, Function
+from parser.parser import Bool, Condition, Function, IfStatement
 
 
 class Visitor(ABC):
@@ -74,3 +74,9 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_ProcedureCall(self, node: ProcedureCall) -> Any: ...
+
+    @abstractmethod
+    def visit_IfStatement(self, node: IfStatement) -> Any: ...
+
+    @abstractmethod
+    def visit_Condition(self, node: Condition) -> Any: ...

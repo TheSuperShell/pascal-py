@@ -19,7 +19,7 @@ from parser import (
     VarDecl,
 )
 from interpreter.semantic_analyzer import SymbolTableVisitor
-from parser.parser import Bool, Exit, Function, FunctionSymbol
+from parser.parser import Bool, Condition, Exit, Function, FunctionSymbol, IfStatement
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
@@ -175,6 +175,24 @@ class DefaultVisitor(Visitor):
         print(self.call_stack)
 
         self.call_stack.pop()
+        return result
+
+    @override
+    def visit_IfStatement(self, node: IfStatement) -> Any:
+        if self.visit(node.main_condition):
+            return
+        for secondary in node.secondary_conditions:
+            if self.visit(secondary):
+                return
+        if node.else_condition is None:
+            return
+        self.visit(node.else_condition)
+
+    @override
+    def visit_Condition(self, node: Condition) -> Any:
+        result = self.visit(node.condition)
+        if result:
+            self.visit(node.expr)
         return result
 
 

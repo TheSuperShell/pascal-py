@@ -19,7 +19,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
-from parser.parser import Bool, Function
+from parser.parser import Bool, Condition, Function, IfStatement
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
@@ -179,6 +179,14 @@ class S2SCompiler(Visitor):
     @override
     def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
         return ""
+
+    @override
+    def visit_Condition(self, node: Condition) -> Any:
+        return
+
+    @override
+    def visit_IfStatement(self, node: IfStatement) -> Any:
+        return
 
     def build_output(self, node: AST) -> str:
         output = self.visit(node)
