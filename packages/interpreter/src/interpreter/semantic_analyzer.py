@@ -22,7 +22,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
-from parser.parser import Exit
+from parser.parser import BuiltinTypeSymbol, Exit, Function, FunctionSymbol
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
@@ -32,6 +32,7 @@ class ErrorCode(IntEnum):
     INCORRECT_CALL_TYPE = auto()
     INCORRECT_NUMBER_OF_INPUTS = auto()
     INVALID_EXIT = auto()
+    NO_RETURN = auto()
 
 
 class SemanticError(Exception):
@@ -92,9 +93,61 @@ class SymbolTableVisitor(Visitor):
                         ErrorCode.INVALID_EXIT,
                         child,
                     )
+                elif (
+                    self.get_current_scope().scope_type == ScopeType.FUNCTION
+                    and child.expr is None
+                ):
+                    raise SemanticError(
+                        "function should return a value",
+                        ErrorCode.INVALID_EXIT,
+                        child,
+                    )
                 print(f"EXIT {self.get_current_scope().scope_name}")
                 return
             self.visit(child)
+        if self.get_current_scope().scope_type == ScopeType.FUNCTION:
+            raise SemanticError(
+                "function does not return anything", ErrorCode.NO_RETURN, node
+            )
+
+    @override
+    def visit_Function(self, node: Function) -> Any:
+        func_name = node.name
+        return_type = node.return_type
+        return_symbol = self.get_current_scope().lookup(return_type.value)
+        if return_symbol is None:
+            raise SemanticError(
+                f"return type {return_type.value} is unkown",
+                ErrorCode.ID_NOT_FOUND,
+                node,
+            )
+        assert isinstance(return_symbol, BuiltinTypeSymbol)
+        func_symbol = FunctionSymbol(func_name, return_symbol)
+        self.get_current_scope().define(func_symbol)
+
+        print(f"ENTER scope: {func_name}")
+        function_scope = ScopedSymbolTable(
+            func_name,
+            ScopeType.FUNCTION,
+            scope_level=(self.current_scope.scope_level if self.current_scope else 0)
+            + 1,
+            enclosing_sope=self.current_scope,
+        )
+        self.current_scope = function_scope
+
+        for param in node.params:
+            param_type = self.current_scope.lookup(param.type_node.value)
+            param_name = param.var_node.value
+            var_symbol = VarSymbol(param_name, param_type)
+            self.current_scope.define(var_symbol)
+            func_symbol.params.append(var_symbol)
+
+        self.visit(node.block)
+        print(function_scope)
+        self.current_scope = self.get_current_scope().enclosing_scope
+        print(f"LEAVE scope: {func_name}")
+
+        func_symbol.block_ast = node.block
 
     @override
     def visit_Procedure(self, node: Procedure) -> Any:
@@ -189,17 +242,22 @@ class SymbolTableVisitor(Visitor):
         node.proc_symbol = proc_symbol
         if proc_symbol is None:
             raise SemanticError(
-                f"no procedure found: {proc_name}", ErrorCode.ID_NOT_FOUND, node
+                f"no procedure/function found: {proc_name}",
+                ErrorCode.ID_NOT_FOUND,
+                node,
             )
-        if not isinstance(proc_symbol, ProcedureSymbol):
+        if not (
+            isinstance(proc_symbol, ProcedureSymbol)
+            or isinstance(proc_symbol, FunctionSymbol)
+        ):
             raise SemanticError(
-                f"found {proc_name}, but it's not a procedure: {proc_symbol}",
+                f"{proc_name} is not callable",
                 ErrorCode.INCORRECT_CALL_TYPE,
                 node,
             )
         if len(proc_symbol.params) != len(node.actual_params):
             raise SemanticError(
-                f"procedure {proc_name} expected "
+                f"{proc_name} expected "
                 f"{len(proc_symbol.params)} number of inputs, "
                 f"found {len(node.actual_params)}",
                 ErrorCode.INCORRECT_NUMBER_OF_INPUTS,

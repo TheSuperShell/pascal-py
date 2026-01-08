@@ -296,6 +296,27 @@ class VarSymbol(Symbol):
         super().__init__(name, symbol_type)
 
 
+class FunctionSymbol(Symbol):
+    __slots__ = "name", "params", "block_ast", "return_type"
+
+    def __init__(
+        self,
+        name: str,
+        return_type: BuiltinTypeSymbol,
+        params: Sequence[Symbol] | None = None,
+        block_ast: AST | None = None,
+    ) -> None:
+        super().__init__(name)
+        self.params: list[Symbol] = list(params) if params is not None else []
+        self.block_ast = block_ast
+        self.return_type = return_type
+
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
+
+    __repr__ = __str__
+
+
 class ProcedureSymbol(Symbol):
     __slots__ = "name", "params", "block_ast"
 

@@ -6,6 +6,7 @@ from typing import Any
 class ARType(StrEnum):
     PROGRAM = auto()
     PROCEDURE = auto()
+    FUNCTION = auto()
 
 
 @dataclass(slots=True)

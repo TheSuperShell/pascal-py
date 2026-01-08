@@ -19,6 +19,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
+from parser.parser import Function
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
@@ -105,6 +106,10 @@ class S2SCompiler(Visitor):
     @override
     def visit_Num(self, node: Num) -> Any:
         return str(node.value)
+
+    @override
+    def visit_Function(self, node: Function) -> Any:
+        return
 
     @override
     def visit_Procedure(self, node: Procedure) -> Any:

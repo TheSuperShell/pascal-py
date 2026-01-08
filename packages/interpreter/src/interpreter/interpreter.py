@@ -19,7 +19,7 @@ from parser import (
     VarDecl,
 )
 from interpreter.semantic_analyzer import SymbolTableVisitor
-from parser.parser import Exit
+from parser.parser import Exit, Function, FunctionSymbol
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
@@ -74,11 +74,17 @@ class DefaultVisitor(Visitor):
         for child in node.children:
             if isinstance(child, Exit):
                 print(f"EXIT {self.call_stack.peek().name}")
+                if child.expr is not None:
+                    return self.visit(child.expr)
                 return
             self.visit(child)
 
     @override
     def visit_Procedure(self, node: Procedure) -> Any:
+        return
+
+    @override
+    def visit_Function(self, node: Function) -> Any:
         return
 
     @override
@@ -125,14 +131,20 @@ class DefaultVisitor(Visitor):
     def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
         proc_symbol = node.proc_symbol
         if proc_symbol is None:
-            raise InterpreterError(f"procdure {node.proc_name} is not recognised")
-        assert isinstance(proc_symbol, ProcedureSymbol)
+            raise InterpreterError(f"{node.proc_name} is not recognised")
+        assert isinstance(proc_symbol, ProcedureSymbol) or isinstance(
+            proc_symbol, FunctionSymbol
+        )
         if proc_symbol.block_ast is None:
-            raise InterpreterError(f"procedure's {node.proc_name} body is not declared")
+            raise InterpreterError(f"{node.proc_name} body is not declared")
         proc_name = node.proc_name
 
         ar = ActivationRecord(
-            proc_name, ARType.PROCEDURE, nesting_level=proc_symbol.scope + 1
+            proc_name,
+            ARType.PROCEDURE
+            if isinstance(proc_symbol, ProcedureSymbol)
+            else ARType.FUNCTION,
+            nesting_level=proc_symbol.scope + 1,
         )
         formal_params = proc_symbol.params
         actual_params = node.actual_params
@@ -144,12 +156,13 @@ class DefaultVisitor(Visitor):
         print(f"ENTER PROCEDURE: {proc_name}")
         print(self.call_stack)
 
-        self.visit(proc_symbol.block_ast)
+        result = self.visit(proc_symbol.block_ast)
 
         print(f"LEAVE PROCEDURE: {proc_name}")
         print(self.call_stack)
 
         self.call_stack.pop()
+        return result
 
 
 @dataclass(slots=True)
