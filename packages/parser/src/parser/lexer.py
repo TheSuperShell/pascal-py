@@ -17,6 +17,8 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "PROCEDURE": Token.procedure(),
     "FUNCTION": Token.function(),
     "EXIT": Token.exit(),
+    "TRUE": Token.const_bool(True),
+    "FALSE": Token.const_bool(False),
 }
 
 

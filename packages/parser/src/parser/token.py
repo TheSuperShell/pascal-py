@@ -6,8 +6,10 @@ class TokenType(IntEnum):
     PROGRAM = auto()
     INTEGER = auto()
     REAL = auto()
+    BOOLEAN = auto()
     INTEGER_CONST = auto()
     REAL_CONST = auto()
+    BOOLEAN_CONST = auto()
     COMMA = auto()
     COLON = auto()
     PLUS = auto()
@@ -86,8 +88,16 @@ class Token:
         return Token(TokenType.REAL_CONST, value)
 
     @classmethod
+    def const_bool(cls, value: bool) -> "Token":
+        return Token(TokenType.BOOLEAN_CONST, str(value).upper())
+
+    @classmethod
     def integer(cls) -> "Token":
         return Token(TokenType.INTEGER, "INTEGER")
+
+    @classmethod
+    def boolean(cls) -> "Token":
+        return Token(TokenType.BOOLEAN, "BOOLEAN")
 
     @classmethod
     def real(cls) -> "Token":
