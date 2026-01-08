@@ -23,6 +23,9 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "AND": Token.And(),
     "OR": Token.Or(),
     "NOT": Token.Not(),
+    "IF": Token.If(),
+    "ELSE": Token.Else(),
+    "THEN": Token.then(),
 }
 
 

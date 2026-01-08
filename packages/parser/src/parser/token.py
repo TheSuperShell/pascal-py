@@ -38,6 +38,9 @@ class TokenType(IntEnum):
     PROCEDURE = auto()
     FUNCTION = auto()
     EXIT = auto()
+    IF = auto()
+    THEN = auto()
+    ELSE = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -203,3 +206,15 @@ class Token:
     @classmethod
     def Not(cls) -> "Token":
         return Token(TokenType.NOT, "NOT")
+
+    @classmethod
+    def If(cls) -> "Token":
+        return Token(TokenType.IF, "IF")
+
+    @classmethod
+    def then(cls) -> "Token":
+        return Token(TokenType.THEN, "THEN")
+
+    @classmethod
+    def Else(cls) -> "Token":
+        return Token(TokenType.ELSE, "ELSE")
