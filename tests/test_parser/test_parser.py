@@ -1,7 +1,8 @@
 import pytest
 from parser.lexer import Lexer
-from parser import (
+from parser.parser import (
     Assign,
+    Function,
     BinOp,
     Block,
     Compound,
@@ -184,3 +185,46 @@ def test_parser(code, result):
     parser = Parser(lexer)
     res = parser.parse()
     assert res == result
+
+
+decls_data = [
+    [
+        "PROCEDURE func1(a: integer); begin end;",
+        (
+            Procedure(
+                "func1",
+                Block((), Compound((NoOp(),))),
+                (Param(Var(Token.Id("a")), Type(Token.integer())),),
+            ),
+        ),
+    ],
+    [
+        "FUNCTION func1(a: integer): real; begin end;",
+        (
+            Function(
+                "func1",
+                Block((), Compound((NoOp(),))),
+                (Param(Var(Token.Id("a")), Type(Token.integer())),),
+                Type(Token.real()),
+            ),
+        ),
+    ],
+    [
+        "VAR a, b :integer; VAR c: real;",
+        (
+            VarDecl(Var(Token.Id("a")), Type(Token.integer())),
+            VarDecl(Var(Token.Id("b")), Type(Token.integer())),
+            VarDecl(Var(Token.Id("c")), Type(Token.real())),
+        ),
+    ],
+]
+
+
+@pytest.mark.parametrize(("code", "result"), decls_data)
+def test_declaractions(code, result):
+    code = f"PROGRAM name; {code} BEGIN END."
+    lexer = Lexer(code)
+    parser = Parser(lexer)
+    res = parser.parse()
+    exp_result = Program("name", Block(result, Compound((NoOp(),))))
+    assert res == exp_result

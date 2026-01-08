@@ -163,7 +163,7 @@ class Program(AST):
 
 @dataclass(frozen=True, slots=True)
 class Block(AST):
-    declarations: "tuple[VarDecl | Procedure, ...]"
+    declarations: "tuple[VarDecl | Procedure | Function, ...]"
     compund_statement: Compound
 
     def __str__(self) -> str:
@@ -212,6 +212,21 @@ class Procedure(AST):
 
     def __repr__(self) -> str:
         return f"Procedure({self.name=}, {self.params=}, {self.block=})"
+
+
+@dataclass(frozen=True, slots=True)
+class Function(AST):
+    name: str
+    block: Block
+    params: "tuple[Param, ...]"
+    return_type: Type
+
+    def __str__(self) -> str:
+        params = ", ".join(str(param) for param in self.params)
+        return f"{self.name}({params}): {self.return_type}"
+
+    def __repr__(self) -> str:
+        return f"Function({self.name=}, {self.params=}, {self.return_type=}, {self.block=})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -411,20 +426,45 @@ class Parser:
         comp_node = self.compound_statement()
         return Block(tuple(nodes), comp_node)
 
-    def declarations(self) -> list[VarDecl | Procedure]:
+    def declarations(self) -> list[VarDecl | Procedure | Function]:
         """
         declarations:
-            (VAR variable_declaration SEMI)* procedure_declaration*
+            (VAR variable_declaration SEMI)* (procedure_declaration | function_declaration)*
         """
-        decls: list[VarDecl | Procedure] = []
+        decls: list[VarDecl | Procedure | Function] = []
         while self.current_token.token_type == TokenType.VAR:
             self.eat(TokenType.VAR)
             var_decl = self.variable_declaration()
             decls.extend(var_decl)
             self.eat(TokenType.SEMI)
-        while self.current_token.token_type == TokenType.PROCEDURE:
-            decls.append(self.procedure_declaration())
+        while self.current_token.token_type in (
+            TokenType.PROCEDURE,
+            TokenType.FUNCTION,
+        ):
+            if self.current_token.token_type == TokenType.PROCEDURE:
+                decls.append(self.procedure_declaration())
+            elif self.current_token.token_type == TokenType.FUNCTION:
+                decls.append(self.function_declaration())
         return decls
+
+    def function_declaration(self) -> Function:
+        """
+        function_declaration:
+            FUNCTION ID OPEN_PARANTH formal_parameter_list CLOSE_PARANTH
+            COLON type_spec SEMI block SEMI
+        """
+        self.eat(TokenType.FUNCTION)
+        func_name = self.current_token.value
+        self.eat(TokenType.ID)
+        self.eat(TokenType.OPEN_PARANTH)
+        params = self.formal_parameter_list()
+        self.eat(TokenType.CLOSE_PARANTH)
+        self.eat(TokenType.COLON)
+        return_type = self.type_spec()
+        self.eat(TokenType.SEMI)
+        block = self.block()
+        self.eat(TokenType.SEMI)
+        return Function(func_name, block, tuple(params), return_type)
 
     def procedure_declaration(self) -> Procedure:
         """
