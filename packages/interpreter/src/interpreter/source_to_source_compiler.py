@@ -12,7 +12,6 @@ from parser import (
     Procedure,
     ProcedureCall,
     Program,
-    ScopedSymbolTable,
     Type,
     UnaryOp,
     Var,
@@ -20,6 +19,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
+from parser.scoped_symbol_table import ScopedSymbolTable
 
 
 @dataclass(slots=True)

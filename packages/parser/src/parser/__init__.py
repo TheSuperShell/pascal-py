@@ -3,7 +3,6 @@ from parser.parser import (
     ParserError,
     AST,
     Symbol,
-    ScopedSymbolTable,
     Var,
     VarDecl,
     VarSymbol,

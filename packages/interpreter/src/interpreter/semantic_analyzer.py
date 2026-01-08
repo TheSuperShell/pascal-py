@@ -15,7 +15,6 @@ from parser import (
     ProcedureSymbol,
     Program,
     ProgramSymbol,
-    ScopedSymbolTable,
     UnaryOp,
     Var,
     VarDecl,
@@ -24,6 +23,7 @@ from parser import (
 )
 from interpreter.visitor import Visitor
 from parser.parser import Exit
+from parser.scoped_symbol_table import ScopedSymbolTable
 
 
 class ErrorCode(IntEnum):
