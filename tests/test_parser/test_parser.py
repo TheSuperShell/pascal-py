@@ -212,11 +212,12 @@ decls_data = [
         ),
     ],
     [
-        "VAR a, b :integer; VAR c: real;",
+        "VAR a, b :integer; VAR c: real; VAR x : BOOLEAN;",
         (
             VarDecl(Var(Token.Id("a")), Type(Token.integer())),
             VarDecl(Var(Token.Id("b")), Type(Token.integer())),
             VarDecl(Var(Token.Id("c")), Type(Token.real())),
+            VarDecl(Var(Token.Id("x")), Type(Token.boolean())),
         ),
     ],
 ]

@@ -496,10 +496,10 @@ class Parser:
     def type_spec(self) -> Type:
         """
         type_spec:
-            INTEGER | REAL
+            INTEGER | REAL | BOOLEAN
         """
         token = self.current_token
-        self.eat(TokenType.INTEGER, TokenType.REAL)
+        self.eat(TokenType.INTEGER, TokenType.REAL, TokenType.BOOLEAN)
         return Type(token)
 
     def compound_statement(self) -> Compound:

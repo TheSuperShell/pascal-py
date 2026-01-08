@@ -74,5 +74,6 @@ class ScopedSymbolTable:
         table = ScopedSymbolTable("builtins", ScopeType.BUILTIN, scope_level=0)
         table.define(BuiltinTypeSymbol("INTEGER"))
         table.define(BuiltinTypeSymbol("REAL"))
+        table.define(BuiltinTypeSymbol("BOOLEAN"))
         print(table)
         return table
