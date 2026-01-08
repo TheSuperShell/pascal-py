@@ -26,6 +26,7 @@ class TokenType(IntEnum):
     VAR = auto()
     PROCEDURE = auto()
     FUNCTION = auto()
+    EXIT = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -143,3 +144,7 @@ class Token:
     @classmethod
     def function(cls) -> "Token":
         return Token(TokenType.FUNCTION, "FUNCTION")
+
+    @classmethod
+    def exit(cls) -> "Token":
+        return Token(TokenType.EXIT, "EXIT")
