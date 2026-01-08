@@ -2,6 +2,7 @@ import pytest
 from parser.lexer import Lexer
 from parser.parser import (
     Assign,
+    Exit,
     Function,
     BinOp,
     Block,
@@ -127,7 +128,7 @@ data = [
     ],
     ["PROGRAM empty; BEGIN end.", Program("empty", Block((), Compound((NoOp(),))))],
     [
-        "PROGRAM nums; VAR a, b: INTEGER; BEGIN a:=5; b:=a; END.",
+        "PROGRAM nums; VAR a, b: INTEGER; BEGIN a:=5; exit; b:=a; END.",
         Program(
             "nums",
             Block(
@@ -142,6 +143,7 @@ data = [
                             Token.assign(),
                             Num(Token.const_int("5")),
                         ),
+                        Exit(),
                         Assign(Var(Token.Id("b")), Token.assign(), Var(Token.Id("a"))),
                         NoOp(),
                     )

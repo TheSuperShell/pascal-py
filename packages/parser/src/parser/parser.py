@@ -255,6 +255,17 @@ class ProcedureCall(AST):
         return f"ProcedureCall({self.proc_name=}, {self.actual_params=})"
 
 
+@dataclass(slots=True, frozen=True)
+class Exit(AST):
+    expr: None | AST = None
+
+    def __str__(self) -> str:
+        return "Exit" + (f": {self.expr}" if self.expr else "")
+
+    def __repr__(self) -> str:
+        return f"Exit({self.expr=})"
+
+
 class Symbol(ABC):
     __slots__ = "name", "symbol_type", "scope"
 
@@ -571,6 +582,7 @@ class Parser:
             compound_statement |
             call_statement |
             assignment_statement |
+            exit_statement |
             NoOp
         """
         if self.current_token.token_type == TokenType.BEGIN:
@@ -579,7 +591,22 @@ class Parser:
             return self.call_statement()
         if self.current_token.token_type == TokenType.ID:
             return self.assignement_statement()
+        if self.current_token.token_type == TokenType.EXIT:
+            return self.exit_statement()
         return NoOp()
+
+    def exit_statement(self) -> Exit:
+        """
+        exit_statement:
+            EXIT (OPEN_PARANTH expr CLOSE_PARANTH)?
+        """
+        self.eat(TokenType.EXIT)
+        expr = None
+        if self.current_token.token_type == TokenType.OPEN_PARANTH:
+            self.eat(TokenType.OPEN_PARANTH)
+            expr = self.expr()
+            self.eat(TokenType.CLOSE_PARANTH)
+        return Exit(expr=expr)
 
     def assignement_statement(self) -> AST:
         """
