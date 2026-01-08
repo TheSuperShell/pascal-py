@@ -28,12 +28,18 @@ from interpreter.visitor import Visitor
 class InterpreterError(Exception): ...
 
 
-_OPERATIONS: dict[TokenType, Callable[[int | float, int | float], int | float]] = {
+_OPERATIONS: dict[TokenType, Callable[[Any, Any], Any]] = {
     TokenType.PLUS: lambda x, y: x + y,
     TokenType.MINUS: lambda x, y: x - y,
     TokenType.MULTIPLICATION: lambda x, y: x * y,
     TokenType.INTEGER_DIV: lambda x, y: x // y,
     TokenType.FLOAT_DIV: lambda x, y: x / y,
+    TokenType.LESS: lambda x, y: x < y,
+    TokenType.MORE: lambda x, y: x > y,
+    TokenType.LESS_OR_EQUAL: lambda x, y: x <= y,
+    TokenType.MORE_OR_EQUAL: lambda x, y: x >= y,
+    TokenType.EQUAL: lambda x, y: x == y,
+    TokenType.NOT_EQUAL: lambda x, y: x != y,
 }
 
 _UNARY_OP: dict[TokenType, Callable[[int | float], int | float]] = {

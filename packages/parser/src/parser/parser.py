@@ -89,7 +89,7 @@ class Bool(AST):
 
     @property
     def value(self) -> bool:
-        return bool(self.token.value.lower().capitalize())
+        return True if self.token.value.lower() == "true" else False
 
     def __str__(self) -> str:
         return str(self.value)
