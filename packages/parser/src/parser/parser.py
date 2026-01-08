@@ -569,14 +569,14 @@ class Parser:
         """
         statement:
             compound_statement |
-            proccall_statement |
+            call_statement |
             assignment_statement |
             NoOp
         """
         if self.current_token.token_type == TokenType.BEGIN:
             return self.compound_statement()
         if self.current_token.token_type == TokenType.ID and self.lexer.char == "(":
-            return self.proccall_statement()
+            return self.call_statement()
         if self.current_token.token_type == TokenType.ID:
             return self.assignement_statement()
         return NoOp()
@@ -607,6 +607,7 @@ class Parser:
             (PLUS | MINUS) factor |
             (INTEGER_CONST | REAL_CONST) |
             OPEN_PARANTH expr CLOSE_PARANTH |
+            call_statement |
             variable
         """
         token = self.current_token
@@ -621,6 +622,8 @@ class Parser:
             result = self.expr()
             self.eat(TokenType.CLOSE_PARANTH)
             return result
+        if token.token_type == TokenType.ID and self.lexer.char == "(":
+            return self.call_statement()
         return self.variable()
 
     def term(self) -> AST:
@@ -643,9 +646,9 @@ class Parser:
 
         return node
 
-    def proccall_statement(self) -> AST:
+    def call_statement(self) -> AST:
         """
-        proccall_statement:
+        call_statement:
             ID OPEN_PARANTH expr (COMMA expr)* CLOSE_PARANTH
         """
         proc_token = self.current_token

@@ -22,7 +22,7 @@ from parser.token import Token
 
 data = [
     [
-        "PROGRAM name;{ name } PROCEDURE proc; BEGIN b:=3 END; BEGIN\na:=5 END.",
+        "PROGRAM name;{ name } PROCEDURE proc; BEGIN b:=3 END; BEGIN\na:=proc() END.",
         Program(
             "name",
             Block(
@@ -51,7 +51,7 @@ data = [
                         Assign(
                             Var(Token.Id("a")),
                             Token.assign(),
-                            Num(Token.const_int("5")),
+                            ProcedureCall("proc", (), Token.Id("proc")),
                         ),
                     )
                 ),
