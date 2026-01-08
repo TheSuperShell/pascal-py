@@ -281,6 +281,34 @@ class Exit(AST):
         return f"Exit({self.expr=})"
 
 
+@dataclass(slots=True, frozen=True)
+class Condition(AST):
+    condition: AST
+    expr: AST
+
+    def __str__(self) -> str:
+        return f"({self.condition}) -> {self.expr}"
+
+    def __repr__(self) -> str:
+        return f"Condition({self.condition}, {self.expr=})"
+
+
+@dataclass(slots=True, frozen=True)
+class IfStatement(AST):
+    main_condition: Condition
+    secondary_conditions: tuple[Condition, ...] = ()
+    else_condition: AST | None = None
+
+    def __str__(self) -> str:
+        secondary = "\n".join(f"else if {expr}" for expr in self.secondary_conditions)
+        return f"if {self.main_condition}\n{secondary}" + (
+            f"else {self.else_condition}" if self.else_condition else ""
+        )
+
+    def __repr__(self) -> str:
+        return f"IfStatement({self.main_condition=}, {self.secondary_conditions=}, {self.else_condition=})"
+
+
 class Symbol(ABC):
     __slots__ = "name", "symbol_type", "scope"
 
@@ -551,6 +579,7 @@ class Parser:
             compound_statement |
             call_statement |
             assignment_statement |
+            if_statement |
             exit_statement |
             NoOp
         """
@@ -560,9 +589,49 @@ class Parser:
             return self.call_statement()
         if self.current_token.token_type == TokenType.ID:
             return self.assignement_statement()
+        if self.current_token.token_type == TokenType.IF:
+            return self.if_statement()
         if self.current_token.token_type == TokenType.EXIT:
             return self.exit_statement()
         return NoOp()
+
+    def condition(self) -> Condition:
+        """
+        condition:
+            OPEN_PARANTH expr CLOSE_PARANTH THEN (statement | compund_statemnet)
+        """
+        self.eat(TokenType.OPEN_PARANTH)
+        cond = self.expr()
+        self.eat(TokenType.CLOSE_PARANTH)
+        self.eat(TokenType.THEN)
+        if self.current_token.token_type == TokenType.BEGIN:
+            expr = self.compound_statement()
+        else:
+            expr = self.statement()
+        return Condition(cond, expr)
+
+    def if_statement(self) -> AST:
+        """
+        if_statement:
+            IF condition
+            (ELSE IF condition)*
+            (ELSE (statement | compund_statement))?
+        """
+        self.eat(TokenType.IF)
+        main_condition = self.condition()
+        other_conditions = []
+        last_condition = None
+        while self.current_token.token_type == TokenType.ELSE:
+            self.eat(TokenType.ELSE)
+            if self.current_token.token_type != TokenType.IF:
+                if self.current_token.token_type == TokenType.BEGIN:
+                    last_condition = self.compound_statement()
+                else:
+                    last_condition = self.statement()
+                break
+            self.eat(TokenType.IF)
+            other_conditions.append(self.condition())
+        return IfStatement(main_condition, tuple(other_conditions), last_condition)
 
     def exit_statement(self) -> Exit:
         """

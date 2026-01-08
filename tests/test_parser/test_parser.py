@@ -3,11 +3,13 @@ from parser.lexer import Lexer
 from parser.parser import (
     Assign,
     Bool,
+    Condition,
     Exit,
     Function,
     BinOp,
     Block,
     Compound,
+    IfStatement,
     NoOp,
     Num,
     Param,
@@ -193,6 +195,53 @@ data = [
                             Var(Token.Id("x")),
                             Token.assign(),
                             Bool(Token.const_bool(True)),
+                        ),
+                        NoOp(),
+                    )
+                ),
+            ),
+        ),
+    ],
+    [
+        "PROGRAM if_st; BEGIN IF (TRUE) THEN x:=10 ELSE IF (10 > 3) THEN BEGIN a := 10 END ELSE b := False; END.",
+        Program(
+            "if_st",
+            Block(
+                (),
+                Compound(
+                    (
+                        IfStatement(
+                            Condition(
+                                Bool(Token.const_bool(True)),
+                                Assign(
+                                    Var(Token.Id("x")),
+                                    Token.assign(),
+                                    Num(Token.const_int("10")),
+                                ),
+                            ),
+                            (
+                                Condition(
+                                    BinOp(
+                                        Num(Token.const_int("10")),
+                                        Token.gt(),
+                                        Num(Token.const_int("3")),
+                                    ),
+                                    Compound(
+                                        (
+                                            Assign(
+                                                Var(Token.Id("a")),
+                                                Token.assign(),
+                                                Num(Token.const_int("10")),
+                                            ),
+                                        )
+                                    ),
+                                ),
+                            ),
+                            Assign(
+                                Var(Token.Id("b")),
+                                Token.assign(),
+                                Bool(Token.const_bool(False)),
+                            ),
                         ),
                         NoOp(),
                     )
