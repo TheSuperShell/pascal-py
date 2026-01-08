@@ -23,6 +23,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
+from parser.parser import Exit
 
 
 class ErrorCode(IntEnum):
@@ -77,6 +78,9 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Compound(self, node: Compound) -> Any:
         for child in node.children:
+            if isinstance(child, Exit):
+                print(f"EXIT {self.get_current_scope().scope_name}")
+                return
             self.visit(child)
 
     @override

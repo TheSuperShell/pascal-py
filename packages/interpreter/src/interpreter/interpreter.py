@@ -19,6 +19,7 @@ from parser import (
     VarDecl,
 )
 from interpreter.semantic_analyzer import SymbolTableVisitor
+from parser.parser import Exit
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
@@ -71,6 +72,9 @@ class DefaultVisitor(Visitor):
     @override
     def visit_Compound(self, node: Compound) -> Any:
         for child in node.children:
+            if isinstance(child, Exit):
+                print(f"EXIT {self.call_stack.peek().name}")
+                return
             self.visit(child)
 
     @override
