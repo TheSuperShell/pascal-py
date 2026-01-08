@@ -390,6 +390,10 @@ class Parser:
         self.current_token = next(self.lexer)
 
     def program(self) -> Program:
+        """
+        program:
+            PROGRAM ID SEMI block DOT
+        """
         self.eat(TokenType.PROGRAM)
         var_node = self.variable()
         prog_name = var_node.value
@@ -399,29 +403,34 @@ class Parser:
         return Program(prog_name, block_node)
 
     def block(self) -> Block:
+        """
+        block:
+            declarations compound_statement
+        """
         nodes = self.declarations()
         comp_node = self.compound_statement()
         return Block(tuple(nodes), comp_node)
 
     def declarations(self) -> list[VarDecl | Procedure]:
+        """
+        declarations:
+            (VAR variable_declaration SEMI)* procedure_declaration*
+        """
         decls: list[VarDecl | Procedure] = []
-        if self.current_token.token_type == TokenType.VAR:
-            self.eat(TokenType.VAR)
-            while self.current_token.token_type == TokenType.ID:
-                var_decl = self.variable_declaration()
-                decls.extend(var_decl)
-                self.eat(TokenType.SEMI)
         while self.current_token.token_type == TokenType.VAR:
             self.eat(TokenType.VAR)
-            while self.current_token.token_type == TokenType.ID:
-                var_decl = self.variable_declaration()
-                decls.extend(var_decl)
-                self.eat(TokenType.SEMI)
+            var_decl = self.variable_declaration()
+            decls.extend(var_decl)
+            self.eat(TokenType.SEMI)
         while self.current_token.token_type == TokenType.PROCEDURE:
             decls.append(self.procedure_declaration())
         return decls
 
     def procedure_declaration(self) -> Procedure:
+        """
+        procedure_declaration:
+            PROCEDURE ID OPEN_PARANTH formal_parameter_list CLOSE_PARANTH SEMI block SEMI
+        """
         self.eat(TokenType.PROCEDURE)
         proc_name = self.current_token.value
         self.eat(TokenType.ID)
@@ -436,6 +445,10 @@ class Parser:
         return Procedure(proc_name, block, tuple(params))
 
     def formal_parameter_list(self) -> list[Param]:
+        """
+        formal_parameter_list
+            formal_parameters (SEMI formal_parameter_list)?
+        """
         params = self.formal_parameters()
         if self.current_token.token_type == TokenType.SEMI:
             self.eat(TokenType.SEMI)
@@ -443,6 +456,10 @@ class Parser:
         return params
 
     def formal_parameters(self) -> list[Param]:
+        """
+        formal_parameters:
+            ID (COMMA ID)* COLON type_spec
+        """
         names = [self.current_token]
         self.eat(TokenType.ID)
         while self.current_token.token_type == TokenType.COMMA:
@@ -454,6 +471,10 @@ class Parser:
         return [Param(Var(name), param_type) for name in names]
 
     def variable_declaration(self) -> list[VarDecl]:
+        """
+        variable_declaration:
+            ID (COMMA ID)* COLON type_spec
+        """
         var_nodes = [Var(self.current_token)]
         self.eat(TokenType.ID)
 
@@ -468,17 +489,29 @@ class Parser:
         return [VarDecl(var_node, type_node) for var_node in var_nodes]
 
     def type_spec(self) -> Type:
+        """
+        type_spec:
+            INTEGER | REAL
+        """
         token = self.current_token
         self.eat(TokenType.INTEGER, TokenType.REAL)
         return Type(token)
 
     def compound_statement(self) -> Compound:
+        """
+        compound_statement:
+            BEGIN statement_list END
+        """
         self.eat(TokenType.BEGIN)
         nodes = self.statement_list()
         self.eat(TokenType.END)
         return Compound(tuple(nodes))
 
     def statement_list(self) -> list[AST]:
+        """
+        statement_list:
+            statement (SEMI statement)*
+        """
         results = [self.statement()]
         while self.current_token.token_type == TokenType.SEMI:
             self.eat(TokenType.SEMI)
@@ -493,6 +526,13 @@ class Parser:
         return results
 
     def statement(self) -> AST:
+        """
+        statement:
+            compound_statement |
+            proccall_statement |
+            assignment_statement |
+            NoOp
+        """
         if self.current_token.token_type == TokenType.BEGIN:
             return self.compound_statement()
         if self.current_token.token_type == TokenType.ID and self.lexer.char == "(":
@@ -502,6 +542,10 @@ class Parser:
         return NoOp()
 
     def assignement_statement(self) -> AST:
+        """
+        assignement_statement:
+            variable ASSIGN expr
+        """
         left = self.variable()
         token = self.current_token
         self.eat(TokenType.ASSIGN)
@@ -509,11 +553,22 @@ class Parser:
         return Assign(left, token, right)
 
     def variable(self) -> Var:
+        """
+        var:
+            ID
+        """
         node = Var(self.current_token)
         self.eat(TokenType.ID)
         return node
 
     def factor(self) -> AST:
+        """
+        factor:
+            (PLUS | MINUS) factor |
+            (INTEGER_CONST | REAL_CONST) |
+            OPEN_PARANTH expr CLOSE_PARANTH |
+            variable
+        """
         token = self.current_token
         if token.token_type in (TokenType.MINUS, TokenType.PLUS):
             self.eat(TokenType.PLUS, TokenType.MINUS)
@@ -529,6 +584,10 @@ class Parser:
         return self.variable()
 
     def term(self) -> AST:
+        """
+        term:
+            factor ((MULT | DIV | FLOAT_DIV) factor)*
+        """
         node = self.factor()
 
         while self.current_token.token_type in (
@@ -545,6 +604,10 @@ class Parser:
         return node
 
     def proccall_statement(self) -> AST:
+        """
+        proccall_statement:
+            ID OPEN_PARANTH expr (COMMA expr)* CLOSE_PARANTH
+        """
         proc_token = self.current_token
         proc_name = self.current_token.value
         self.eat(TokenType.ID)
@@ -559,6 +622,10 @@ class Parser:
         return ProcedureCall(proc_name, tuple(params), proc_token)
 
     def expr(self) -> AST:
+        """
+        expr:
+            term ((MINUS | PLUS) term)*
+        """
         node = self.term()
 
         while self.current_token.token_type in (TokenType.MINUS, TokenType.PLUS):
