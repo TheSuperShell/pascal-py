@@ -3,39 +3,6 @@ from enum import StrEnum, auto
 from typing import Any
 
 
-class CallStack[T]:
-    __slots__ = "_records", "_popped_records"
-
-    def __init__(self) -> None:
-        self._records: list[T] = []
-        self._popped_records: list[T] = []
-
-    def get_popped_records(self) -> list[T]:
-        return self._popped_records
-
-    def pop(self) -> T:
-        if len(self._records) == 0:
-            raise Exception("stack is empty")
-
-        record = self._records.pop()
-        self._popped_records.append(record)
-        return record
-
-    def push(self, ar: T) -> None:
-        self._records.append(ar)
-
-    def peek(self) -> T:
-        if len(self._records) == 0:
-            raise Exception("stack is empty")
-        return self._records[-1]
-
-    def __str__(self) -> str:
-        return f"CALL STACK\n{'\n'.join(repr(ar) for ar in reversed(self._records))}\n"
-
-    def __repr__(self) -> str:
-        return str(self)
-
-
 class ARType(StrEnum):
     PROGRAM = auto()
     PROCEDURE = auto()
@@ -54,6 +21,9 @@ class ActivationRecord:
     def __getitem__(self, key: str) -> Any:
         return self.members[key]
 
+    def __contains__(self, key: str) -> bool:
+        return key in self.members
+
     def get(self, key: str) -> Any:
         return self.members.get(key)
 
@@ -62,6 +32,45 @@ class ActivationRecord:
         for name, val in self.members.items():
             lines.append(f"    {name:<20}: {val}")
         return "\n".join(lines)
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
+class CallStack:
+    __slots__ = "_records", "_popped_records"
+
+    def __init__(self) -> None:
+        self._records: list[ActivationRecord] = []
+        self._popped_records: list[ActivationRecord] = []
+
+    def get_popped_records(self) -> list[ActivationRecord]:
+        return self._popped_records
+
+    def pop(self) -> ActivationRecord:
+        if len(self._records) == 0:
+            raise Exception("stack is empty")
+
+        record = self._records.pop()
+        self._popped_records.append(record)
+        return record
+
+    def push(self, ar: ActivationRecord) -> None:
+        self._records.append(ar)
+
+    def peek(self) -> ActivationRecord:
+        if len(self._records) == 0:
+            raise Exception("stack is empty")
+        return self._records[-1]
+
+    def lookup(self, key: str) -> ActivationRecord | None:
+        for record in reversed(self._records):
+            if key in record:
+                return record[key]
+        return None
+
+    def __str__(self) -> str:
+        return f"CALL STACK\n{'\n'.join(repr(ar) for ar in reversed(self._records))}\n"
 
     def __repr__(self) -> str:
         return str(self)

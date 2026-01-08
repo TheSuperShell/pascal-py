@@ -43,7 +43,7 @@ _UNARY_OP: dict[TokenType, Callable[[int | float], int | float]] = {
 
 @dataclass(slots=True)
 class DefaultVisitor(Visitor):
-    call_stack: CallStack[ActivationRecord] = field(default_factory=CallStack)
+    call_stack: CallStack = field(default_factory=CallStack)
 
     @override
     def visit_Program(self, node: Program) -> Any:
@@ -94,7 +94,7 @@ class DefaultVisitor(Visitor):
     @override
     def visit_Var(self, node: Var) -> Any:
         var_name = node.value
-        val = self.call_stack.peek().get(var_name)
+        val = self.call_stack.lookup(var_name)
         if val is None:
             raise NameError(repr(var_name))
         return val
