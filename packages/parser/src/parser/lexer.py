@@ -108,6 +108,24 @@ class Lexer:
         if self.char == "/":
             self.advance()
             return Token.float_div()
+        if self.char == "=":
+            self.advance()
+            return Token.eq()
+        if self.char == ">":
+            self.advance()
+            if self.char == "=":
+                self.advance()
+                return Token.get()
+            return Token.gt()
+        if self.char == "<":
+            self.advance()
+            if self.char == ">":
+                self.advance()
+                return Token.neq()
+            if self.char == "=":
+                self.advance()
+                return Token.let()
+            return Token.lt()
         if self.char == "(":
             self.advance()
             return Token.open_p()

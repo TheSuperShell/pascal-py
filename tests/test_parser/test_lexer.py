@@ -60,6 +60,18 @@ data = [
             Token.eof(),
         ],
     ],
+    [
+        "> >= < <= <> =",
+        [
+            Token.gt(),
+            Token.get(),
+            Token.lt(),
+            Token.let(),
+            Token.neq(),
+            Token.eq(),
+            Token.eof(),
+        ],
+    ],
 ]
 
 

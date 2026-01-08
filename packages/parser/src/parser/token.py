@@ -17,6 +17,12 @@ class TokenType(IntEnum):
     MULTIPLICATION = auto()
     INTEGER_DIV = auto()
     FLOAT_DIV = auto()
+    MORE = auto()
+    LESS = auto()
+    MORE_OR_EQUAL = auto()
+    LESS_OR_EQUAL = auto()
+    EQUAL = auto()
+    NOT_EQUAL = auto()
     OPEN_PARANTH = auto()
     CLOSE_PARANTH = auto()
     BEGIN = auto()
@@ -158,3 +164,27 @@ class Token:
     @classmethod
     def exit(cls) -> "Token":
         return Token(TokenType.EXIT, "EXIT")
+
+    @classmethod
+    def eq(cls) -> "Token":
+        return Token(TokenType.EQUAL, "=")
+
+    @classmethod
+    def neq(cls) -> "Token":
+        return Token(TokenType.NOT_EQUAL, "<>")
+
+    @classmethod
+    def gt(cls) -> "Token":
+        return Token(TokenType.MORE, ">")
+
+    @classmethod
+    def get(cls) -> "Token":
+        return Token(TokenType.MORE_OR_EQUAL, ">=")
+
+    @classmethod
+    def lt(cls) -> "Token":
+        return Token(TokenType.LESS, "<")
+
+    @classmethod
+    def let(cls) -> "Token":
+        return Token(TokenType.LESS_OR_EQUAL, "<=")
