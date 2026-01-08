@@ -626,7 +626,7 @@ class Parser:
             return self.call_statement()
         return self.variable()
 
-    def term(self) -> AST:
+    def mult_expr(self) -> AST:
         """
         term:
             factor ((MULT | DIV | FLOAT_DIV) factor)*
@@ -664,17 +664,44 @@ class Parser:
         self.eat(TokenType.CLOSE_PARANTH)
         return ProcedureCall(proc_name, tuple(params), proc_token)
 
-    def expr(self) -> AST:
+    def add_expr(self) -> AST:
         """
-        expr:
-            term ((MINUS | PLUS) term)*
+        add_expr:
+            mult_expr ((MINUS | PLUS) mult_expr)*
         """
-        node = self.term()
+        node = self.mult_expr()
 
         while self.current_token.token_type in (TokenType.MINUS, TokenType.PLUS):
             token = self.current_token
             self.eat(TokenType.PLUS, TokenType.MINUS)
-            node = BinOp(node, token, self.term())
+            node = BinOp(node, token, self.mult_expr())
+        return node
+
+    def expr(self) -> AST:
+        """
+        compare_expr:
+            add_expr ((LESS, MORE, LESS_OR_EQUAL, MORE_OR_EQUAL, EQUAL, NOT_EQUAL) add_expr)*
+        """
+        node = self.add_expr()
+
+        while self.current_token.token_type in (
+            TokenType.LESS,
+            TokenType.MORE,
+            TokenType.LESS_OR_EQUAL,
+            TokenType.MORE_OR_EQUAL,
+            TokenType.EQUAL,
+            TokenType.NOT_EQUAL,
+        ):
+            token = self.current_token
+            self.eat(
+                TokenType.LESS,
+                TokenType.MORE,
+                TokenType.LESS_OR_EQUAL,
+                TokenType.MORE_OR_EQUAL,
+                TokenType.EQUAL,
+                TokenType.NOT_EQUAL,
+            )
+            node = BinOp(node, token, self.add_expr())
         return node
 
     def parse(self) -> AST:

@@ -153,7 +153,7 @@ data = [
         ),
     ],
     [
-        "PROGRAM fl; VAR val : REAL; BEGIN val:=5 + (10 / 3); x := True; END.",
+        "PROGRAM fl; VAR val : REAL; BEGIN val:=5 + (10 / 3) > 10 + 0; x := True; END.",
         Program(
             "fl",
             Block(
@@ -164,12 +164,20 @@ data = [
                             Var(Token.Id("val")),
                             Token.assign(),
                             BinOp(
-                                Num(Token.const_int("5")),
-                                Token.plus(),
+                                BinOp(
+                                    Num(Token.const_int("5")),
+                                    Token.plus(),
+                                    BinOp(
+                                        Num(Token.const_int("10")),
+                                        Token.float_div(),
+                                        Num(Token.const_int("3")),
+                                    ),
+                                ),
+                                Token.gt(),
                                 BinOp(
                                     Num(Token.const_int("10")),
-                                    Token.float_div(),
-                                    Num(Token.const_int("3")),
+                                    Token.plus(),
+                                    Num(Token.const_int("0")),
                                 ),
                             ),
                         ),
