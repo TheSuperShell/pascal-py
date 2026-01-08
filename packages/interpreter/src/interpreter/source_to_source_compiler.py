@@ -19,7 +19,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
-from parser.scoped_symbol_table import ScopedSymbolTable
+from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
 @dataclass(slots=True)
@@ -47,7 +47,10 @@ class S2SCompiler(Visitor):
         output.append(f"program {program_name}0;")
 
         global_scope = ScopedSymbolTable(
-            "global", scope_level=1, enclosing_sope=self.current_scope
+            "global",
+            ScopeType.PROGRAM,
+            scope_level=1,
+            enclosing_sope=self.current_scope,
         )
         self.current_scope = global_scope
 
@@ -109,6 +112,7 @@ class S2SCompiler(Visitor):
         previous_scope_level = self.get_current_scope().scope_level
         proc_scope = ScopedSymbolTable(
             proc_name,
+            ScopeType.PROCEDURE,
             scope_level=previous_scope_level + 1,
             enclosing_sope=self.current_scope,
         )

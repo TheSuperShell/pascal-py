@@ -1,12 +1,21 @@
+from enum import StrEnum, auto
 from parser.parser import BuiltinTypeSymbol, Symbol
 
 
+class ScopeType(StrEnum):
+    BUILTIN = auto()
+    PROCEDURE = auto()
+    PROGRAM = auto()
+    FUNCTION = auto()
+
+
 class ScopedSymbolTable:
-    __slots__ = "_symbols", "scope_name", "scope_level", "enclosing_scope"
+    __slots__ = "_symbols", "scope_name", "scope_level", "enclosing_scope", "scope_type"
 
     def __init__(
         self,
         scope_name: str,
+        scope_type: ScopeType,
         *,
         scope_level: int,
         enclosing_sope: "None | ScopedSymbolTable" = None,
@@ -15,6 +24,7 @@ class ScopedSymbolTable:
         self.scope_level = scope_level
         self.scope_name = scope_name
         self.enclosing_scope = enclosing_sope
+        self.scope_type = scope_type
 
     def __str__(self) -> str:
         h1 = "SCOPE (SCOPED SYMBOL TABLE)"
@@ -61,7 +71,7 @@ class ScopedSymbolTable:
     @classmethod
     def create_builtin_scope(cls) -> "ScopedSymbolTable":
         print("ENTER scope: builtins")
-        table = ScopedSymbolTable("builtins", scope_level=0)
+        table = ScopedSymbolTable("builtins", ScopeType.BUILTIN, scope_level=0)
         table.define(BuiltinTypeSymbol("INTEGER"))
         table.define(BuiltinTypeSymbol("REAL"))
         print(table)

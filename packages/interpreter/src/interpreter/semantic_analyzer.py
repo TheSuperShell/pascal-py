@@ -23,7 +23,7 @@ from parser import (
 )
 from interpreter.visitor import Visitor
 from parser.parser import Exit
-from parser.scoped_symbol_table import ScopedSymbolTable
+from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
 class ErrorCode(IntEnum):
@@ -61,7 +61,10 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(VarSymbol(program_name, ProgramSymbol()))
         print("ENTER scope: global")
         global_scope = ScopedSymbolTable(
-            "global", scope_level=1, enclosing_sope=self.current_scope
+            "global",
+            ScopeType.PROGRAM,
+            scope_level=1,
+            enclosing_sope=self.current_scope,
         )
         self.current_scope = global_scope
         self.visit(node.block)
@@ -92,6 +95,7 @@ class SymbolTableVisitor(Visitor):
         print(f"ENTER scope: {proc_name}")
         procedure_scope = ScopedSymbolTable(
             proc_name,
+            ScopeType.PROCEDURE,
             scope_level=(self.current_scope.scope_level if self.current_scope else 0)
             + 1,
             enclosing_sope=self.current_scope,
