@@ -25,6 +25,7 @@ class TokenType(IntEnum):
     SEMI = auto()
     VAR = auto()
     PROCEDURE = auto()
+    FUNCTION = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -138,3 +139,7 @@ class Token:
     @classmethod
     def procedure(cls) -> "Token":
         return Token(TokenType.PROCEDURE, "PROCEDURE")
+
+    @classmethod
+    def function(cls) -> "Token":
+        return Token(TokenType.FUNCTION, "FUNCTION")

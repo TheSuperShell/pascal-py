@@ -1,5 +1,6 @@
 import pytest
-from parser.lexer import Lexer
+from hypothesis import given, strategies as st
+from parser.lexer import _RESERVED_KEYWORDS, Lexer
 from parser.token import Token
 
 data = [
@@ -66,6 +67,19 @@ data = [
 def test_lexer_math(code, result):
     lexer = Lexer(code)
     assert list(lexer) == result
+
+
+@given(
+    st.lists(
+        st.integers(min_value=0, max_value=len(_RESERVED_KEYWORDS) - 1), min_size=1
+    )
+)
+def test_keywords(ls):
+    res_keywords = list(_RESERVED_KEYWORDS)
+    key_words = [res_keywords[i] for i in ls]
+    result = [_RESERVED_KEYWORDS[key] for key in key_words] + [Token.eof()]
+    lexer = Lexer(" ".join(key_words))
+    assert result == list(lexer)
 
 
 def test_remove_spaces():
