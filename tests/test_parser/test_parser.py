@@ -2,6 +2,7 @@ import pytest
 from parser.lexer import Lexer
 from parser.parser import (
     Assign,
+    Bool,
     Exit,
     Function,
     BinOp,
@@ -152,7 +153,7 @@ data = [
         ),
     ],
     [
-        "PROGRAM fl; VAR val : REAL; BEGIN val:=5 + (10 / 3); END.",
+        "PROGRAM fl; VAR val : REAL; BEGIN val:=5 + (10 / 3); x := True; END.",
         Program(
             "fl",
             Block(
@@ -171,6 +172,11 @@ data = [
                                     Num(Token.const_int("3")),
                                 ),
                             ),
+                        ),
+                        Assign(
+                            Var(Token.Id("x")),
+                            Token.assign(),
+                            Bool(Token.const_bool(True)),
                         ),
                         NoOp(),
                     )

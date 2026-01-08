@@ -84,6 +84,21 @@ class Num(AST):
 
 
 @dataclass(slots=True, frozen=True)
+class Bool(AST):
+    token: Token
+
+    @property
+    def value(self) -> bool:
+        return bool(self.token.value.lower().capitalize())
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    def __repr__(self) -> str:
+        return f"Boolean({self.value})"
+
+
+@dataclass(slots=True, frozen=True)
 class UnaryOp(AST):
     token: Token
     expr: AST
@@ -587,6 +602,7 @@ class Parser:
         factor:
             (PLUS | MINUS) factor |
             (INTEGER_CONST | REAL_CONST) |
+            CONST_BOOLEAN |
             OPEN_PARANTH expr CLOSE_PARANTH |
             call_statement |
             variable
@@ -598,6 +614,9 @@ class Parser:
         if token.token_type in (TokenType.INTEGER_CONST, TokenType.REAL_CONST):
             self.eat(TokenType.INTEGER_CONST, TokenType.REAL_CONST)
             return Num(token)
+        if token.token_type == TokenType.BOOLEAN_CONST:
+            self.eat(TokenType.BOOLEAN_CONST)
+            return Bool(token)
         if token.token_type == TokenType.OPEN_PARANTH:
             self.eat(TokenType.OPEN_PARANTH)
             result = self.expr()
