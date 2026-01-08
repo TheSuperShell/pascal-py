@@ -15,7 +15,7 @@ from parser import (
     Var,
     VarDecl,
 )
-from parser.parser import Function
+from parser.parser import Bool, Function
 
 
 class Visitor(ABC):
@@ -59,6 +59,9 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_Num(self, node: Num) -> Any: ...
+
+    @abstractmethod
+    def visit_Bool(self, node: Bool) -> Any: ...
 
     @abstractmethod
     def visit_Var(self, node: Var) -> Any: ...

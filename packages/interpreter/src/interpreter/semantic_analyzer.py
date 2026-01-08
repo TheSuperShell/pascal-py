@@ -22,7 +22,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
-from parser.parser import BuiltinTypeSymbol, Exit, Function, FunctionSymbol
+from parser.parser import Bool, BuiltinTypeSymbol, Exit, Function, FunctionSymbol
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
@@ -181,6 +181,10 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Num(self, node: Num) -> Any:
+        return
+
+    @override
+    def visit_Bool(self, node: Bool) -> Any:
         return
 
     @override

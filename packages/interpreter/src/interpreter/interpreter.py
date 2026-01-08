@@ -19,7 +19,7 @@ from parser import (
     VarDecl,
 )
 from interpreter.semantic_analyzer import SymbolTableVisitor
-from parser.parser import Exit, Function, FunctionSymbol
+from parser.parser import Bool, Exit, Function, FunctionSymbol
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
@@ -93,6 +93,10 @@ class DefaultVisitor(Visitor):
 
     @override
     def visit_Num(self, node: Num) -> Any:
+        return node.value
+
+    @override
+    def visit_Bool(self, node: Bool) -> Any:
         return node.value
 
     @override
