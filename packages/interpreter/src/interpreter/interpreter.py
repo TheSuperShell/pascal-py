@@ -40,11 +40,14 @@ _OPERATIONS: dict[TokenType, Callable[[Any, Any], Any]] = {
     TokenType.MORE_OR_EQUAL: lambda x, y: x >= y,
     TokenType.EQUAL: lambda x, y: x == y,
     TokenType.NOT_EQUAL: lambda x, y: x != y,
+    TokenType.AND: lambda x, y: x and y,
+    TokenType.OR: lambda x, y: x or y,
 }
 
-_UNARY_OP: dict[TokenType, Callable[[int | float], int | float]] = {
+_UNARY_OP: dict[TokenType, Callable[[Any], Any]] = {
     TokenType.PLUS: lambda x: x,
     TokenType.MINUS: lambda x: -x,
+    TokenType.NOT: lambda x: not x,
 }
 
 
