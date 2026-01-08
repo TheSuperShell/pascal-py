@@ -16,6 +16,7 @@ from parser.parser import (
     ProcedureCall,
     Program,
     Type,
+    UnaryOp,
     Var,
     VarDecl,
 )
@@ -153,7 +154,7 @@ data = [
         ),
     ],
     [
-        "PROGRAM fl; VAR val : REAL; BEGIN val:=5 + (10 / 3) > 10 + 0; x := True; END.",
+        "PROGRAM fl; VAR val : REAL; BEGIN val:=FALSE OR 5 + (10 / 3) > NOT 10 + 0; x := True; END.",
         Program(
             "fl",
             Block(
@@ -164,20 +165,27 @@ data = [
                             Var(Token.Id("val")),
                             Token.assign(),
                             BinOp(
+                                Bool(Token.const_bool(False)),
+                                Token.Or(),
                                 BinOp(
-                                    Num(Token.const_int("5")),
-                                    Token.plus(),
                                     BinOp(
-                                        Num(Token.const_int("10")),
-                                        Token.float_div(),
-                                        Num(Token.const_int("3")),
+                                        Num(Token.const_int("5")),
+                                        Token.plus(),
+                                        BinOp(
+                                            Num(Token.const_int("10")),
+                                            Token.float_div(),
+                                            Num(Token.const_int("3")),
+                                        ),
                                     ),
-                                ),
-                                Token.gt(),
-                                BinOp(
-                                    Num(Token.const_int("10")),
-                                    Token.plus(),
-                                    Num(Token.const_int("0")),
+                                    Token.gt(),
+                                    UnaryOp(
+                                        Token.Not(),
+                                        BinOp(
+                                            Num(Token.const_int("10")),
+                                            Token.plus(),
+                                            Num(Token.const_int("0")),
+                                        ),
+                                    ),
                                 ),
                             ),
                         ),

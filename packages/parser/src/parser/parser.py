@@ -601,6 +601,7 @@ class Parser:
         """
         factor:
             (PLUS | MINUS) factor |
+            NOT compare_expr |
             (INTEGER_CONST | REAL_CONST) |
             CONST_BOOLEAN |
             OPEN_PARANTH expr CLOSE_PARANTH |
@@ -611,6 +612,9 @@ class Parser:
         if token.token_type in (TokenType.MINUS, TokenType.PLUS):
             self.eat(TokenType.PLUS, TokenType.MINUS)
             return UnaryOp(token, self.factor())
+        if token.token_type == TokenType.NOT:
+            self.eat(TokenType.NOT)
+            return UnaryOp(token, self.compare_expr())
         if token.token_type in (TokenType.INTEGER_CONST, TokenType.REAL_CONST):
             self.eat(TokenType.INTEGER_CONST, TokenType.REAL_CONST)
             return Num(token)
@@ -677,7 +681,7 @@ class Parser:
             node = BinOp(node, token, self.mult_expr())
         return node
 
-    def expr(self) -> AST:
+    def compare_expr(self) -> AST:
         """
         compare_expr:
             add_expr ((LESS, MORE, LESS_OR_EQUAL, MORE_OR_EQUAL, EQUAL, NOT_EQUAL) add_expr)*
@@ -702,6 +706,29 @@ class Parser:
                 TokenType.NOT_EQUAL,
             )
             node = BinOp(node, token, self.add_expr())
+        return node
+
+    def bool_expr(self) -> AST:
+        """
+        bool_expr:
+            compare_expr (AND compare_expr)*
+        """
+        node = self.compare_expr()
+
+        while self.current_token.token_type == TokenType.AND:
+            self.eat(TokenType.AND)
+            node = BinOp(node, Token.And(), self.compare_expr())
+        return node
+
+    def expr(self) -> AST:
+        """
+        expr:
+            bool_expr (OR bool_expr)*
+        """
+        node = self.bool_expr()
+        while self.current_token.token_type == TokenType.OR:
+            self.eat(TokenType.OR)
+            node = BinOp(node, Token.Or(), self.bool_expr())
         return node
 
     def parse(self) -> AST:
