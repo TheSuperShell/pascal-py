@@ -9,7 +9,6 @@ from parser.parser import (
     Param,
     Procedure,
     Call,
-    ProcedureSymbol,
     Program,
     ProgramSymbol,
     Assign,

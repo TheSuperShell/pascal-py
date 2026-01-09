@@ -1,5 +1,5 @@
 from enum import StrEnum, auto
-from parser.parser import BuiltinTypeSymbol, Symbol
+from parser.parser import BuiltinCallableSymbol, BuiltinTypeSymbol, Symbol
 
 
 class ScopeType(StrEnum):
@@ -75,5 +75,13 @@ class ScopedSymbolTable:
         table.define(BuiltinTypeSymbol("INTEGER"))
         table.define(BuiltinTypeSymbol("REAL"))
         table.define(BuiltinTypeSymbol("BOOLEAN"))
+        table.define(
+            BuiltinCallableSymbol(
+                "TwoNumberSum",
+                lambda x, y: x + y,
+                params=(BuiltinTypeSymbol("INTEGER"), BuiltinTypeSymbol("INTEGER")),
+                return_type=BuiltinTypeSymbol("INTEGER"),
+            )
+        )
         print(table)
         return table

@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, auto
+from typing import Any
 
 from parser.lexer import Lexer
 
@@ -258,16 +259,16 @@ class Param(AST):
 
 @dataclass(slots=True)
 class Call(AST):
-    proc_name: str
+    name: str
     actual_params: tuple[AST, ...]
     token: Token
     proc_symbol: "Symbol | None" = None
 
     def __str__(self) -> str:
-        return f"{self.proc_name}({self.actual_params})"
+        return f"{self.name}({self.actual_params})"
 
     def __repr__(self) -> str:
-        return f"ProcedureCall({self.proc_name=}, {self.actual_params=})"
+        return f"ProcedureCall({self.name=}, {self.actual_params=})"
 
 
 @dataclass(slots=True, frozen=True)
@@ -339,13 +340,13 @@ class VarSymbol(Symbol):
         super().__init__(name, symbol_type)
 
 
-class FunctionSymbol(Symbol):
+class CallableSymbol(Symbol):
     __slots__ = "name", "params", "block_ast", "return_type"
 
     def __init__(
         self,
         name: str,
-        return_type: BuiltinTypeSymbol,
+        return_type: BuiltinTypeSymbol | None = None,
         params: Sequence[Symbol] | None = None,
         block_ast: AST | None = None,
     ) -> None:
@@ -360,21 +361,23 @@ class FunctionSymbol(Symbol):
     __repr__ = __str__
 
 
-class ProcedureSymbol(Symbol):
-    __slots__ = "name", "params", "block_ast"
+class BuiltinCallableSymbol(Symbol):
+    __slots__ = "name", "params", "return_type", "func"
 
     def __init__(
         self,
         name: str,
+        func: Callable[..., Any],
         params: Sequence[Symbol] | None = None,
-        block_ast: AST | None = None,
+        return_type: Symbol | None = None,
     ) -> None:
         super().__init__(name)
-        self.params: list[Symbol] = list(params) if params is not None else []
-        self.block_ast = block_ast
+        self.params = list(params) if params else []
+        self.return_type = return_type
+        self.func = func
 
     def __str__(self) -> str:
-        return f"<{self.__class__.__name__}(name={self.name}, params={self.params})>"
+        return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
 
     __repr__ = __str__
 

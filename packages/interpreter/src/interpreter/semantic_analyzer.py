@@ -12,7 +12,6 @@ from parser import (
     Param,
     Procedure,
     Call,
-    ProcedureSymbol,
     Program,
     ProgramSymbol,
     UnaryOp,
@@ -24,11 +23,12 @@ from parser import (
 from interpreter.visitor import Visitor
 from parser.parser import (
     Bool,
+    BuiltinCallableSymbol,
     BuiltinTypeSymbol,
     Condition,
     Exit,
     Function,
-    FunctionSymbol,
+    CallableSymbol,
     IfStatement,
 )
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
@@ -129,7 +129,7 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
         assert isinstance(return_symbol, BuiltinTypeSymbol)
-        func_symbol = FunctionSymbol(func_name, return_symbol)
+        func_symbol = CallableSymbol(func_name, return_symbol)
         self.get_current_scope().define(func_symbol)
 
         print(f"ENTER scope: {func_name}")
@@ -161,7 +161,7 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Procedure(self, node: Procedure) -> Any:
         proc_name = node.name
-        proc_symbol = ProcedureSymbol(proc_name)
+        proc_symbol = CallableSymbol(proc_name)
         self.get_current_scope().define(proc_symbol)
 
         print(f"ENTER scope: {proc_name}")
@@ -250,28 +250,28 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Call(self, node: Call) -> Any:
-        proc_name = node.proc_name
-        proc_symbol = self.get_current_scope().lookup(proc_name)
-        node.proc_symbol = proc_symbol
-        if proc_symbol is None:
+        callable_name = node.name
+        callable_symbol = self.get_current_scope().lookup(callable_name)
+        node.proc_symbol = callable_symbol
+        if callable_symbol is None:
             raise SemanticError(
-                f"no procedure/function found: {proc_name}",
-                ErrorCode.ID_NOT_FOUND,
-                node,
+                f"no callable found: {callable_name}", ErrorCode.ID_NOT_FOUND, node
             )
         if not (
-            isinstance(proc_symbol, ProcedureSymbol)
-            or isinstance(proc_symbol, FunctionSymbol)
+            isinstance(callable_symbol, CallableSymbol)
+            or isinstance(callable_symbol, BuiltinCallableSymbol)
         ):
             raise SemanticError(
-                f"{proc_name} is not callable",
+                f"{callable_name} is not a callable",
                 ErrorCode.INCORRECT_CALL_TYPE,
                 node,
             )
-        if len(proc_symbol.params) != len(node.actual_params):
+        if callable_symbol.params is not None and len(callable_symbol.params) != len(
+            node.actual_params
+        ):
             raise SemanticError(
-                f"{proc_name} expected "
-                f"{len(proc_symbol.params)} number of inputs, "
+                f"{callable_name} expected "
+                f"{len(callable_symbol.params)} number of inputs, "
                 f"found {len(node.actual_params)}",
                 ErrorCode.INCORRECT_NUMBER_OF_INPUTS,
                 node,

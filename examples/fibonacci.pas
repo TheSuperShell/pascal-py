@@ -9,5 +9,7 @@ program fib_1;
     end;
 
 begin
-    res := fib(9);
+
+    { res := fib(9);}
+    res := TwoNumberSum(10, 24);
 end.

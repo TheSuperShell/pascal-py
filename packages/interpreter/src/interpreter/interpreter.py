@@ -11,7 +11,6 @@ from parser import (
     BinOp,
     Procedure,
     Call,
-    ProcedureSymbol,
     Program,
     Type,
     UnaryOp,
@@ -19,7 +18,15 @@ from parser import (
     VarDecl,
 )
 from interpreter.semantic_analyzer import SymbolTableVisitor
-from parser.parser import Bool, Condition, Exit, Function, FunctionSymbol, IfStatement
+from parser.parser import (
+    Bool,
+    BuiltinCallableSymbol,
+    Condition,
+    Exit,
+    Function,
+    CallableSymbol,
+    IfStatement,
+)
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
@@ -140,23 +147,28 @@ class DefaultVisitor(Visitor):
         right = self.visit(node.right)
         return _OPERATIONS[node.token.token_type](left, right)
 
+    def _visit_builtin_callable(self, symbol: BuiltinCallableSymbol, node: Call) -> Any:
+        inputs = []
+        for param in node.actual_params:
+            inputs.append(self.visit(param))
+        print(f"CALL builtin: {symbol.name}")
+        return symbol.func(*inputs)
+
     @override
     def visit_Call(self, node: Call) -> Any:
         proc_symbol = node.proc_symbol
         if proc_symbol is None:
-            raise InterpreterError(f"{node.proc_name} is not recognised")
-        assert isinstance(proc_symbol, ProcedureSymbol) or isinstance(
-            proc_symbol, FunctionSymbol
-        )
+            raise InterpreterError(f"{node.name} is not recognised")
+        if isinstance(proc_symbol, BuiltinCallableSymbol):
+            return self._visit_builtin_callable(proc_symbol, node)
+        assert isinstance(proc_symbol, CallableSymbol)
         if proc_symbol.block_ast is None:
-            raise InterpreterError(f"{node.proc_name} body is not declared")
-        proc_name = node.proc_name
+            raise InterpreterError(f"{node.name} body is not declared")
+        proc_name = node.name
 
         ar = ActivationRecord(
             proc_name,
-            ARType.PROCEDURE
-            if isinstance(proc_symbol, ProcedureSymbol)
-            else ARType.FUNCTION,
+            ARType.FUNCTION if proc_symbol.return_type else ARType.PROCEDURE,
             nesting_level=proc_symbol.scope + 1,
         )
         formal_params = proc_symbol.params
