@@ -185,8 +185,7 @@ class Interpreter(Visitor):
             self.visit(proc_symbol.block_ast)
         except ExitScope as e:
             result = e.value
-        if result is None:
-            result = ar.get("result")
+        result = result or ar.get("result") or ar.get(proc_name)
 
         self.logger.debug(f"LEAVE PROCEDURE: {proc_name}")
         self.logger.debug(self.call_stack)

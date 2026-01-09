@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import logging
 from typing import Any, Self, override
+from interpreter.utils import ScopeType, ScopedSymbolTable
 from parser import (
     AST,
     Assign,
@@ -21,7 +22,6 @@ from parser import (
 )
 from interpreter.visitor import Visitor
 from parser.parser import Bool, Condition, Exit, Function, IfStatement
-from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
 @dataclass(slots=True)
@@ -55,7 +55,7 @@ class S2SCompiler(Visitor):
             "global",
             ScopeType.PROGRAM,
             scope_level=1,
-            enclosing_sope=self.current_scope,
+            enclosing_scope=self.current_scope,
             logger=self.logger,
         )
         self.current_scope = global_scope
@@ -128,7 +128,7 @@ class S2SCompiler(Visitor):
             proc_name,
             ScopeType.PROCEDURE,
             scope_level=previous_scope_level + 1,
-            enclosing_sope=self.current_scope,
+            enclosing_scope=self.current_scope,
             logger=self.logger,
         )
         self.current_scope = proc_scope
@@ -166,10 +166,10 @@ class S2SCompiler(Visitor):
     @override
     def visit_Var(self, node: Var) -> Any:
         var_name = node.value
-        var_symbol, scope_level = self.get_current_scope().lookup_with_scope(var_name)
+        var_symbol = self.get_current_scope().lookup(var_name)
         if var_symbol is None:
             raise Exception(f"unkown variable {var_name}")
-        return f"<{var_name}{scope_level}:{var_symbol.symbol_type.name if var_symbol.symbol_type else None}>"
+        return f"<{var_name}{var_symbol.scope}:{var_symbol.symbol_type.name if var_symbol.symbol_type else None}>"
 
     @override
     def visit_VarDecl(self, node: VarDecl) -> Any:

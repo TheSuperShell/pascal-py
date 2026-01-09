@@ -1,5 +1,12 @@
-from dataclasses import dataclass, field
 from enum import StrEnum, auto
+import logging
+from parser.parser import (
+    BuiltinCallableSymbol,
+    BuiltinTypeSymbol,
+    CallableSymbol,
+    Symbol,
+)
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -75,3 +82,104 @@ class CallStack:
 
     def __repr__(self) -> str:
         return str(self)
+
+
+class ScopeType(StrEnum):
+    BUILTIN = auto()
+    PROCEDURE = auto()
+    PROGRAM = auto()
+    FUNCTION = auto()
+
+
+class ScopedSymbolTable:
+    __slots__ = (
+        "_symbols",
+        "scope_name",
+        "scope_level",
+        "enclosing_scope",
+        "scope_type",
+        "logger",
+        "_callable_symbols",
+    )
+
+    def __init__(
+        self,
+        scope_name: str,
+        scope_type: ScopeType,
+        *,
+        scope_level: int,
+        logger: logging.Logger,
+        enclosing_scope: "None | ScopedSymbolTable" = None,
+    ) -> None:
+        self._symbols: dict[str, Symbol] = {}
+        self._callable_symbols: dict[str, Symbol] = {}
+        self.scope_level = scope_level
+        self.scope_name = scope_name
+        self.enclosing_scope = enclosing_scope
+        self.scope_type = scope_type
+        self.logger = logger
+
+    def __str__(self) -> str:
+        h1 = "SCOPE (SCOPED SYMBOL TABLE)"
+        lines = ["\n", h1, "=" * len(h1)]
+        for header_name, header_value in (
+            ("Scope name", self.scope_name),
+            ("Scope level", self.scope_level),
+            (
+                "Enclosing scope",
+                self.enclosing_scope.scope_name if self.enclosing_scope else None,
+            ),
+        ):
+            lines.append(f"{header_name:<15}: {header_value}")
+        h2 = "Scope (Scoped symbol table) contents"
+        lines.extend([h2, "-" * len(h2)])
+        lines.extend(f"{k:>7}: {v}" for k, v in self._symbols.items())
+        lines.append("\n")
+        return "\n".join(lines)
+
+    def define(self, symbol: Symbol) -> None:
+        self.logger.debug(f"Define: {symbol}")
+        symbol.scope = self.scope_level
+        self._symbols[symbol.name.upper()] = symbol
+
+    def define_callable(self, symbol: BuiltinCallableSymbol | CallableSymbol) -> None:
+        self.logger.debug(f"Define callable: {symbol}")
+        symbol.scope = self.scope_level
+        self._callable_symbols[symbol.name.upper()] = symbol
+
+    def lookup(self, name: str, *, current_scope_only: bool = False) -> Symbol | None:
+        self.logger.debug(f"Lookup (scope name: {self.scope_name}): {name}")
+        name = name.upper()
+        symbol = self._symbols.get(name)
+        if symbol is not None:
+            return symbol
+        if current_scope_only:
+            return None
+        if self.enclosing_scope is not None:
+            return self.enclosing_scope.lookup(name)
+
+    def lookup_callable(
+        self, name: str, *, current_scope_only: bool = False
+    ) -> Symbol | None:
+        self.logger.debug(f"Lookup callable (scope name: {self.scope_name}): {name}")
+        name = name.upper()
+        symbol = self._callable_symbols.get(name)
+        if symbol is not None:
+            return symbol
+        if current_scope_only:
+            return None
+        if self.enclosing_scope is not None:
+            return self.enclosing_scope.lookup_callable(name)
+
+    @classmethod
+    def create_builtin_scope(cls, logger: logging.Logger) -> "ScopedSymbolTable":
+        logger.debug("ENTER scope: builtins")
+        table = ScopedSymbolTable(
+            "builtins", ScopeType.BUILTIN, scope_level=0, logger=logger
+        )
+        table.define(BuiltinTypeSymbol("INTEGER"))
+        table.define(BuiltinTypeSymbol("REAL"))
+        table.define(BuiltinTypeSymbol("BOOLEAN"))
+        table.define_callable(BuiltinCallableSymbol("WriteLn", print))
+        logger.debug(table)
+        return table

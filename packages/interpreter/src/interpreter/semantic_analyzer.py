@@ -3,6 +3,7 @@ import logging
 from typing import Any, Self, override
 
 from interpreter.errors import SemanticError
+from interpreter.utils import ScopeType, ScopedSymbolTable
 from parser import (
     Assign,
     BinOp,
@@ -33,7 +34,6 @@ from parser.parser import (
     CallableSymbol,
     IfStatement,
 )
-from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
 @dataclass(slots=True)
@@ -58,7 +58,7 @@ class SymbolTableVisitor(Visitor):
             "global",
             ScopeType.PROGRAM,
             scope_level=1,
-            enclosing_sope=self.current_scope,
+            enclosing_scope=self.current_scope,
             logger=self.logger,
         )
         self.current_scope = global_scope
@@ -115,7 +115,7 @@ class SymbolTableVisitor(Visitor):
             )
         assert isinstance(return_symbol, BuiltinTypeSymbol)
         func_symbol = CallableSymbol(func_name, return_symbol)
-        self.get_current_scope().define(func_symbol)
+        self.get_current_scope().define_callable(func_symbol)
 
         self.logger.debug(f"ENTER scope: {func_name}")
         function_scope = ScopedSymbolTable(
@@ -123,7 +123,7 @@ class SymbolTableVisitor(Visitor):
             ScopeType.FUNCTION,
             scope_level=(self.current_scope.scope_level if self.current_scope else 0)
             + 1,
-            enclosing_sope=self.current_scope,
+            enclosing_scope=self.current_scope,
             logger=self.logger,
         )
         self.current_scope = function_scope
@@ -135,7 +135,16 @@ class SymbolTableVisitor(Visitor):
             self.current_scope.define(var_symbol)
             func_symbol.params.append(var_symbol)
 
+        result_exists = self.current_scope.lookup("result", current_scope_only=True)
+        func_var_exists = self.current_scope.lookup(func_name, current_scope_only=True)
+        if result_exists is not None or func_var_exists is not None:
+            raise SemanticError(
+                f"result and {func_name} are special symbols and cannot be overridden: {result_exists=}, {func_var_exists=}",
+                ErrorCode.DUPLICATE_VARIABLE,
+                node,
+            )
         self.current_scope.define(VarSymbol("result", return_symbol))
+        self.current_scope.define(VarSymbol(func_name, return_symbol))
 
         self.visit(node.block)
         self.logger.debug(function_scope)
@@ -148,7 +157,7 @@ class SymbolTableVisitor(Visitor):
     def visit_Procedure(self, node: Procedure) -> Any:
         proc_name = node.name
         proc_symbol = CallableSymbol(proc_name)
-        self.get_current_scope().define(proc_symbol)
+        self.get_current_scope().define_callable(proc_symbol)
 
         self.logger.debug(f"ENTER scope: {proc_name}")
         procedure_scope = ScopedSymbolTable(
@@ -156,7 +165,7 @@ class SymbolTableVisitor(Visitor):
             ScopeType.PROCEDURE,
             scope_level=(self.current_scope.scope_level if self.current_scope else 0)
             + 1,
-            enclosing_sope=self.current_scope,
+            enclosing_scope=self.current_scope,
             logger=self.logger,
         )
         self.current_scope = procedure_scope
@@ -238,7 +247,7 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Call(self, node: Call) -> Any:
         callable_name = node.name
-        callable_symbol = self.get_current_scope().lookup(callable_name)
+        callable_symbol = self.get_current_scope().lookup_callable(callable_name)
         node.proc_symbol = callable_symbol
         if callable_symbol is None:
             raise SemanticError(
