@@ -598,16 +598,13 @@ class Parser:
     def condition(self) -> Condition:
         """
         condition:
-            OPEN_PARANTH expr CLOSE_PARANTH THEN (statement | compund_statemnet)
+            OPEN_PARANTH expr CLOSE_PARANTH THEN statement
         """
         self.eat(TokenType.OPEN_PARANTH)
         cond = self.expr()
         self.eat(TokenType.CLOSE_PARANTH)
         self.eat(TokenType.THEN)
-        if self.current_token.token_type == TokenType.BEGIN:
-            expr = self.compound_statement()
-        else:
-            expr = self.statement()
+        expr = self.statement()
         return Condition(cond, expr)
 
     def if_statement(self) -> AST:
@@ -615,7 +612,7 @@ class Parser:
         if_statement:
             IF condition
             (ELSE IF condition)*
-            (ELSE (statement | compund_statement))?
+            (ELSE statement)?
         """
         self.eat(TokenType.IF)
         main_condition = self.condition()
@@ -624,10 +621,7 @@ class Parser:
         while self.current_token.token_type == TokenType.ELSE:
             self.eat(TokenType.ELSE)
             if self.current_token.token_type != TokenType.IF:
-                if self.current_token.token_type == TokenType.BEGIN:
-                    last_condition = self.compound_statement()
-                else:
-                    last_condition = self.statement()
+                last_condition = self.statement()
                 break
             self.eat(TokenType.IF)
             other_conditions.append(self.condition())
