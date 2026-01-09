@@ -45,6 +45,8 @@ class TokenType(IntEnum):
     IF = auto()
     THEN = auto()
     ELSE = auto()
+    WHILE = auto()
+    DO = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -239,3 +241,11 @@ class Token:
     @classmethod
     def const_string(cls, value: str) -> "Token":
         return Token(TokenType.STRING_CONST, value)
+
+    @classmethod
+    def While(cls) -> "Token":
+        return Token(TokenType.WHILE, "WHILE")
+
+    @classmethod
+    def do(cls) -> "Token":
+        return Token(TokenType.DO, "DO")
