@@ -28,7 +28,7 @@ class BuiltinFunctionRegister:
     registered_functions: list[BuiltinCallableSymbol] = field(default_factory=list)
 
     def register_function[**P, R](
-        self, symbol_name: str
+        self, symbol_name: str | None = None
     ) -> Callable[[Callable[P, R]], Callable[P, R]]:
         def wrapper(func: Callable[P, R]) -> Callable[P, R]:
             sign = inspect.signature(func)
@@ -64,7 +64,12 @@ class BuiltinFunctionRegister:
                     BuiltinTypes.get_pascal_type_from_python_type(param_type).value
                 )
             self.registered_functions.append(
-                BuiltinCallableSymbol(symbol_name, func, param_symbols, return_symbol)
+                BuiltinCallableSymbol(
+                    symbol_name if symbol_name is not None else func.__name__,
+                    func,
+                    param_symbols,
+                    return_symbol,
+                )
             )
             return func
 
@@ -74,6 +79,11 @@ class BuiltinFunctionRegister:
 builtin_function_register = BuiltinFunctionRegister()
 
 
-@builtin_function_register.register_function("WRITELN")
+@builtin_function_register.register_function()
 def writeln(*args: object) -> None:
-    print(">", *args)
+    print(*args)
+
+
+@builtin_function_register.register_function()
+def write(*args: object) -> None:
+    print(*args, end="")

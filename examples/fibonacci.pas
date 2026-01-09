@@ -1,6 +1,7 @@
 program fib_1;
     function fib(num: integer): integer;
     begin
+        write(num);
         if (num <= 1) then
             exit(num);
         exit(fib(num - 1) + fib(num - 2))
