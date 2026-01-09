@@ -47,10 +47,11 @@ class ScopedSymbolTable:
     def define(self, symbol: Symbol) -> None:
         print(f"Define: {symbol}")
         symbol.scope = self.scope_level
-        self._symbols[symbol.name] = symbol
+        self._symbols[symbol.name.upper()] = symbol
 
     def lookup(self, name: str, *, current_scope_only: bool = False) -> Symbol | None:
         print(f"Lookup (scope name: {self.scope_name}): {name}")
+        name = name.upper()
         symbol = self._symbols.get(name)
         if symbol is not None:
             return symbol
@@ -61,6 +62,7 @@ class ScopedSymbolTable:
 
     def lookup_with_scope(self, name: str) -> tuple[Symbol | None, int]:
         print(f"Lookup (scope name: {self.scope_name}): {name}")
+        name = name.upper()
         symbol = self._symbols.get(name)
         if symbol is not None:
             return symbol, self.scope_level

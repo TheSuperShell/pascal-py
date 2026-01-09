@@ -8,5 +8,5 @@ program fib_1;
 
 begin
 
-    WriteLn(fib(9))
+    WRITELN(fib(9))
 end.

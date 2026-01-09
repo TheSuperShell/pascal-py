@@ -17,16 +17,16 @@ class ActivationRecord:
     members: dict[str, Any] = field(default_factory=dict)
 
     def __setitem__(self, key: str, value: Any) -> None:
-        self.members[key] = value
+        self.members[key.upper()] = value
 
     def __getitem__(self, key: str) -> Any:
-        return self.members[key]
+        return self.members[key.upper()]
 
     def __contains__(self, key: str) -> bool:
-        return key in self.members
+        return key.upper() in self.members
 
     def get(self, key: str) -> Any:
-        return self.members.get(key)
+        return self.members.get(key.upper())
 
     def __str__(self) -> str:
         lines = [f"{self.nesting_level}: {self.ar_type.value} {self.name}"]
