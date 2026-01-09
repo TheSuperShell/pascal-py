@@ -22,6 +22,7 @@ from parser.parser import (
     UnaryOp,
     Var,
     VarDecl,
+    WhileStatement,
 )
 from parser.token import Token
 
@@ -250,6 +251,27 @@ data = [
                             ),
                         ),
                         NoOp(),
+                    )
+                ),
+            ),
+        ),
+    ],
+    [
+        "PROGRAM while_st; BEGIN WHILE (True) DO x := 10 END.",
+        Program(
+            "while_st",
+            Block(
+                (),
+                Compound(
+                    (
+                        WhileStatement(
+                            Bool(Token.const_bool(True)),
+                            Assign(
+                                Var(Token.Id("x")),
+                                Token.assign(),
+                                Num(Token.const_int("10")),
+                            ),
+                        ),
                     )
                 ),
             ),

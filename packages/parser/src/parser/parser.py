@@ -295,6 +295,18 @@ class Condition(AST):
 
 
 @dataclass(slots=True, frozen=True)
+class WhileStatement(AST):
+    condition: AST
+    expr: AST
+
+    def __str__(self) -> str:
+        return f"WHILE ({self.condition}) DO {self.expr}"
+
+    def __repr__(self) -> str:
+        return f"WhileStatement({self.condition}, {self.expr=})"
+
+
+@dataclass(slots=True, frozen=True)
 class IfStatement(AST):
     main_condition: Condition
     secondary_conditions: tuple[Condition, ...] = ()
@@ -509,6 +521,7 @@ class Parser[S]:
             call_statement |
             assignment_statement |
             if_statement |
+            while_statement |
             exit_statement |
             NoOp
         """
@@ -520,9 +533,24 @@ class Parser[S]:
             return self.assignement_statement()
         if self.current_token.token_type == TokenType.IF:
             return self.if_statement()
+        if self.current_token.token_type == TokenType.WHILE:
+            return self.while_statement()
         if self.current_token.token_type == TokenType.EXIT:
             return self.exit_statement()
         return NoOp()
+
+    def while_statement(self) -> WhileStatement:
+        """
+        while_statement:
+            WHILE OPEN_PARANTH expr CLOSE_PARANTH DO statement
+        """
+        self.eat(TokenType.WHILE)
+        self.eat(TokenType.OPEN_PARANTH)
+        condition = self.expr()
+        self.eat(TokenType.CLOSE_PARANTH)
+        self.eat(TokenType.DO)
+        expr = self.statement()
+        return WhileStatement(condition, expr)
 
     def condition(self) -> Condition:
         """
