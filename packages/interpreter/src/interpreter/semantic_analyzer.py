@@ -109,7 +109,8 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
         print(f"EXIT {self.get_current_scope().scope_name}")
-        self.exit = True
+        if node.expr:
+            self.visit(node.expr)
 
     @override
     def visit_Compound(self, node: Compound) -> Any:
@@ -149,9 +150,6 @@ class SymbolTableVisitor(Visitor):
             func_symbol.params.append(var_symbol)
 
         self.visit(node.block)
-        if not self.exit:
-            raise SemanticError()
-        self.refresh_exit()
         print(function_scope)
         self.current_scope = self.get_current_scope().enclosing_scope
         print(f"LEAVE scope: {func_name}")
@@ -182,7 +180,6 @@ class SymbolTableVisitor(Visitor):
             proc_symbol.params.append(var_symbol)
 
         self.visit(node.block)
-        self.refresh_exit()
         print(procedure_scope)
         self.current_scope = self.current_scope.enclosing_scope
         print(f"LEAVE scope: {proc_name}")
