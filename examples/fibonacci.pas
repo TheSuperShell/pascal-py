@@ -1,6 +1,4 @@
 program fib_1;
-    var res: integer;
-
     function fib(num: integer): integer;
     begin
         if (num <= 1) then
@@ -10,6 +8,5 @@ program fib_1;
 
 begin
 
-    { res := fib(9);}
-    res := TwoNumberSum(10, 24);
+    WriteLn(fib(9))
 end.

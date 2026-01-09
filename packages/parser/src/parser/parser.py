@@ -372,7 +372,7 @@ class BuiltinCallableSymbol(Symbol):
         return_type: Symbol | None = None,
     ) -> None:
         super().__init__(name)
-        self.params = list(params) if params else []
+        self.params = list(params) if params else None
         self.return_type = return_type
         self.func = func
 

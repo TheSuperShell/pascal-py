@@ -75,13 +75,6 @@ class ScopedSymbolTable:
         table.define(BuiltinTypeSymbol("INTEGER"))
         table.define(BuiltinTypeSymbol("REAL"))
         table.define(BuiltinTypeSymbol("BOOLEAN"))
-        table.define(
-            BuiltinCallableSymbol(
-                "TwoNumberSum",
-                lambda x, y: x + y,
-                params=(BuiltinTypeSymbol("INTEGER"), BuiltinTypeSymbol("INTEGER")),
-                return_type=BuiltinTypeSymbol("INTEGER"),
-            )
-        )
+        table.define(BuiltinCallableSymbol("WriteLn", print))
         print(table)
         return table
