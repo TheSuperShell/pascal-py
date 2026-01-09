@@ -17,6 +17,7 @@ from parser.parser import (
     Procedure,
     Call,
     Program,
+    Str,
     Type,
     UnaryOp,
     Var,
@@ -156,7 +157,7 @@ data = [
         ),
     ],
     [
-        "PROGRAM fl; VAR val : REAL; BEGIN val:=FALSE OR 5 + (10 / 3) > NOT 10 + 0; x := True; END.",
+        "PROGRAM fl; VAR val : REAL; BEGIN val:=FALSE OR 5 + (10 / 3) > NOT 10 + 0; x := True; some_text := 'hello \\'mom\\''; END.",
         Program(
             "fl",
             Block(
@@ -195,6 +196,11 @@ data = [
                             Var(Token.Id("x")),
                             Token.assign(),
                             Bool(Token.const_bool(True)),
+                        ),
+                        Assign(
+                            Var(Token.Id("some_text")),
+                            Token.assign(),
+                            Str(Token.const_string("hello 'mom'")),
                         ),
                         NoOp(),
                     )
@@ -283,12 +289,14 @@ decls_data = [
         ),
     ],
     [
-        "VAR a, b :integer; VAR c: real; VAR x : BOOLEAN;",
+        "VAR a, b :integer; VAR c: real; VAR x : BOOLEAN; VAR text : STRING; var character: char;",
         (
             VarDecl(Var(Token.Id("a")), Type(Token.integer())),
             VarDecl(Var(Token.Id("b")), Type(Token.integer())),
             VarDecl(Var(Token.Id("c")), Type(Token.real())),
             VarDecl(Var(Token.Id("x")), Type(Token.boolean())),
+            VarDecl(Var(Token.Id("text")), Type(Token.string())),
+            VarDecl(Var(Token.Id("character")), Type(Token.char())),
         ),
     ],
 ]

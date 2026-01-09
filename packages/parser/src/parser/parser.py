@@ -65,6 +65,26 @@ class Num(AST):
 
 
 @dataclass(slots=True, frozen=True)
+class Str(AST):
+    token: Token
+
+    @property
+    def value(self) -> str:
+        return self.token.value
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, Str):
+            return False
+        return value.value == self.value
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __repr__(self) -> str:
+        return f"Str('{self.value}')"
+
+
+@dataclass(slots=True, frozen=True)
 class Bool(AST):
     token: Token
 
@@ -440,10 +460,16 @@ class Parser[S]:
     def type_spec(self) -> Type:
         """
         type_spec:
-            INTEGER | REAL | BOOLEAN
+            INTEGER | REAL | BOOLEAN | STRING | CHAR
         """
         token = self.current_token
-        self.eat(TokenType.INTEGER, TokenType.REAL, TokenType.BOOLEAN)
+        self.eat(
+            TokenType.INTEGER,
+            TokenType.REAL,
+            TokenType.BOOLEAN,
+            TokenType.STRING,
+            TokenType.CHAR,
+        )
         return Type(token)
 
     def compound_statement(self) -> Compound:
@@ -567,6 +593,7 @@ class Parser[S]:
             (PLUS | MINUS) factor |
             NOT compare_expr |
             (INTEGER_CONST | REAL_CONST) |
+            (STRING_CONST | CHAR_CONST) |
             CONST_BOOLEAN |
             OPEN_PARANTH expr CLOSE_PARANTH |
             call_statement |
@@ -582,6 +609,9 @@ class Parser[S]:
         if token.token_type in (TokenType.INTEGER_CONST, TokenType.REAL_CONST):
             self.eat(TokenType.INTEGER_CONST, TokenType.REAL_CONST)
             return Num(token)
+        if token.token_type in (TokenType.CHAR_CONST, TokenType.STRING_CONST):
+            self.eat(TokenType.CHAR_CONST, TokenType.STRING_CONST)
+            return Str(token)
         if token.token_type == TokenType.BOOLEAN_CONST:
             self.eat(TokenType.BOOLEAN_CONST)
             return Bool(token)
