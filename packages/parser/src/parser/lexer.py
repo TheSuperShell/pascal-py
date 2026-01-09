@@ -22,6 +22,8 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "IF": Token.If(),
     "ELSE": Token.Else(),
     "THEN": Token.then(),
+    "CHAR": Token.char(),
+    "STRING": Token.string(),
 }
 
 
@@ -61,6 +63,20 @@ class Lexer:
         while self.file_text[self.index] != "}":
             self.advance()
         self.advance()
+
+    def string(self) -> Token:
+        self.advance()
+        current_index = self.index
+        while not (self.peek() == "'" and self.char != "\\"):
+            self.advance()
+        self.advance()
+        end_index = self.index
+        self.advance()
+        if end_index - current_index == 1:
+            return Token.const_char(self.file_text[current_index])
+        return Token.const_string(
+            self.file_text[current_index:end_index].replace("\\", "")
+        )
 
     def number(self) -> Token:
         current_index = self.index
@@ -136,6 +152,8 @@ class Lexer:
             return Token.close_p()
         if self.char.isdigit():
             return self.number()
+        if self.char == "'":
+            return self.string()
         if self.char.isalnum() or self.char == "_":
             return self._id()
         if self.char == ";":

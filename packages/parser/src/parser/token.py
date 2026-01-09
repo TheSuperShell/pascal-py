@@ -7,9 +7,13 @@ class TokenType(IntEnum):
     INTEGER = auto()
     REAL = auto()
     BOOLEAN = auto()
+    CHAR = auto()
+    STRING = auto()
     INTEGER_CONST = auto()
     REAL_CONST = auto()
     BOOLEAN_CONST = auto()
+    CHAR_CONST = auto()
+    STRING_CONST = auto()
     COMMA = auto()
     COLON = auto()
     PLUS = auto()
@@ -218,3 +222,20 @@ class Token:
     @classmethod
     def Else(cls) -> "Token":
         return Token(TokenType.ELSE, "ELSE")
+
+    @classmethod
+    def char(cls) -> "Token":
+        return Token(TokenType.CHAR, "CHAR")
+
+    @classmethod
+    def string(cls) -> "Token":
+        return Token(TokenType.STRING, "STRING")
+
+    @classmethod
+    def const_char(cls, value: str) -> "Token":
+        assert len(value) == 1
+        return Token(TokenType.CHAR_CONST, value)
+
+    @classmethod
+    def const_string(cls, value: str) -> "Token":
+        return Token(TokenType.STRING_CONST, value)

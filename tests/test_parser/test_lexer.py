@@ -72,6 +72,16 @@ data = [
             Token.eof(),
         ],
     ],
+    [
+        "'some text' 'a' 'some number=10.3' 'screening \\'example\\''",
+        [
+            Token.const_string("some text"),
+            Token.const_char("a"),
+            Token.const_string("some number=10.3"),
+            Token.const_string("screening 'example'"),
+            Token.eof(),
+        ],
+    ],
 ]
 
 
