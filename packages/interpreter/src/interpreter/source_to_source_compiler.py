@@ -19,7 +19,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
-from parser.parser import Bool, Condition, Function, IfStatement
+from parser.parser import Bool, Condition, Exit, Function, IfStatement
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 
@@ -177,8 +177,12 @@ class S2SCompiler(Visitor):
         return f"var {var_name}{scope_level} : {var_type};"
 
     @override
-    def visit_ProcedureCall(self, node: Call) -> Any:
+    def visit_Call(self, node: Call) -> Any:
         return ""
+
+    @override
+    def visit_Exit(self, node: Exit) -> Any:
+        return
 
     @override
     def visit_Condition(self, node: Condition) -> Any:
