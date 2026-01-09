@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import logging
 from typing import Any, Self, override
+from interpreter.symbols import Symbol, VarSymbol
 from interpreter.utils import ScopeType, ScopedSymbolTable
 from parser import (
     AST,
@@ -18,7 +19,6 @@ from parser import (
     UnaryOp,
     Var,
     VarDecl,
-    VarSymbol,
 )
 from interpreter.visitor import Visitor
 from parser.parser import Bool, Condition, Exit, Function, IfStatement
@@ -183,7 +183,7 @@ class S2SCompiler(Visitor):
         return f"var {var_name}{scope_level} : {var_type};"
 
     @override
-    def visit_Call(self, node: Call) -> Any:
+    def visit_Call(self, node: Call[Symbol]) -> Any:
         return ""
 
     @override

@@ -3,6 +3,14 @@ import logging
 from typing import Any, Self, override
 
 from interpreter.errors import SemanticError
+from interpreter.symbols import (
+    BuiltinCallableSymbol,
+    BuiltinTypeSymbol,
+    CallableSymbol,
+    ProgramSymbol,
+    Symbol,
+    VarSymbol,
+)
 from interpreter.utils import ScopeType, ScopedSymbolTable
 from parser import (
     Assign,
@@ -14,24 +22,19 @@ from parser import (
     Procedure,
     Call,
     Program,
-    ProgramSymbol,
     UnaryOp,
     Var,
     VarDecl,
     Type,
-    VarSymbol,
 )
 from interpreter.visitor import Visitor
 from parser.errors import ErrorCode
 from parser.parser import (
     AST,
     Bool,
-    BuiltinCallableSymbol,
-    BuiltinTypeSymbol,
     Condition,
     Exit,
     Function,
-    CallableSymbol,
     IfStatement,
 )
 
@@ -245,7 +248,7 @@ class SymbolTableVisitor(Visitor):
         return None
 
     @override
-    def visit_Call(self, node: Call) -> Any:
+    def visit_Call(self, node: Call[Symbol]) -> Any:
         callable_name = node.name
         callable_symbol = self.get_current_scope().lookup_callable(callable_name)
         node.proc_symbol = callable_symbol

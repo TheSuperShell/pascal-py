@@ -2,7 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import inspect
-from parser.parser import BuiltinCallableSymbol, BuiltinTypeSymbol
+from interpreter.symbols import BuiltinCallableSymbol, BuiltinTypeSymbol
 
 
 class BuiltinTypes(Enum):
@@ -59,6 +59,7 @@ class BuiltinFunctionRegister:
                 assert param_type != inspect._empty, (
                     "all builtin function parameters should be annotated"
                 )
+                assert param_symbols is not None
                 param_symbols.append(
                     BuiltinTypes.get_pascal_type_from_python_type(param_type).value
                 )

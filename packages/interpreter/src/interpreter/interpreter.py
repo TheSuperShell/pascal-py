@@ -3,6 +3,7 @@ import logging
 from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
 from typing import Any, override
+from interpreter.symbols import BuiltinCallableSymbol, CallableSymbol, Symbol
 from parser import (
     Assign,
     Block,
@@ -21,11 +22,9 @@ from parser import (
 from parser.parser import (
     AST,
     Bool,
-    BuiltinCallableSymbol,
     Condition,
     Exit,
     Function,
-    CallableSymbol,
     IfStatement,
 )
 from parser.token import TokenType
@@ -146,7 +145,9 @@ class Interpreter(Visitor):
         right = self.visit(node.right)
         return _OPERATIONS[node.token.token_type](left, right)
 
-    def _visit_builtin_callable(self, symbol: BuiltinCallableSymbol, node: Call) -> Any:
+    def _visit_builtin_callable(
+        self, symbol: BuiltinCallableSymbol, node: Call[Symbol]
+    ) -> Any:
         inputs = []
         for param in node.actual_params:
             inputs.append(self.visit(param))
@@ -154,7 +155,7 @@ class Interpreter(Visitor):
         return symbol.func(*inputs)
 
     @override
-    def visit_Call(self, node: Call) -> Any:
+    def visit_Call(self, node: Call[Symbol]) -> Any:
         proc_symbol = node.proc_symbol
         if proc_symbol is None:
             raise InterpreterError(f"{node.name} is not recognised")

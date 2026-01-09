@@ -6,6 +6,7 @@ import sys
 
 from interpreter.interpreter import Interpreter
 from interpreter.semantic_analyzer import SymbolTableVisitor
+from interpreter.symbols import Symbol
 from parser.lexer import Lexer
 from parser import Parser
 
@@ -46,7 +47,7 @@ def main() -> None:
     with inp.file.open() as f:
         code = f.read()
     lexer = Lexer(code)
-    parser = Parser(lexer)
+    parser = Parser[Symbol](lexer)
     semantic_logger, interpreter_logger = configure_loggers(
         inp.log_scope, inp.log_stack
     )

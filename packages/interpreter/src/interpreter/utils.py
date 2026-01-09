@@ -1,7 +1,7 @@
 from enum import StrEnum, auto
 import logging
 from interpreter.builtins import BuiltinTypes
-from parser.parser import (
+from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
     Symbol,
@@ -158,6 +158,7 @@ class ScopedSymbolTable:
             return None
         if self.enclosing_scope is not None:
             return self.enclosing_scope.lookup(name)
+        return None
 
     def lookup_callable(
         self, name: str, *, current_scope_only: bool = False
@@ -171,6 +172,7 @@ class ScopedSymbolTable:
             return None
         if self.enclosing_scope is not None:
             return self.enclosing_scope.lookup_callable(name)
+        return None
 
     @classmethod
     def create_builtin_scope(cls, logger: logging.Logger) -> "ScopedSymbolTable":
