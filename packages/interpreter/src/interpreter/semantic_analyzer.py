@@ -385,8 +385,26 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.INCORRECT_NUMBER_OF_INPUTS,
                 node,
             )
-        for param_node in node.actual_params:
-            self.visit(param_node)
+        if callable_symbol.params is not None:
+            for i, param_node in enumerate(node.actual_params):
+                param_type = self.visit(param_node)
+                expected_type = callable_symbol.params[i]
+                if param_type is None:
+                    raise SemanticError(
+                        f"unkown function input type {param_node}",
+                        ErrorCode.UNKOWN_TYPE,
+                        node,
+                    )
+                if param_type != expected_type:
+                    raise SemanticError(
+                        f"incorrect callable {callable_name} input type for value {param_node}: "
+                        f"exepcted {expected_type} got {param_type}",
+                        ErrorCode.INCORRECT_INPUT_TYPE,
+                        node,
+                    )
+        else:
+            for param in node.actual_params:
+                self.visit(param)
         if callable_symbol.return_type is not None:
             return callable_symbol.return_type
         return None

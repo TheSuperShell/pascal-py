@@ -11,6 +11,7 @@ class ErrorCode(IntEnum):
     ID_NOT_FOUND = auto()
     INCORRECT_CALL_TYPE = auto()
     INCORRECT_NUMBER_OF_INPUTS = auto()
+    INCORRECT_INPUT_TYPE = auto()
     INVALID_EXIT = auto()
     NO_RETURN = auto()
     UNKOWN_TYPE = auto()

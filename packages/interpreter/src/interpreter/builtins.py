@@ -54,7 +54,10 @@ class BuiltinFunctionRegister:
                     )
                     param_symbols = None
                     break
-                if param.kind != inspect._ParameterKind.POSITIONAL_ONLY:
+                if param.kind not in (
+                    inspect._ParameterKind.POSITIONAL_OR_KEYWORD,
+                    inspect._ParameterKind.POSITIONAL_ONLY,
+                ):
                     raise NotImplementedError(
                         "only positional or *args parameters are implemeneted"
                         f" for builtin functions: {param.kind}"
@@ -91,3 +94,8 @@ def writeln(*args: object) -> None:
 @builtin_function_register.register_function()
 def write(*args: object) -> None:
     print(*args, end="")
+
+
+@builtin_function_register.register_function("LENGTH")
+def length(text: str) -> int:
+    return len(text)
