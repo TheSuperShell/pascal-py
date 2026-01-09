@@ -200,8 +200,30 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Assign(self, node: Assign) -> Any:
-        self.visit(node.left)
-        self.visit(node.right)
+        left_type = self.visit(node.left)
+        right_type = self.visit(node.right)
+        if right_type is None:
+            raise SemanticError(
+                f"type of {node.right} in assignment is unkown",
+                ErrorCode.UNKOWN_TYPE,
+                node,
+            )
+        if left_type == right_type:
+            return
+        if left_type == BuiltinTypes.REAL.value and right_type in (
+            BuiltinTypes.REAL.value,
+            BuiltinTypes.INTEGER.value,
+        ):
+            return
+        if left_type == BuiltinTypes.STRING and right_type in (
+            BuiltinTypes.STRING,
+            BuiltinTypes.CHAR,
+        ):
+            return
+        raise SemanticError(
+            f"cannot assing {node.right} of type {right_type} to variable {node.left} of type {left_type}",
+            ErrorCode.UNASSIGNABLE_TYPES,
+        )
 
     @override
     def visit_Var(self, node: Var) -> Symbol:
@@ -253,7 +275,8 @@ class SymbolTableVisitor(Visitor):
     def visit_BinOp(self, node: BinOp) -> Symbol:
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
-        if None in (left_type, right_type):
+        print(left_type, right_type)
+        if left_type is None or right_type is None:
             raise SemanticError(
                 "one of the node types are unkown", ErrorCode.UNKOWN_TYPE, node
             )
