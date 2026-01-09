@@ -1,16 +1,16 @@
-from hypothesis import given, strategies as st
+from hypothesis import HealthCheck, given, settings, strategies as st
 import pytest
-from interpreter.interpreter import DefaultVisitor, Interpreter
+from interpreter.interpreter import Interpreter
 from parser.lexer import Lexer
 from parser import Parser
-from interpreter.semantic_analyzer import SemanticError
+from interpreter.semantic_analyzer import SemanticError, SymbolTableVisitor
 
 
 OPS = ["+", "-", "*", "DIV", "/"]
 
 
 @given(
-    st.lists(
+    int_op=st.lists(
         st.tuples(
             st.integers(),
             st.integers(min_value=0, max_value=4),
@@ -19,7 +19,8 @@ OPS = ["+", "-", "*", "DIV", "/"]
         min_size=1,
     )
 )
-def test_intepreter_math(int_op: list[tuple[int, int, int]]):
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+def test_intepreter_math(int_op: list[tuple[int, int, int]], logger):
     opened_p = 0
     inp = []
     if int_op[0][2] == 1:
@@ -41,32 +42,31 @@ def test_intepreter_math(int_op: list[tuple[int, int, int]]):
     pascal_code = f"PROGRAM name; BEGIN a:={code}; END."
     lexer = Lexer(pascal_code)
     parser = Parser(lexer)
-    visitor = DefaultVisitor()
-    interpreter = Interpreter(parser, visitor)
+    tree = parser.parse()
+    interpreter = Interpreter(logger)
     try:
         result = eval(code.replace("DIV", "//"))
     except ZeroDivisionError:
         with pytest.raises(ZeroDivisionError):
-            interpreter.process()
+            interpreter.interpret(tree)
         return
-    interpreter.process()
-    assert result == visitor.call_stack.get_popped_records()[0]["a"]
+    interpreter.interpret(tree)
+    assert result == interpreter.call_stack.get_popped_records()[0]["a"]
 
 
-def test_intepreter_assign():
+def test_intepreter_assign(logger):
     lexer = Lexer("PROGRAM name; BEGIN a:= 5; b:=10; c:= a + b; END.")
     parser = Parser(lexer)
-    visitor = DefaultVisitor()
-    interpreter = Interpreter(parser, visitor)
-    interpreter.process()
-    assert visitor.call_stack.get_popped_records()[0]["a"] == 5
-    assert visitor.call_stack.get_popped_records()[0]["b"] == 10
-    assert visitor.call_stack.get_popped_records()[0]["c"] == 15
+    interpreter = Interpreter(logger)
+    interpreter.interpret(parser.parse())
+    assert interpreter.call_stack.get_popped_records()[0]["a"] == 5
+    assert interpreter.call_stack.get_popped_records()[0]["b"] == 10
+    assert interpreter.call_stack.get_popped_records()[0]["c"] == 15
 
 
-def test_intepreter_assign_error():
+def test_intepreter_assign_error(logger):
     lexer = Lexer("PROGRAM name; BEGIN a:= 5; c:= a + k; END.")
     parser = Parser(lexer)
-    interpreter = Interpreter(parser)
+    interpreter = SymbolTableVisitor.new(logger)
     with pytest.raises(SemanticError):
-        interpreter.process()
+        interpreter.analyze(parser.parse())

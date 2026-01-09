@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
-from typing import Any, override
+from dataclasses import dataclass
+import logging
+from typing import Any, Self, override
 from parser import (
     AST,
     Assign,
@@ -25,9 +26,12 @@ from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 @dataclass(slots=True)
 class S2SCompiler(Visitor):
-    current_scope: ScopedSymbolTable | None = field(
-        default_factory=ScopedSymbolTable.create_builtin_scope
-    )
+    logger: logging.Logger
+    current_scope: ScopedSymbolTable | None = None
+
+    @classmethod
+    def new(cls, logger: logging.Logger) -> Self:
+        return cls(logger, ScopedSymbolTable.create_builtin_scope(logger))
 
     def get_current_scope(self) -> ScopedSymbolTable:
         assert self.current_scope
@@ -52,6 +56,7 @@ class S2SCompiler(Visitor):
             ScopeType.PROGRAM,
             scope_level=1,
             enclosing_sope=self.current_scope,
+            logger=self.logger,
         )
         self.current_scope = global_scope
 
@@ -124,6 +129,7 @@ class S2SCompiler(Visitor):
             ScopeType.PROCEDURE,
             scope_level=previous_scope_level + 1,
             enclosing_sope=self.current_scope,
+            logger=self.logger,
         )
         self.current_scope = proc_scope
         # procedure_symbol = ProcedureSymbol(proc_name)

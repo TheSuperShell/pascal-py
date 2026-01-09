@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import logging
 from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
 from typing import Any, override
@@ -8,7 +9,6 @@ from parser import (
     Compound,
     Num,
     Param,
-    Parser,
     BinOp,
     Procedure,
     Call,
@@ -18,8 +18,8 @@ from parser import (
     Var,
     VarDecl,
 )
-from interpreter.semantic_analyzer import SymbolTableVisitor
 from parser.parser import (
+    AST,
     Bool,
     BuiltinCallableSymbol,
     Condition,
@@ -62,7 +62,8 @@ _UNARY_OP: dict[TokenType, Callable[[Any], Any]] = {
 
 
 @dataclass(slots=True)
-class DefaultVisitor(Visitor):
+class Interpreter(Visitor):
+    logger: logging.Logger
     call_stack: CallStack = field(default_factory=CallStack)
 
     @override
@@ -72,13 +73,13 @@ class DefaultVisitor(Visitor):
         ar = ActivationRecord(program_name, ARType.PROGRAM, 1)
         self.call_stack.push(ar)
 
-        print(f"ENTER PROGRAM: {program_name}")
-        print(self.call_stack)
+        self.logger.debug(f"ENTER PROGRAM: {program_name}")
+        self.logger.debug(self.call_stack)
 
         self.visit(node.block)
 
-        print(f"LEAVE PROGRAM: {program_name}")
-        print(self.call_stack)
+        self.logger.debug(f"LEAVE PROGRAM: {program_name}")
+        self.logger.debug(self.call_stack)
 
         self.call_stack.pop()
 
@@ -149,7 +150,7 @@ class DefaultVisitor(Visitor):
         inputs = []
         for param in node.actual_params:
             inputs.append(self.visit(param))
-        print(f"CALL builtin: {symbol.name}")
+        self.logger.debug(f"CALL builtin: {symbol.name}")
         return symbol.func(*inputs)
 
     @override
@@ -176,8 +177,8 @@ class DefaultVisitor(Visitor):
 
         self.call_stack.push(ar)
 
-        print(f"ENTER PROCEDURE: {proc_name}")
-        print(self.call_stack)
+        self.logger.debug(f"ENTER PROCEDURE: {proc_name}")
+        self.logger.debug(self.call_stack)
 
         result = None
         try:
@@ -187,8 +188,8 @@ class DefaultVisitor(Visitor):
         if result is None:
             result = ar.get("result")
 
-        print(f"LEAVE PROCEDURE: {proc_name}")
-        print(self.call_stack)
+        self.logger.debug(f"LEAVE PROCEDURE: {proc_name}")
+        self.logger.debug(self.call_stack)
 
         self.call_stack.pop()
         return result
@@ -213,20 +214,12 @@ class DefaultVisitor(Visitor):
 
     @override
     def visit_Exit(self, node: Exit) -> Any:
-        print(f"EXIT {self.call_stack.peek().name}")
+        self.logger.debug(f"EXIT {self.call_stack.peek().name}")
         result = None
         if node.expr is not None:
             result = self.visit(node.expr)
         raise ExitScope(result)
 
-
-@dataclass(slots=True)
-class Interpreter:
-    parser: Parser
-    semanti_analyzer: Visitor = field(default_factory=SymbolTableVisitor)
-    default_visitor: Visitor = field(default_factory=DefaultVisitor)
-
-    def process(self) -> Any:
-        tree = self.parser.parse()
-        self.semanti_analyzer.visit(tree)
-        return self.default_visitor.visit(tree)
+    def interpret(self, tree: AST) -> AST:
+        self.visit(tree)
+        return tree

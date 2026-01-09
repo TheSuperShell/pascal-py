@@ -1,4 +1,5 @@
 from enum import StrEnum, auto
+import logging
 from parser.parser import BuiltinCallableSymbol, BuiltinTypeSymbol, Symbol
 
 
@@ -10,7 +11,14 @@ class ScopeType(StrEnum):
 
 
 class ScopedSymbolTable:
-    __slots__ = "_symbols", "scope_name", "scope_level", "enclosing_scope", "scope_type"
+    __slots__ = (
+        "_symbols",
+        "scope_name",
+        "scope_level",
+        "enclosing_scope",
+        "scope_type",
+        "logger",
+    )
 
     def __init__(
         self,
@@ -18,6 +26,7 @@ class ScopedSymbolTable:
         scope_type: ScopeType,
         *,
         scope_level: int,
+        logger: logging.Logger,
         enclosing_sope: "None | ScopedSymbolTable" = None,
     ) -> None:
         self._symbols: dict[str, Symbol] = {}
@@ -25,6 +34,7 @@ class ScopedSymbolTable:
         self.scope_name = scope_name
         self.enclosing_scope = enclosing_sope
         self.scope_type = scope_type
+        self.logger = logger
 
     def __str__(self) -> str:
         h1 = "SCOPE (SCOPED SYMBOL TABLE)"
@@ -45,12 +55,12 @@ class ScopedSymbolTable:
         return "\n".join(lines)
 
     def define(self, symbol: Symbol) -> None:
-        print(f"Define: {symbol}")
+        self.logger.debug(f"Define: {symbol}")
         symbol.scope = self.scope_level
         self._symbols[symbol.name.upper()] = symbol
 
     def lookup(self, name: str, *, current_scope_only: bool = False) -> Symbol | None:
-        print(f"Lookup (scope name: {self.scope_name}): {name}")
+        self.logger.debug(f"Lookup (scope name: {self.scope_name}): {name}")
         name = name.upper()
         symbol = self._symbols.get(name)
         if symbol is not None:
@@ -61,7 +71,7 @@ class ScopedSymbolTable:
             return self.enclosing_scope.lookup(name)
 
     def lookup_with_scope(self, name: str) -> tuple[Symbol | None, int]:
-        print(f"Lookup (scope name: {self.scope_name}): {name}")
+        self.logger.debug(f"Lookup (scope name: {self.scope_name}): {name}")
         name = name.upper()
         symbol = self._symbols.get(name)
         if symbol is not None:
@@ -71,12 +81,14 @@ class ScopedSymbolTable:
         return None, -1
 
     @classmethod
-    def create_builtin_scope(cls) -> "ScopedSymbolTable":
-        print("ENTER scope: builtins")
-        table = ScopedSymbolTable("builtins", ScopeType.BUILTIN, scope_level=0)
+    def create_builtin_scope(cls, logger: logging.Logger) -> "ScopedSymbolTable":
+        logger.debug("ENTER scope: builtins")
+        table = ScopedSymbolTable(
+            "builtins", ScopeType.BUILTIN, scope_level=0, logger=logger
+        )
         table.define(BuiltinTypeSymbol("INTEGER"))
         table.define(BuiltinTypeSymbol("REAL"))
         table.define(BuiltinTypeSymbol("BOOLEAN"))
         table.define(BuiltinCallableSymbol("WriteLn", print))
-        print(table)
+        logger.debug(table)
         return table

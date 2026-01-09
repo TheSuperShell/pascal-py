@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
-from typing import Any, override
+from dataclasses import dataclass
+import logging
+from typing import Any, Self, override
 
 from interpreter.errors import SemanticError
 from parser import (
@@ -22,6 +23,7 @@ from parser import (
 from interpreter.visitor import Visitor
 from parser.errors import ErrorCode
 from parser.parser import (
+    AST,
     Bool,
     BuiltinCallableSymbol,
     BuiltinTypeSymbol,
@@ -36,9 +38,12 @@ from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
 
 @dataclass(slots=True)
 class SymbolTableVisitor(Visitor):
-    current_scope: ScopedSymbolTable | None = field(
-        default_factory=ScopedSymbolTable.create_builtin_scope
-    )
+    logger: logging.Logger
+    current_scope: ScopedSymbolTable | None = None
+
+    @classmethod
+    def new(cls, logger: logging.Logger) -> Self:
+        return cls(logger, ScopedSymbolTable.create_builtin_scope(logger))
 
     def get_current_scope(self) -> ScopedSymbolTable:
         assert self.current_scope
@@ -48,18 +53,19 @@ class SymbolTableVisitor(Visitor):
     def visit_Program(self, node: Program) -> Any:
         program_name = node.name
         self.get_current_scope().define(VarSymbol(program_name, ProgramSymbol()))
-        print("ENTER scope: global")
+        self.logger.debug("ENTER scope: global")
         global_scope = ScopedSymbolTable(
             "global",
             ScopeType.PROGRAM,
             scope_level=1,
             enclosing_sope=self.current_scope,
+            logger=self.logger,
         )
         self.current_scope = global_scope
         self.visit(node.block)
-        print(global_scope)
+        self.logger.debug(global_scope)
         self.current_scope = self.current_scope.enclosing_scope
-        print("LEAVE scope: global")
+        self.logger.debug("LEAVE scope: global")
 
     @override
     def visit_Block(self, node: Block) -> Any:
@@ -87,7 +93,7 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.INVALID_EXIT,
                 node,
             )
-        print(f"EXIT {self.get_current_scope().scope_name}")
+        self.logger.debug(f"EXIT {self.get_current_scope().scope_name}")
         if node.expr:
             self.visit(node.expr)
 
@@ -111,13 +117,14 @@ class SymbolTableVisitor(Visitor):
         func_symbol = CallableSymbol(func_name, return_symbol)
         self.get_current_scope().define(func_symbol)
 
-        print(f"ENTER scope: {func_name}")
+        self.logger.debug(f"ENTER scope: {func_name}")
         function_scope = ScopedSymbolTable(
             func_name,
             ScopeType.FUNCTION,
             scope_level=(self.current_scope.scope_level if self.current_scope else 0)
             + 1,
             enclosing_sope=self.current_scope,
+            logger=self.logger,
         )
         self.current_scope = function_scope
 
@@ -131,9 +138,9 @@ class SymbolTableVisitor(Visitor):
         self.current_scope.define(VarSymbol("result", return_symbol))
 
         self.visit(node.block)
-        print(function_scope)
+        self.logger.debug(function_scope)
         self.current_scope = self.get_current_scope().enclosing_scope
-        print(f"LEAVE scope: {func_name}")
+        self.logger.debug(f"LEAVE scope: {func_name}")
 
         func_symbol.block_ast = node.block
 
@@ -143,13 +150,14 @@ class SymbolTableVisitor(Visitor):
         proc_symbol = CallableSymbol(proc_name)
         self.get_current_scope().define(proc_symbol)
 
-        print(f"ENTER scope: {proc_name}")
+        self.logger.debug(f"ENTER scope: {proc_name}")
         procedure_scope = ScopedSymbolTable(
             proc_name,
             ScopeType.PROCEDURE,
             scope_level=(self.current_scope.scope_level if self.current_scope else 0)
             + 1,
             enclosing_sope=self.current_scope,
+            logger=self.logger,
         )
         self.current_scope = procedure_scope
 
@@ -161,9 +169,9 @@ class SymbolTableVisitor(Visitor):
             proc_symbol.params.append(var_symbol)
 
         self.visit(node.block)
-        print(procedure_scope)
+        self.logger.debug(procedure_scope)
         self.current_scope = self.current_scope.enclosing_scope
-        print(f"LEAVE scope: {proc_name}")
+        self.logger.debug(f"LEAVE scope: {proc_name}")
 
         proc_symbol.block_ast = node.block
 
@@ -271,3 +279,7 @@ class SymbolTableVisitor(Visitor):
     def visit_Condition(self, node: Condition) -> Any:
         self.visit(node.condition)
         self.visit(node.expr)
+
+    def analyze(self, tree: AST) -> AST:
+        self.visit(tree)
+        return tree
