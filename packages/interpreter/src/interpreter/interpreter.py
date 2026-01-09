@@ -26,6 +26,7 @@ from parser.parser import (
     Exit,
     Function,
     IfStatement,
+    Str,
 )
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
@@ -111,6 +112,10 @@ class Interpreter(Visitor):
 
     @override
     def visit_Bool(self, node: Bool) -> Any:
+        return node.value
+
+    @override
+    def visit_Str(self, node: Str) -> Any:
         return node.value
 
     @override

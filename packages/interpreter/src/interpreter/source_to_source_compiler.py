@@ -21,7 +21,7 @@ from parser import (
     VarDecl,
 )
 from interpreter.visitor import Visitor
-from parser.parser import Bool, Condition, Exit, Function, IfStatement
+from parser.parser import Bool, Condition, Exit, Function, IfStatement, Str
 
 
 @dataclass(slots=True)
@@ -196,6 +196,10 @@ class S2SCompiler(Visitor):
 
     @override
     def visit_IfStatement(self, node: IfStatement) -> Any:
+        return
+
+    @override
+    def visit_Str(self, node: Str) -> Any:
         return
 
     def build_output(self, node: AST) -> str:

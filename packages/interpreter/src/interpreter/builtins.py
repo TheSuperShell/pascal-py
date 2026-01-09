@@ -9,6 +9,8 @@ class BuiltinTypes(Enum):
     INTEGER = BuiltinTypeSymbol("INTEGER")
     REAL = BuiltinTypeSymbol("REAL")
     BOOLEAN = BuiltinTypeSymbol("BOOLEAN")
+    CHAR = BuiltinTypeSymbol("CHAR")
+    STRING = BuiltinTypeSymbol("STRING")
 
     @classmethod
     def get_pascal_type_from_python_type(
@@ -20,6 +22,8 @@ class BuiltinTypes(Enum):
             return cls.REAL
         if python_type is bool:
             return cls.BOOLEAN
+        if python_type is str:
+            return cls.STRING
         raise ValueError(f"unsupported type {python_type}")
 
 

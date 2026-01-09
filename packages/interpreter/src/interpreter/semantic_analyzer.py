@@ -36,6 +36,7 @@ from parser.parser import (
     Exit,
     Function,
     IfStatement,
+    Str,
 )
 
 
@@ -291,6 +292,10 @@ class SymbolTableVisitor(Visitor):
     def visit_Condition(self, node: Condition) -> Any:
         self.visit(node.condition)
         self.visit(node.expr)
+
+    @override
+    def visit_Str(self, node: Str) -> Any:
+        return
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)
