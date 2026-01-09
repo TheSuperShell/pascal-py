@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any
 
 from parser import AST, Block, Param, ProcedureCall, Program
@@ -15,17 +16,30 @@ from parser import (
     Var,
     VarDecl,
 )
-from parser.parser import Bool, Condition, Function, IfStatement
+from parser.parser import Bool, Condition, Exit, Function, IfStatement
 
 
+@dataclass(slots=True)
 class Visitor(ABC):
+    exit: bool = False
+    return_value: Any = None
+
     def visit(self, node: AST) -> Any:
+        if self.exit:
+            return
         type_name = type(node).__name__
         method_name = f"visit_{type_name}"
         method = getattr(self, method_name)
         if method is None:
             raise NotImplementedError(node)
         return method(node)
+
+    def refresh_exit(self) -> None:
+        self.exit = False
+        self.return_value = None
+
+    @abstractmethod
+    def visit_Exit(self, node: Exit) -> Any: ...
 
     @abstractmethod
     def visit_Program(self, node: Program) -> Any: ...

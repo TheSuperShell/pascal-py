@@ -4,10 +4,10 @@ program Main;
 begin { Main }
     if (False) Then
         some := False
-    else if (10 < 3) then
+    else if (10 > 3) then
         begin
-            other := True
-        end
-    else
-        other := False;
+            other := True;
+            Exit;
+        end;
+    other := False
 end. { Main }

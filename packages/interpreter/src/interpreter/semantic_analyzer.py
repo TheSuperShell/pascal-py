@@ -89,34 +89,32 @@ class SymbolTableVisitor(Visitor):
         return self.visit(node.compund_statement)
 
     @override
+    def visit_Exit(self, node: Exit) -> Any:
+        if (
+            self.get_current_scope().scope_type != ScopeType.FUNCTION
+            and node.expr is not None
+        ):
+            raise SemanticError(
+                "procedure or Program should not return anything",
+                ErrorCode.INVALID_EXIT,
+                node,
+            )
+        elif (
+            self.get_current_scope().scope_type == ScopeType.FUNCTION
+            and node.expr is None
+        ):
+            raise SemanticError(
+                "function should return a value",
+                ErrorCode.INVALID_EXIT,
+                node,
+            )
+        print(f"EXIT {self.get_current_scope().scope_name}")
+        self.exit = True
+
+    @override
     def visit_Compound(self, node: Compound) -> Any:
         for child in node.children:
-            if isinstance(child, Exit):
-                if (
-                    self.get_current_scope().scope_type != ScopeType.FUNCTION
-                    and child.expr is not None
-                ):
-                    raise SemanticError(
-                        "procedure or Program should not return anything",
-                        ErrorCode.INVALID_EXIT,
-                        child,
-                    )
-                elif (
-                    self.get_current_scope().scope_type == ScopeType.FUNCTION
-                    and child.expr is None
-                ):
-                    raise SemanticError(
-                        "function should return a value",
-                        ErrorCode.INVALID_EXIT,
-                        child,
-                    )
-                print(f"EXIT {self.get_current_scope().scope_name}")
-                return
             self.visit(child)
-        if self.get_current_scope().scope_type == ScopeType.FUNCTION:
-            raise SemanticError(
-                "function does not return anything", ErrorCode.NO_RETURN, node
-            )
 
     @override
     def visit_Function(self, node: Function) -> Any:
@@ -151,6 +149,9 @@ class SymbolTableVisitor(Visitor):
             func_symbol.params.append(var_symbol)
 
         self.visit(node.block)
+        if not self.exit:
+            raise SemanticError()
+        self.refresh_exit()
         print(function_scope)
         self.current_scope = self.get_current_scope().enclosing_scope
         print(f"LEAVE scope: {func_name}")
@@ -181,6 +182,7 @@ class SymbolTableVisitor(Visitor):
             proc_symbol.params.append(var_symbol)
 
         self.visit(node.block)
+        self.refresh_exit()
         print(procedure_scope)
         self.current_scope = self.current_scope.enclosing_scope
         print(f"LEAVE scope: {proc_name}")

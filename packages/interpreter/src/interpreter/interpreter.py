@@ -81,11 +81,6 @@ class DefaultVisitor(Visitor):
     @override
     def visit_Compound(self, node: Compound) -> Any:
         for child in node.children:
-            if isinstance(child, Exit):
-                print(f"EXIT {self.call_stack.peek().name}")
-                if child.expr is not None:
-                    return self.visit(child.expr)
-                return
             self.visit(child)
 
     @override
@@ -169,7 +164,9 @@ class DefaultVisitor(Visitor):
         print(f"ENTER PROCEDURE: {proc_name}")
         print(self.call_stack)
 
-        result = self.visit(proc_symbol.block_ast)
+        self.visit(proc_symbol.block_ast)
+        result = self.return_value
+        self.refresh_exit()
 
         print(f"LEAVE PROCEDURE: {proc_name}")
         print(self.call_stack)
@@ -194,6 +191,14 @@ class DefaultVisitor(Visitor):
         if result:
             self.visit(node.expr)
         return result
+
+    @override
+    def visit_Exit(self, node: Exit) -> Any:
+        print(f"EXIT {self.call_stack.peek().name}")
+        if node.expr is not None:
+            result = self.visit(node.expr)
+            self.return_value = result
+        self.exit = True
 
 
 @dataclass(slots=True)
