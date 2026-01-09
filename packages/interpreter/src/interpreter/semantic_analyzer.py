@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
-from enum import IntEnum, auto
 from typing import Any, override
 
+from interpreter.errors import SemanticError
 from parser import (
-    AST,
     Assign,
     BinOp,
     Block,
@@ -21,6 +20,7 @@ from parser import (
     VarSymbol,
 )
 from interpreter.visitor import Visitor
+from parser.errors import ErrorCode
 from parser.parser import (
     Bool,
     BuiltinCallableSymbol,
@@ -32,27 +32,6 @@ from parser.parser import (
     IfStatement,
 )
 from parser.scoped_symbol_table import ScopeType, ScopedSymbolTable
-
-
-class ErrorCode(IntEnum):
-    DUPLICATE_VARIABLE = auto()
-    ID_NOT_FOUND = auto()
-    INCORRECT_CALL_TYPE = auto()
-    INCORRECT_NUMBER_OF_INPUTS = auto()
-    INVALID_EXIT = auto()
-    NO_RETURN = auto()
-
-
-class SemanticError(Exception):
-    def __init__(
-        self,
-        message: str | None = None,
-        error_code: ErrorCode | None = None,
-        node: AST | None = None,
-    ) -> None:
-        self.message = message
-        self.error_code = error_code
-        self.node = node
 
 
 @dataclass(slots=True)

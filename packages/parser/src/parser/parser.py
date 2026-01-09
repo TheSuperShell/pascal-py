@@ -1,30 +1,12 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from enum import IntEnum, auto
 from typing import Any
 
+from parser.errors import ErrorCode, ParserError
 from parser.lexer import Lexer
 
 from parser.token import Token, TokenType
-
-
-class ErrorCode(IntEnum):
-    UNEXPECTED_TOKEN = auto()
-    EOF_NOT_FOUND = auto()
-    UNASSIGNED_VARIABLE = auto()
-
-
-class ParserError(Exception):
-    def __init__(
-        self,
-        message: str | None = None,
-        error_code: ErrorCode | None = None,
-        token: Token | None = None,
-    ) -> None:
-        self.message = message
-        self.error_code = error_code
-        self.token = token
 
 
 class AST(ABC):

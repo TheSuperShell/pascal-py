@@ -1,9 +1,5 @@
+from parser.errors import LexerError
 from parser.token import Token, TokenType
-
-
-class LexerError(Exception):
-    def __init__(self, message: str | None = None) -> None:
-        self.message = message
 
 
 _RESERVED_KEYWORDS: dict[str, Token] = {

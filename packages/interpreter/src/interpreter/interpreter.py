@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
 from typing import Any, override
 from parser import (
@@ -30,9 +31,6 @@ from parser.parser import (
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
-
-
-class InterpreterError(Exception): ...
 
 
 class ExitScope(Exception):
