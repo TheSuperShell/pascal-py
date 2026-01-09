@@ -28,6 +28,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Str,
+    WhileStatement,
 )
 from parser.token import TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
@@ -216,7 +217,7 @@ class Interpreter(Visitor):
         self.visit(node.else_condition)
 
     @override
-    def visit_Condition(self, node: Condition) -> Any:
+    def visit_Condition(self, node: Condition) -> bool:
         result = self.visit(node.condition)
         if result:
             self.visit(node.expr)
@@ -229,6 +230,11 @@ class Interpreter(Visitor):
         if node.expr is not None:
             result = self.visit(node.expr)
         raise ExitScope(result)
+
+    @override
+    def visit_WhileStatement(self, node: WhileStatement) -> None:
+        while self.visit(node.condition):
+            self.visit(node.expr)
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

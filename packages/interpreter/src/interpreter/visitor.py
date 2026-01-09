@@ -16,7 +16,15 @@ from parser import (
     Var,
     VarDecl,
 )
-from parser.parser import Bool, Condition, Exit, Function, IfStatement, Str
+from parser.parser import (
+    Bool,
+    Condition,
+    Exit,
+    Function,
+    IfStatement,
+    Str,
+    WhileStatement,
+)
 
 
 class Visitor(ABC):
@@ -32,12 +40,12 @@ class Visitor(ABC):
     def visit_Exit(self, node: Exit) -> Any: ...
 
     @abstractmethod
-    def visit_Program(self, node: Program) -> Any: ...
+    def visit_Program(self, node: Program) -> None: ...
 
     @abstractmethod
-    def visit_Block(self, node: Block) -> Any: ...
+    def visit_Block(self, node: Block) -> None: ...
 
-    def visit_NoOp(self, node: NoOp) -> Any:
+    def visit_NoOp(self, node: NoOp) -> None:
         return None
 
     @abstractmethod
@@ -87,3 +95,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_Str(self, node: Str) -> Any: ...
+
+    @abstractmethod
+    def visit_WhileStatement(self, node: WhileStatement) -> None: ...

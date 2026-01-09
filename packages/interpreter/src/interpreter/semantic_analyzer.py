@@ -38,6 +38,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Str,
+    WhileStatement,
 )
 from parser.token import TokenType
 
@@ -192,7 +193,11 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Num(self, node: Num) -> Symbol:
-        return BuiltinTypes.REAL.value
+        return (
+            BuiltinTypes.REAL.value
+            if node.token.token_type == TokenType.REAL_CONST
+            else BuiltinTypes.INTEGER.value
+        )
 
     @override
     def visit_Bool(self, node: Bool) -> Symbol:
@@ -409,6 +414,17 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Str(self, node: Str) -> Symbol:
         return BuiltinTypes.STRING.value
+
+    @override
+    def visit_WhileStatement(self, node: WhileStatement) -> None:
+        type_symbol = self.visit(node.condition)
+        if type_symbol != BuiltinTypes.BOOLEAN.value:
+            raise SemanticError(
+                f"while condition should contain boolean, but {type_symbol} was provided",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
+        self.visit(node.expr)
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)
