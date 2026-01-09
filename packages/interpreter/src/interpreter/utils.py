@@ -1,11 +1,12 @@
 from enum import StrEnum, auto
 import logging
+from interpreter.builtins import BuiltinTypes
 from parser.parser import (
     BuiltinCallableSymbol,
-    BuiltinTypeSymbol,
     CallableSymbol,
     Symbol,
 )
+from interpreter.builtins import builtin_function_register
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -177,9 +178,9 @@ class ScopedSymbolTable:
         table = ScopedSymbolTable(
             "builtins", ScopeType.BUILTIN, scope_level=0, logger=logger
         )
-        table.define(BuiltinTypeSymbol("INTEGER"))
-        table.define(BuiltinTypeSymbol("REAL"))
-        table.define(BuiltinTypeSymbol("BOOLEAN"))
-        table.define_callable(BuiltinCallableSymbol("WriteLn", print))
+        for t in BuiltinTypes:
+            table.define(t.value)
+        for f in builtin_function_register.registered_functions:
+            table.define_callable(f)
         logger.debug(table)
         return table
