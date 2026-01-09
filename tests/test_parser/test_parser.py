@@ -5,6 +5,7 @@ from parser.parser import (
     Bool,
     Condition,
     Exit,
+    ForStatement,
     Function,
     BinOp,
     Block,
@@ -257,7 +258,7 @@ data = [
         ),
     ],
     [
-        "PROGRAM while_st; BEGIN WHILE (True) DO x := 10 END.",
+        "PROGRAM while_st; BEGIN WHILE (True) DO x := 10; FOR x := 0 to 10 do y := 0 END.",
         Program(
             "while_st",
             Block(
@@ -270,6 +271,16 @@ data = [
                                 Var(Token.Id("x")),
                                 Token.assign(),
                                 Num(Token.const_int("10")),
+                            ),
+                        ),
+                        ForStatement(
+                            Var(Token.Id("x")),
+                            Num(Token.const_int("0")),
+                            Num(Token.const_int("10")),
+                            Assign(
+                                Var(Token.Id("y")),
+                                Token.assign(),
+                                Num(Token.const_int("0")),
                             ),
                         ),
                     )

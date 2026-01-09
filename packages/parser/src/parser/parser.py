@@ -322,6 +322,22 @@ class IfStatement(AST):
         return f"IfStatement({self.main_condition=}, {self.secondary_conditions=}, {self.else_condition=})"
 
 
+@dataclass(slots=True, frozen=True)
+class ForStatement(AST):
+    var: Var
+    init_state: AST
+    end_state: AST
+    expr: AST
+
+    def __str__(self) -> str:
+        return (
+            f"for {self.var} from {self.init_state} to {self.end_state} do {self.expr}"
+        )
+
+    def __repr__(self) -> str:
+        return f"ForStatement({self.var=}, {self.init_state=}, {self.end_state=}, {self.expr=})"
+
+
 class Parser[S]:
     __slots__ = "lexer", "current_token"
 
@@ -522,6 +538,7 @@ class Parser[S]:
             assignment_statement |
             if_statement |
             while_statement |
+            for_statement |
             exit_statement |
             NoOp
         """
@@ -535,9 +552,27 @@ class Parser[S]:
             return self.if_statement()
         if self.current_token.token_type == TokenType.WHILE:
             return self.while_statement()
+        if self.current_token.token_type == TokenType.FOR:
+            return self.for_statement()
         if self.current_token.token_type == TokenType.EXIT:
             return self.exit_statement()
         return NoOp()
+
+    def for_statement(self) -> ForStatement:
+        """
+        for_statement:
+            FOR id ASSIGN expr TO expr DO statement
+        """
+        self.eat(TokenType.FOR)
+        var = self.current_token
+        self.eat(TokenType.ID)
+        self.eat(TokenType.ASSIGN)
+        init_state = self.expr()
+        self.eat(TokenType.TO)
+        end_state = self.expr()
+        self.eat(TokenType.DO)
+        expr = self.statement()
+        return ForStatement(Var(var), init_state, end_state, expr)
 
     def while_statement(self) -> WhileStatement:
         """
