@@ -47,6 +47,8 @@ class TokenType(IntEnum):
     ELSE = auto()
     WHILE = auto()
     DO = auto()
+    FOR = auto()
+    TO = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -249,3 +251,11 @@ class Token:
     @classmethod
     def do(cls) -> "Token":
         return Token(TokenType.DO, "DO")
+
+    @classmethod
+    def For(cls) -> "Token":
+        return Token(TokenType.FOR, "FOR")
+
+    @classmethod
+    def to(cls) -> "Token":
+        return Token(TokenType.TO, "TO")

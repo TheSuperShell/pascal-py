@@ -26,6 +26,8 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "STRING": Token.string(),
     "WHILE": Token.While(),
     "DO": Token.do(),
+    "FOR": Token.For(),
+    "TO": Token.to(),
 }
 
 
