@@ -28,6 +28,11 @@ from interpreter.visitor import Visitor
 class InterpreterError(Exception): ...
 
 
+class ExitScope(Exception):
+    def __init__(self, value: Any = None) -> None:
+        self.value = value
+
+
 _OPERATIONS: dict[TokenType, Callable[[Any, Any], Any]] = {
     TokenType.PLUS: lambda x, y: x + y,
     TokenType.MINUS: lambda x, y: x - y,
@@ -164,9 +169,13 @@ class DefaultVisitor(Visitor):
         print(f"ENTER PROCEDURE: {proc_name}")
         print(self.call_stack)
 
-        self.visit(proc_symbol.block_ast)
-        result = self.return_value
-        self.refresh_exit()
+        result = None
+        try:
+            self.visit(proc_symbol.block_ast)
+        except ExitScope as e:
+            result = e.value
+        if result is None:
+            result = ar.get("result")
 
         print(f"LEAVE PROCEDURE: {proc_name}")
         print(self.call_stack)
@@ -195,10 +204,10 @@ class DefaultVisitor(Visitor):
     @override
     def visit_Exit(self, node: Exit) -> Any:
         print(f"EXIT {self.call_stack.peek().name}")
+        result = None
         if node.expr is not None:
             result = self.visit(node.expr)
-            self.return_value = result
-        self.exit = True
+        raise ExitScope(result)
 
 
 @dataclass(slots=True)

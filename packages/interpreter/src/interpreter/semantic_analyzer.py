@@ -149,6 +149,8 @@ class SymbolTableVisitor(Visitor):
             self.current_scope.define(var_symbol)
             func_symbol.params.append(var_symbol)
 
+        self.current_scope.define(VarSymbol("result", return_symbol))
+
         self.visit(node.block)
         print(function_scope)
         self.current_scope = self.get_current_scope().enclosing_scope
