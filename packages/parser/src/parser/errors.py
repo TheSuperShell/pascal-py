@@ -13,6 +13,10 @@ class ErrorCode(IntEnum):
     INCORRECT_NUMBER_OF_INPUTS = auto()
     INVALID_EXIT = auto()
     NO_RETURN = auto()
+    UNKOWN_TYPE = auto()
+    INCORRECT_TYPE = auto()
+    UNKOWN_BINARY_OPERATOR = auto()
+    UNSUPPORTED_BINARY_OPERATION = auto()
 
 
 class LexerError(Exception):

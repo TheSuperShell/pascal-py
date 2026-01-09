@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import contextlib
 import logging
 from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
@@ -76,7 +77,8 @@ class Interpreter(Visitor):
         self.logger.debug(f"ENTER PROGRAM: {program_name}")
         self.logger.debug(self.call_stack)
 
-        self.visit(node.block)
+        with contextlib.suppress(ExitScope):
+            self.visit(node.block)
 
         self.logger.debug(f"LEAVE PROGRAM: {program_name}")
         self.logger.debug(self.call_stack)
@@ -87,7 +89,7 @@ class Interpreter(Visitor):
     def visit_Block(self, node: Block) -> Any:
         for decl in node.declarations:
             self.visit(decl)
-        return self.visit(node.compund_statement)
+        self.visit(node.compund_statement)
 
     @override
     def visit_Compound(self, node: Compound) -> Any:

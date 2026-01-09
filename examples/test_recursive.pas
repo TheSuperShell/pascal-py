@@ -1,11 +1,8 @@
 Program recurse;
-    var res: integer;
-    function recursive(num: integer): integer;
+    function test_types: string;
     begin
-        if (num <= 0) then
-            exit(num);
-        exit(recursive(num - 1));
+        test_types := 'hello'
     end;
 begin
-    res := recursive(10);
+    writeln(test_types() + ' World')
 end.

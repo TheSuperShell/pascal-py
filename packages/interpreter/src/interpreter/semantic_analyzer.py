@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Self, override
 
+from interpreter.builtins import BuiltinTypes
 from interpreter.errors import SemanticError
 from interpreter.symbols import (
     BuiltinCallableSymbol,
@@ -38,6 +39,7 @@ from parser.parser import (
     IfStatement,
     Str,
 )
+from parser.token import TokenType
 
 
 @dataclass(slots=True)
@@ -189,12 +191,12 @@ class SymbolTableVisitor(Visitor):
         proc_symbol.block_ast = node.block
 
     @override
-    def visit_Num(self, node: Num) -> Any:
-        return
+    def visit_Num(self, node: Num) -> Symbol:
+        return BuiltinTypes.REAL.value
 
     @override
-    def visit_Bool(self, node: Bool) -> Any:
-        return
+    def visit_Bool(self, node: Bool) -> Symbol:
+        return BuiltinTypes.BOOLEAN.value
 
     @override
     def visit_Assign(self, node: Assign) -> Any:
@@ -202,17 +204,21 @@ class SymbolTableVisitor(Visitor):
         self.visit(node.right)
 
     @override
-    def visit_Var(self, node: Var) -> Any:
+    def visit_Var(self, node: Var) -> Symbol:
         var_name = node.value
         var_symbol = self.get_current_scope().lookup(var_name)
         if var_symbol is None:
             raise SemanticError(
                 f"symbol not found {var_name}", ErrorCode.ID_NOT_FOUND, node
             )
-        return
+        if var_symbol.symbol_type is None:
+            raise SemanticError(
+                f"unkown type for variable {var_symbol}", ErrorCode.UNKOWN_TYPE, node
+            )
+        return var_symbol.symbol_type
 
     @override
-    def visit_UnaryOp(self, node: UnaryOp) -> Any:
+    def visit_UnaryOp(self, node: UnaryOp) -> Symbol:
         return self.visit(node.expr)
 
     @override
@@ -235,21 +241,96 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(var_symbol)
 
     @override
-    def visit_Type(self, node: Type) -> Any:
-        return
+    def visit_Type(self, node: Type) -> Symbol:
+        type_symbol = self.get_current_scope().lookup(node.value)
+        if type_symbol is None:
+            raise SemanticError(
+                f"unkown type {node.value}", ErrorCode.UNKOWN_TYPE, node
+            )
+        return type_symbol
 
     @override
-    def visit_BinOp(self, node: BinOp) -> Any:
-        self.visit(node.left)
-        self.visit(node.right)
-        return None
+    def visit_BinOp(self, node: BinOp) -> Symbol:
+        left_type = self.visit(node.left)
+        right_type = self.visit(node.right)
+        if None in (left_type, right_type):
+            raise SemanticError(
+                "one of the node types are unkown", ErrorCode.UNKOWN_TYPE, node
+            )
+        match node.token.token_type:
+            case (
+                TokenType.MINUS
+                | TokenType.FLOAT_DIV
+                | TokenType.INTEGER_DIV
+                | TokenType.MULTIPLICATION
+            ):
+                return self._bin_math(left_type, right_type)
+            case TokenType.PLUS:
+                return self._bin_string_concat(left_type, right_type)
+            case (
+                TokenType.MORE
+                | TokenType.LESS
+                | TokenType.MORE_OR_EQUAL
+                | TokenType.LESS_OR_EQUAL
+            ):
+                return self._bin_compare(left_type, right_type, node.token.token_type)
+            case TokenType.EQUAL | TokenType.NOT_EQUAL:
+                return BuiltinTypes.BOOLEAN.value
+            case TokenType.AND | TokenType.OR:
+                return self._bin_bool(left_type, right_type, node.token.token_type)
+        raise SemanticError(
+            f"unkown binary operator {node.token}",
+            ErrorCode.UNKOWN_BINARY_OPERATOR,
+            node,
+        )
+
+    def _bin_bool(self, left: Symbol, right: Symbol, operator: TokenType) -> Symbol:
+        if right == left == BuiltinTypes.BOOLEAN.value:
+            return BuiltinTypes.BOOLEAN.value
+        raise SemanticError(
+            f"unsupported boolean operator {operator.value} between {left} and {right}",
+            ErrorCode.UNSUPPORTED_BINARY_OPERATION,
+        )
+
+    def _bin_compare(self, left: Symbol, right: Symbol, operator: TokenType) -> Symbol:
+        if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
+            if right in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
+                return BuiltinTypes.BOOLEAN.value
+        raise SemanticError(
+            f"unsupported {operator.value} compare operation for {left} and {right}",
+            ErrorCode.UNSUPPORTED_BINARY_OPERATION,
+        )
+
+    def _bin_string_concat(self, left: Symbol, right: Symbol) -> Symbol:
+        if left in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value):
+            if right in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value):
+                return BuiltinTypes.STRING.value
+        return self._bin_math(left, right)
+
+    def _bin_math(self, left: Symbol, right: Symbol) -> Symbol:
+        if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
+            if right in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
+                return (
+                    BuiltinTypes.REAL.value
+                    if BuiltinTypes.REAL.value in (left, right)
+                    else BuiltinTypes.INTEGER.value
+                )
+        raise SemanticError(
+            f"unsupported + operation for {left} and {right}",
+            ErrorCode.UNSUPPORTED_BINARY_OPERATION,
+        )
 
     @override
-    def visit_Param(self, node: Param) -> Any:
-        return None
+    def visit_Param(self, node: Param) -> Symbol:
+        type_symbol = self.get_current_scope().lookup(node.type_node.value)
+        if type_symbol is None:
+            raise SemanticError(
+                f"unkown type {node.type_node.value}", ErrorCode.UNKOWN_TYPE, node
+            )
+        return type_symbol
 
     @override
-    def visit_Call(self, node: Call[Symbol]) -> Any:
+    def visit_Call(self, node: Call[Symbol]) -> Symbol | None:
         callable_name = node.name
         callable_symbol = self.get_current_scope().lookup_callable(callable_name)
         node.proc_symbol = callable_symbol
@@ -278,6 +359,9 @@ class SymbolTableVisitor(Visitor):
             )
         for param_node in node.actual_params:
             self.visit(param_node)
+        if callable_symbol.return_type is not None:
+            return callable_symbol.return_type
+        return None
 
     @override
     def visit_IfStatement(self, node: IfStatement) -> Any:
@@ -289,13 +373,19 @@ class SymbolTableVisitor(Visitor):
         return None
 
     @override
-    def visit_Condition(self, node: Condition) -> Any:
-        self.visit(node.condition)
+    def visit_Condition(self, node: Condition) -> None:
+        type_symbol = self.visit(node.condition)
+        if type_symbol != BuiltinTypes.BOOLEAN.value:
+            raise SemanticError(
+                f"if expression should contain boolean, but {type_symbol} was provided",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
         self.visit(node.expr)
 
     @override
-    def visit_Str(self, node: Str) -> Any:
-        return
+    def visit_Str(self, node: Str) -> Symbol:
+        return BuiltinTypes.STRING.value
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)

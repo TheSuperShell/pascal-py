@@ -379,15 +379,17 @@ class Parser[S]:
     def function_declaration(self) -> Function:
         """
         function_declaration:
-            FUNCTION ID OPEN_PARANTH formal_parameter_list CLOSE_PARANTH
+            FUNCTION ID (OPEN_PARANTH formal_parameter_list CLOSE_PARANTH)?
             COLON type_spec SEMI block SEMI
         """
         self.eat(TokenType.FUNCTION)
         func_name = self.current_token.value
         self.eat(TokenType.ID)
-        self.eat(TokenType.OPEN_PARANTH)
-        params = self.formal_parameter_list()
-        self.eat(TokenType.CLOSE_PARANTH)
+        params = []
+        if self.current_token.token_type == TokenType.OPEN_PARANTH:
+            self.eat(TokenType.OPEN_PARANTH)
+            params = self.formal_parameter_list()
+            self.eat(TokenType.CLOSE_PARANTH)
         self.eat(TokenType.COLON)
         return_type = self.type_spec()
         self.eat(TokenType.SEMI)
@@ -398,7 +400,7 @@ class Parser[S]:
     def procedure_declaration(self) -> Procedure:
         """
         procedure_declaration:
-            PROCEDURE ID OPEN_PARANTH formal_parameter_list CLOSE_PARANTH SEMI block SEMI
+            PROCEDURE ID (OPEN_PARANTH formal_parameter_list CLOSE_PARANTH)? SEMI block SEMI
         """
         self.eat(TokenType.PROCEDURE)
         proc_name = self.current_token.value
