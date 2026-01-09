@@ -257,7 +257,7 @@ class Param(AST):
 
 
 @dataclass(slots=True)
-class ProcedureCall(AST):
+class Call(AST):
     proc_name: str
     actual_params: tuple[AST, ...]
     token: Token
@@ -729,7 +729,7 @@ class Parser:
             self.eat(TokenType.COMMA)
             params.append(self.expr())
         self.eat(TokenType.CLOSE_PARANTH)
-        return ProcedureCall(proc_name, tuple(params), proc_token)
+        return Call(proc_name, tuple(params), proc_token)
 
     def add_expr(self) -> AST:
         """

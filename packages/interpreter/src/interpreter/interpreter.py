@@ -10,7 +10,7 @@ from parser import (
     Parser,
     BinOp,
     Procedure,
-    ProcedureCall,
+    Call,
     ProcedureSymbol,
     Program,
     Type,
@@ -141,7 +141,7 @@ class DefaultVisitor(Visitor):
         return _OPERATIONS[node.token.token_type](left, right)
 
     @override
-    def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
+    def visit_Call(self, node: Call) -> Any:
         proc_symbol = node.proc_symbol
         if proc_symbol is None:
             raise InterpreterError(f"{node.proc_name} is not recognised")

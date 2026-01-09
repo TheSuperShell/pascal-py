@@ -8,7 +8,7 @@ from parser.parser import (
     VarSymbol,
     Param,
     Procedure,
-    ProcedureCall,
+    Call,
     ProcedureSymbol,
     Program,
     ProgramSymbol,

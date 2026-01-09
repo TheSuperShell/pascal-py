@@ -11,7 +11,7 @@ from parser import (
     Num,
     Param,
     Procedure,
-    ProcedureCall,
+    Call,
     ProcedureSymbol,
     Program,
     ProgramSymbol,
@@ -249,7 +249,7 @@ class SymbolTableVisitor(Visitor):
         return None
 
     @override
-    def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
+    def visit_Call(self, node: Call) -> Any:
         proc_name = node.proc_name
         proc_symbol = self.get_current_scope().lookup(proc_name)
         node.proc_symbol = proc_symbol

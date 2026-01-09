@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from parser import AST, Block, Param, ProcedureCall, Program
+from parser import AST, Block, Param, Call, Program
 
 from parser import (
     Assign,
@@ -76,7 +76,7 @@ class Visitor(ABC):
     def visit_Param(self, node: Param) -> Any: ...
 
     @abstractmethod
-    def visit_ProcedureCall(self, node: ProcedureCall) -> Any: ...
+    def visit_Call(self, node: Call) -> Any: ...
 
     @abstractmethod
     def visit_IfStatement(self, node: IfStatement) -> Any: ...

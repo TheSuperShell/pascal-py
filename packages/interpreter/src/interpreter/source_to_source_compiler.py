@@ -10,7 +10,7 @@ from parser import (
     Num,
     Param,
     Procedure,
-    ProcedureCall,
+    Call,
     Program,
     Type,
     UnaryOp,
@@ -177,7 +177,7 @@ class S2SCompiler(Visitor):
         return f"var {var_name}{scope_level} : {var_type};"
 
     @override
-    def visit_ProcedureCall(self, node: ProcedureCall) -> Any:
+    def visit_ProcedureCall(self, node: Call) -> Any:
         return ""
 
     @override

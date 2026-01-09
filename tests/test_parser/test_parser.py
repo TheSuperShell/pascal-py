@@ -15,7 +15,7 @@ from parser.parser import (
     Param,
     Parser,
     Procedure,
-    ProcedureCall,
+    Call,
     Program,
     Type,
     UnaryOp,
@@ -56,7 +56,7 @@ data = [
                         Assign(
                             Var(Token.Id("a")),
                             Token.assign(),
-                            ProcedureCall("proc", (), Token.Id("proc")),
+                            Call("proc", (), Token.Id("proc")),
                         ),
                     )
                 ),
@@ -112,7 +112,7 @@ data = [
                 (),
                 Compound(
                     (
-                        ProcedureCall(
+                        Call(
                             "ProcCall",
                             (
                                 Var(Token.Id("a")),
