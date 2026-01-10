@@ -24,10 +24,12 @@ from parser import (
     Var,
     VarDecl,
 )
+from parser.errors import ErrorCode
 from parser.parser import (
     AST,
     Break,
     Condition,
+    ConstDecl,
     Continue,
     Exit,
     ForStatement,
@@ -137,7 +139,9 @@ class Interpreter(Visitor):
         var_name = node.value
         val = self.call_stack.lookup(var_name)
         if val is None:
-            raise NameError(repr(var_name))
+            raise InterpreterError(
+                f"unkown variable {var_name}", ErrorCode.UNASSIGNED_VARIABLE
+            )
         return val
 
     @override
@@ -280,6 +284,12 @@ class Interpreter(Visitor):
     @override
     def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
         return
+
+    @override
+    def visit_ConstDecl(self, node: ConstDecl[Symbol]) -> None:
+        var_name = node.var_node.value
+        value = node.literal.value
+        self.call_stack.peek()[var_name] = value
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

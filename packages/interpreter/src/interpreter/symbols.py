@@ -56,6 +56,7 @@ class TypeSymbol[T](Symbol):
 @dataclass(slots=True)
 class VarSymbol(Symbol):
     symbol_type: TypeSymbol
+    const: bool = False
 
     @property
     @override

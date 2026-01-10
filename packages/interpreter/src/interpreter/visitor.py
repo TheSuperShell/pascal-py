@@ -18,6 +18,7 @@ from parser import (
 from parser.parser import (
     Break,
     Condition,
+    ConstDecl,
     Continue,
     Exit,
     ForStatement,
@@ -106,3 +107,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None: ...
+
+    @abstractmethod
+    def visit_ConstDecl(self, node: ConstDecl[Symbol]) -> None: ...

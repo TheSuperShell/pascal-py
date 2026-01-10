@@ -33,6 +33,7 @@ from parser.parser import (
     AST,
     Break,
     Condition,
+    ConstDecl,
     Continue,
     Exit,
     ForStatement,
@@ -264,6 +265,13 @@ class SymbolTableVisitor(Visitor):
 
         var_name = node.var_node.value
         var_symbol = VarSymbol(var_name, 0, type_symbol)
+
+        if var_symbol.const:
+            raise SemanticError(
+                f"cannot assign to a const value {var_symbol}",
+                ErrorCode.ASSIGN_TO_CONST,
+                node,
+            )
 
         if (
             self.get_current_scope().lookup_variable(var_name, current_scope_only=True)
@@ -556,6 +564,20 @@ class SymbolTableVisitor(Visitor):
                 type_symbol.ordinal_value,
             )
         )
+
+    @override
+    def visit_ConstDecl(self, node: ConstDecl[Symbol]) -> None:
+        var_name = node.var_node.value
+        var_symbol = self.get_current_scope().lookup_variable(
+            var_name, current_scope_only=True
+        )
+        if var_symbol is not None:
+            raise SemanticError(
+                f"duplicate identifier {var_name}", ErrorCode.DUPLICATE_VARIABLE, node
+            )
+        value = node.literal
+        value_type = BuiltinTypes.literal_to_builtin(value).value
+        self.get_current_scope().define(VarSymbol(var_name, 0, value_type, True))
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)

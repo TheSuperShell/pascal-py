@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from parser.errors import ErrorCode, ParserError
 from parser.lexer import Lexer
@@ -148,7 +149,7 @@ class Program[S](AST[S]):
 
 @dataclass(frozen=True, slots=True)
 class Block[S](AST[S]):
-    declarations: "tuple[TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S], ...]"
+    declarations: "tuple[ConstDecl[S] | TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S], ...]"
     compund_statement: Compound
 
     def __str__(self) -> str:
@@ -180,6 +181,18 @@ class TypeDecl[S](AST[S]):
 
     def __repr__(self) -> str:
         return f"TypeDecl({self.var_node}:{self.type_node})"
+
+
+@dataclass(frozen=True, slots=True)
+class ConstDecl[S](AST[S]):
+    var_node: "Var[S]"
+    literal: Literal[Any, S]
+
+    def __str__(self) -> str:
+        return f"{self.var_node} = {self.literal}"
+
+    def __repr__(self) -> str:
+        return f"ConstDecl({self.var_node}:{self.literal})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -385,18 +398,34 @@ class Parser[S]:
 
     def declarations(
         self,
-    ) -> list[TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S]]:
+    ) -> list[ConstDecl[S] | TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S]]:
         """
         declarations:
-            (TYPE (type_declaration SEMI)+ | VAR (variable_declaration SEMI)+ | procedure_declaration | function_declaration)*
+            (
+                CONST (const_declaration SEMI)+ |
+                TYPE (type_declaration SEMI)+ |
+                VAR (variable_declaration SEMI)+ |
+                procedure_declaration |
+                function_declaration
+            )*
         """
-        decls: list[TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S]] = []
+        decls: list[
+            ConstDecl[S] | TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S]
+        ] = []
         while self.current_token.token_type in (
             TokenType.VAR,
             TokenType.PROCEDURE,
             TokenType.FUNCTION,
             TokenType.TYPE,
+            TokenType.CONST,
         ):
+            if self.current_token.token_type == TokenType.CONST:
+                self.eat(TokenType.CONST)
+                decls.extend(self.const_declaration())
+                self.eat(TokenType.SEMI)
+                while self.current_token.token_type == TokenType.ID:
+                    decls.extend(self.const_declaration())
+                    self.eat(TokenType.SEMI)
             if self.current_token.token_type == TokenType.TYPE:
                 self.eat(TokenType.TYPE)
                 decls.extend(self.type_declaration())
@@ -417,7 +446,22 @@ class Parser[S]:
                 decls.append(self.function_declaration())
         return decls
 
-    def type_declaration(self) -> list[TypeDecl]:
+    def const_declaration(self) -> list[ConstDecl[S]]:
+        """
+        const_declaration:
+            ID (COMMA ID)* EQUAL literal
+        """
+        names = [self.current_token]
+        self.eat(TokenType.ID)
+        while self.current_token.token_type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            names.append(self.current_token)
+            self.eat(TokenType.ID)
+        self.eat(TokenType.EQUAL)
+        literal_val = self.literal()
+        return [ConstDecl[S](Var(name), literal_val) for name in names]
+
+    def type_declaration(self) -> list[TypeDecl[S]]:
         """
         type_declaration:
             ID (COMMA ID)* EQUAL type_spec
@@ -685,14 +729,28 @@ class Parser[S]:
         self.eat(TokenType.ID)
         return node
 
+    def literal(self) -> Literal[Any, S]:
+        token = self.current_token
+        if token.token_type == TokenType.INTEGER_CONST:
+            self.eat(TokenType.INTEGER_CONST)
+            return Literal[int, S](token, lambda x: int(x))
+        if token.token_type == TokenType.REAL_CONST:
+            self.eat(TokenType.REAL_CONST)
+            return Literal(token, lambda x: float(x))
+        if token.token_type in (TokenType.CHAR_CONST, TokenType.STRING_CONST):
+            self.eat(TokenType.CHAR_CONST, TokenType.STRING_CONST)
+            return Literal[str, S](token, lambda x: x)
+        if token.token_type == TokenType.BOOLEAN_CONST:
+            self.eat(TokenType.BOOLEAN_CONST)
+            return Literal[bool, S](token, lambda x: x.lower() == "true")
+        raise ParserError(f"unkown literal {token.token_type}")
+
     def factor(self) -> AST:
         """
         factor:
             (PLUS | MINUS) factor |
             NOT compare_expr |
-            (INTEGER_CONST | REAL_CONST) |
-            (STRING_CONST | CHAR_CONST) |
-            CONST_BOOLEAN |
+            literal |
             OPEN_PARANTH expr CLOSE_PARANTH |
             call_statement |
             variable
@@ -704,18 +762,14 @@ class Parser[S]:
         if token.token_type == TokenType.NOT:
             self.eat(TokenType.NOT)
             return UnaryOp(token, self.compare_expr())
-        if token.token_type == TokenType.INTEGER_CONST:
-            self.eat(TokenType.INTEGER_CONST)
-            return Literal[int, S](token, lambda x: int(x))
-        if token.token_type == TokenType.REAL_CONST:
-            self.eat(TokenType.REAL_CONST)
-            return Literal(token, lambda x: int(x))
-        if token.token_type in (TokenType.CHAR_CONST, TokenType.STRING_CONST):
-            self.eat(TokenType.CHAR_CONST, TokenType.STRING_CONST)
-            return Literal[str, S](token, lambda x: x)
-        if token.token_type == TokenType.BOOLEAN_CONST:
-            self.eat(TokenType.BOOLEAN_CONST)
-            return Literal[bool, S](token, lambda x: x.lower() == "true")
+        if token.token_type in (
+            TokenType.INTEGER_CONST,
+            TokenType.REAL_CONST,
+            TokenType.CHAR_CONST,
+            TokenType.STRING_CONST,
+            TokenType.BOOLEAN_CONST,
+        ):
+            return self.literal()
         if token.token_type == TokenType.OPEN_PARANTH:
             self.eat(TokenType.OPEN_PARANTH)
             result = self.expr()

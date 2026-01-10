@@ -20,6 +20,7 @@ class ErrorCode(IntEnum):
     UNSUPPORTED_BINARY_OPERATION = auto()
     UNASSIGNABLE_TYPES = auto()
     OUTSIDE_LOOP = auto()
+    ASSIGN_TO_CONST = auto()
 
 
 class LexerError(Exception):

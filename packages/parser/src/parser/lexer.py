@@ -31,6 +31,7 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "CONTINUE": Token.Continue(),
     "BREAK": Token.Break(),
     "TYPE": Token.Type(),
+    "CONST": Token.const(),
 }
 
 
