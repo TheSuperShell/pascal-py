@@ -49,6 +49,8 @@ class TokenType(IntEnum):
     DO = auto()
     FOR = auto()
     TO = auto()
+    CONTINUE = auto()
+    BREAK = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -259,3 +261,11 @@ class Token:
     @classmethod
     def to(cls) -> "Token":
         return Token(TokenType.TO, "TO")
+
+    @classmethod
+    def Continue(cls) -> "Token":
+        return Token(TokenType.CONTINUE, "CONTINUE")
+
+    @classmethod
+    def Break(cls) -> "Token":
+        return Token(TokenType.BREAK, "BREAK")

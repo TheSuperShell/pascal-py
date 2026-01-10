@@ -338,6 +338,24 @@ class ForStatement(AST):
         return f"ForStatement({self.var=}, {self.init_state=}, {self.end_state=}, {self.expr=})"
 
 
+@dataclass(frozen=True, slots=True)
+class Continue(AST):
+    def __str__(self) -> str:
+        return "CONTINUE"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
+@dataclass(frozen=True, slots=True)
+class Break(AST):
+    def __str__(self) -> str:
+        return "BREAK"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
 class Parser[S]:
     __slots__ = "lexer", "current_token"
 
@@ -536,6 +554,8 @@ class Parser[S]:
     def statement(self) -> AST:
         """
         statement:
+            CONTINUE |
+            BREAK |
             compound_statement |
             call_statement |
             assignment_statement |
@@ -545,6 +565,12 @@ class Parser[S]:
             exit_statement |
             NoOp
         """
+        if self.current_token.token_type == TokenType.CONTINUE:
+            self.eat(TokenType.CONTINUE)
+            return Continue()
+        if self.current_token.token_type == TokenType.BREAK:
+            self.eat(TokenType.BREAK)
+            return Break()
         if self.current_token.token_type == TokenType.BEGIN:
             return self.compound_statement()
         if self.current_token.token_type == TokenType.ID and self.lexer.char == "(":
@@ -564,7 +590,7 @@ class Parser[S]:
     def for_statement(self) -> ForStatement:
         """
         for_statement:
-            FOR id ASSIGN expr TO expr DO statement
+            FOR id ASSIGN expr TO expr DO loop_statement
         """
         self.eat(TokenType.FOR)
         var = self.current_token
@@ -580,7 +606,7 @@ class Parser[S]:
     def while_statement(self) -> WhileStatement:
         """
         while_statement:
-            WHILE expr DO statement
+            WHILE expr DO loop_statement
         """
         self.eat(TokenType.WHILE)
         condition = self.expr()

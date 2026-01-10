@@ -28,6 +28,8 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "DO": Token.do(),
     "FOR": Token.For(),
     "TO": Token.to(),
+    "CONTINUE": Token.Continue(),
+    "BREAK": Token.Break(),
 }
 
 

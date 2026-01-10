@@ -23,7 +23,9 @@ from parser import (
 from interpreter.visitor import Visitor
 from parser.parser import (
     Bool,
+    Break,
     Condition,
+    Continue,
     Exit,
     ForStatement,
     Function,
@@ -217,6 +219,14 @@ class S2SCompiler(Visitor):
 
     @override
     def visit_ForStatement(self, node: ForStatement) -> None:
+        return
+
+    @override
+    def visit_Break(self, node: Break) -> None:
+        return
+
+    @override
+    def visit_Continue(self, node: Continue) -> None:
         return
 
     def build_output(self, node: AST) -> str:

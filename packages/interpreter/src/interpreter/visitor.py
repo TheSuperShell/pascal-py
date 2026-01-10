@@ -18,7 +18,9 @@ from parser import (
 )
 from parser.parser import (
     Bool,
+    Break,
     Condition,
+    Continue,
     Exit,
     ForStatement,
     Function,
@@ -38,7 +40,7 @@ class Visitor(ABC):
         return method(node)
 
     @abstractmethod
-    def visit_Exit(self, node: Exit) -> Any: ...
+    def visit_Exit(self, node: Exit) -> None: ...
 
     @abstractmethod
     def visit_Program(self, node: Program) -> None: ...
@@ -102,3 +104,9 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_ForStatement(self, node: ForStatement) -> None: ...
+
+    @abstractmethod
+    def visit_Continue(self, node: Continue) -> None: ...
+
+    @abstractmethod
+    def visit_Break(self, node: Break) -> None: ...

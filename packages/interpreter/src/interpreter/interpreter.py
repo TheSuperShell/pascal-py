@@ -23,7 +23,9 @@ from parser import (
 from parser.parser import (
     AST,
     Bool,
+    Break,
     Condition,
+    Continue,
     Exit,
     ForStatement,
     Function,
@@ -39,6 +41,12 @@ from interpreter.visitor import Visitor
 class ExitScope(Exception):
     def __init__(self, value: Any = None) -> None:
         self.value = value
+
+
+class ContinueLoop(Exception): ...
+
+
+class BreakLoop(Exception): ...
 
 
 _OPERATIONS: dict[TokenType, Callable[[Any, Any], Any]] = {
@@ -234,8 +242,10 @@ class Interpreter(Visitor):
 
     @override
     def visit_WhileStatement(self, node: WhileStatement) -> None:
-        while self.visit(node.condition):
-            self.visit(node.expr)
+        with contextlib.suppress(BreakLoop):
+            while self.visit(node.condition):
+                with contextlib.suppress(ContinueLoop):
+                    self.visit(node.expr)
 
     @override
     def visit_ForStatement(self, node: ForStatement) -> None:
@@ -243,10 +253,20 @@ class Interpreter(Visitor):
         self.call_stack.peek()[node.var.value] = init_state
         end_state = self.visit(node.end_state)
         current_state = init_state
-        while current_state < end_state:
-            self.visit(node.expr)
-            current_state += 1
-            self.call_stack.peek()[node.var.value] = current_state
+        with contextlib.suppress(BreakLoop):
+            while current_state < end_state:
+                with contextlib.suppress(ContinueLoop):
+                    self.visit(node.expr)
+                current_state += 1
+                self.call_stack.peek()[node.var.value] = current_state
+
+    @override
+    def visit_Break(self, node: Break) -> None:
+        raise BreakLoop()
+
+    @override
+    def visit_Continue(self, node: Continue) -> None:
+        raise ContinueLoop()
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

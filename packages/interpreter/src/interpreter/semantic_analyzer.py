@@ -33,7 +33,9 @@ from parser.errors import ErrorCode
 from parser.parser import (
     AST,
     Bool,
+    Break,
     Condition,
+    Continue,
     Exit,
     ForStatement,
     Function,
@@ -48,6 +50,7 @@ from parser.token import TokenType
 class SymbolTableVisitor(Visitor):
     logger: logging.Logger
     current_scope: ScopedSymbolTable | None = None
+    loop_depth: int = 0
 
     @classmethod
     def new(cls, logger: logging.Logger) -> Self:
@@ -82,7 +85,7 @@ class SymbolTableVisitor(Visitor):
         return self.visit(node.compund_statement)
 
     @override
-    def visit_Exit(self, node: Exit) -> Any:
+    def visit_Exit(self, node: Exit) -> None:
         if (
             self.get_current_scope().scope_type != ScopeType.FUNCTION
             and node.expr is not None
@@ -450,7 +453,9 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.INCORRECT_TYPE,
                 node,
             )
+        self.loop_depth += 1
         self.visit(node.expr)
+        self.loop_depth -= 1
 
     @override
     def visit_ForStatement(self, node: ForStatement) -> None:
@@ -479,7 +484,19 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.INCORRECT_TYPE,
                 node,
             )
+        self.loop_depth += 1
         self.visit(node.expr)
+        self.loop_depth -= 1
+
+    @override
+    def visit_Break(self, node: Break) -> None:
+        if self.loop_depth <= 0:
+            raise SemanticError()
+
+    @override
+    def visit_Continue(self, node: Continue) -> None:
+        if self.loop_depth <= 0:
+            raise SemanticError()
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)
