@@ -34,6 +34,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    TypeDecl,
     WhileStatement,
 )
 from parser.token import TokenType
@@ -275,6 +276,10 @@ class Interpreter(Visitor):
     @override
     def visit_Continue(self, node: Continue) -> None:
         raise ContinueLoop()
+
+    @override
+    def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
+        return
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

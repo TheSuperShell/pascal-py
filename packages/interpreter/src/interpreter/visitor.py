@@ -24,6 +24,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    TypeDecl,
     WhileStatement,
 )
 
@@ -102,3 +103,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_Break(self, node: Break) -> None: ...
+
+    @abstractmethod
+    def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None: ...

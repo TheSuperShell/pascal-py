@@ -148,7 +148,7 @@ class Program[S](AST[S]):
 
 @dataclass(frozen=True, slots=True)
 class Block[S](AST[S]):
-    declarations: "tuple[VarDecl | Procedure | Function, ...]"
+    declarations: "tuple[TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S], ...]"
     compund_statement: Compound
 
     def __str__(self) -> str:
@@ -168,6 +168,18 @@ class VarDecl[S](AST[S]):
 
     def __repr__(self) -> str:
         return f"VarDecl({self.var_node}:{self.type_node})"
+
+
+@dataclass(frozen=True, slots=True)
+class TypeDecl[S](AST[S]):
+    var_node: "Type"
+    type_node: "Type"
+
+    def __str__(self) -> str:
+        return f"{self.var_node}: {self.type_node}"
+
+    def __repr__(self) -> str:
+        return f"TypeDecl({self.var_node}:{self.type_node})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -371,17 +383,27 @@ class Parser[S]:
         comp_node = self.compound_statement()
         return Block[S](tuple(nodes), comp_node)
 
-    def declarations(self) -> list[VarDecl | Procedure | Function]:
+    def declarations(
+        self,
+    ) -> list[TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S]]:
         """
         declarations:
-            (VAR (variable_declaration SEMI)+ | procedure_declaration | function_declaration)*
+            (TYPE (type_declaration SEMI)+ | VAR (variable_declaration SEMI)+ | procedure_declaration | function_declaration)*
         """
-        decls: list[VarDecl | Procedure | Function] = []
+        decls: list[TypeDecl[S] | VarDecl[S] | Procedure[S] | Function[S]] = []
         while self.current_token.token_type in (
             TokenType.VAR,
             TokenType.PROCEDURE,
             TokenType.FUNCTION,
+            TokenType.TYPE,
         ):
+            if self.current_token.token_type == TokenType.TYPE:
+                self.eat(TokenType.TYPE)
+                decls.extend(self.type_declaration())
+                self.eat(TokenType.SEMI)
+                while self.current_token.token_type == TokenType.ID:
+                    decls.extend(self.type_declaration())
+                    self.eat(TokenType.SEMI)
             if self.current_token.token_type == TokenType.VAR:
                 self.eat(TokenType.VAR)
                 decls.extend(self.variable_declaration())
@@ -394,6 +416,21 @@ class Parser[S]:
             elif self.current_token.token_type == TokenType.FUNCTION:
                 decls.append(self.function_declaration())
         return decls
+
+    def type_declaration(self) -> list[TypeDecl]:
+        """
+        type_declaration:
+            ID (COMMA ID)* COLON type_spec
+        """
+        type_names = [self.current_token]
+        self.eat(TokenType.ID)
+        while self.current_token.token_type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            type_names.append(self.current_token)
+            self.eat(TokenType.ID)
+        self.eat(TokenType.COLON)
+        type_spec = self.type_spec()
+        return [TypeDecl(Type(name), type_spec) for name in type_names]
 
     def function_declaration(self) -> Function:
         """

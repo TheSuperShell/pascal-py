@@ -39,6 +39,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    TypeDecl,
     WhileStatement,
 )
 from parser.token import TokenType
@@ -538,6 +539,10 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError(
                 "continue should be within loop", ErrorCode.OUTSIDE_LOOP, node
             )
+
+    @override
+    def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
+        return
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)

@@ -51,6 +51,7 @@ class TokenType(IntEnum):
     TO = auto()
     CONTINUE = auto()
     BREAK = auto()
+    TYPE = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -269,3 +270,7 @@ class Token:
     @classmethod
     def Break(cls) -> "Token":
         return Token(TokenType.BREAK, "BREAK")
+
+    @classmethod
+    def Type(cls) -> "Token":
+        return Token(TokenType.TYPE, "TYPE")
