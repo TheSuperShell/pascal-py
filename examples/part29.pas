@@ -1,5 +1,5 @@
 program br_cont;
-    type age: integer;
+    type age = integer;
     var i: char;
         my_age: age;
 begin

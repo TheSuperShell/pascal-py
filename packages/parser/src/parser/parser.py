@@ -420,7 +420,7 @@ class Parser[S]:
     def type_declaration(self) -> list[TypeDecl]:
         """
         type_declaration:
-            ID (COMMA ID)* COLON type_spec
+            ID (COMMA ID)* EQUAL type_spec
         """
         type_names = [self.current_token]
         self.eat(TokenType.ID)
@@ -428,7 +428,7 @@ class Parser[S]:
             self.eat(TokenType.COMMA)
             type_names.append(self.current_token)
             self.eat(TokenType.ID)
-        self.eat(TokenType.COLON)
+        self.eat(TokenType.EQUAL)
         type_spec = self.type_spec()
         return [TypeDecl(Type(name), type_spec) for name in type_names]
 
