@@ -542,7 +542,20 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
-        return
+        type_symbol = self.get_current_scope().lookup_type(node.type_node.value)
+        if type_symbol is None:
+            raise SemanticError(
+                f"unkown type {node.type_node}", ErrorCode.UNKOWN_TYPE, node
+            )
+        self.get_current_scope().define(
+            TypeSymbol(
+                node.var_node.value,
+                0,
+                type_symbol.f_type,
+                type_symbol.ordinal_rank,
+                type_symbol.ordinal_value,
+            )
+        )
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)

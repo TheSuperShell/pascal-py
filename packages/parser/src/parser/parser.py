@@ -518,7 +518,7 @@ class Parser[S]:
     def type_spec(self) -> Type:
         """
         type_spec:
-            INTEGER | REAL | BOOLEAN | STRING | CHAR
+            INTEGER | REAL | BOOLEAN | STRING | CHAR | ID
         """
         token = self.current_token
         self.eat(
@@ -527,6 +527,7 @@ class Parser[S]:
             TokenType.BOOLEAN,
             TokenType.STRING,
             TokenType.CHAR,
+            TokenType.ID,
         )
         return Type(token)
 

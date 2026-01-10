@@ -3,17 +3,23 @@ from dataclasses import dataclass, field
 from enum import Enum
 import inspect
 from typing import Any
-from interpreter.symbols import BuiltinCallableSymbol, Symbol, TypeSymbol, VarSymbol
+from interpreter.symbols import (
+    BuiltinCallableSymbol,
+    FType,
+    Symbol,
+    TypeSymbol,
+    VarSymbol,
+)
 from parser.parser import Literal
 from parser.token import TokenType
 
 
 class BuiltinTypes(Enum):
-    INTEGER = TypeSymbol[int]("INTEGER", 0, lambda x: x, lambda x: x)
-    REAL = TypeSymbol[float]("REAL", 0)
-    BOOLEAN = TypeSymbol[bool]("BOOLEAN", 0)
-    CHAR = TypeSymbol[str]("CHAR", 0, ord, chr)
-    STRING = TypeSymbol[str]("STRING", 0)
+    INTEGER = TypeSymbol[int]("INTEGER", 0, FType("INTEGER"), lambda x: x, lambda x: x)
+    REAL = TypeSymbol[float]("REAL", 0, FType("REAL"))
+    BOOLEAN = TypeSymbol[bool]("BOOLEAN", 0, FType("BOOLEAN"))
+    CHAR = TypeSymbol[str]("CHAR", 0, FType("CHAR"), ord, chr)
+    STRING = TypeSymbol[str]("STRING", 0, FType("STRING"))
 
     @classmethod
     def literal_to_builtin(cls, literal: Literal[Any, Symbol]) -> "BuiltinTypes":

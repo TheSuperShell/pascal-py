@@ -27,8 +27,14 @@ class Symbol(ABC):
         return f"<{self.kind.name}:{self.name}>"
 
 
+@dataclass(slots=True, frozen=True)
+class FType:
+    name: str
+
+
 @dataclass(slots=True)
 class TypeSymbol[T](Symbol):
+    f_type: FType
     ordinal_rank: Callable[[T], int] | None = None
     ordinal_value: Callable[[int], T] | None = None
 
@@ -40,6 +46,11 @@ class TypeSymbol[T](Symbol):
     @property
     def is_ordinal(self) -> bool:
         return self.ordinal_rank is not None and self.ordinal_value is not None
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, TypeSymbol):
+            return False
+        return self.f_type == value.f_type
 
 
 @dataclass(slots=True)
