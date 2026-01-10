@@ -4,7 +4,12 @@ import logging
 from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
 from typing import Any, override
-from interpreter.symbols import BuiltinCallableSymbol, CallableSymbol, Symbol
+from interpreter.symbols import (
+    BuiltinCallableSymbol,
+    CallableSymbol,
+    Symbol,
+    TypeSymbol,
+)
 from parser import (
     Assign,
     Block,
@@ -238,17 +243,30 @@ class Interpreter(Visitor):
                     self.visit(node.expr)
 
     @override
-    def visit_ForStatement(self, node: ForStatement) -> None:
+    def visit_ForStatement(self, node: ForStatement[Symbol]) -> None:
+        init_state_ts = node.init_state.type_symbol
+        end_state_ts = node.end_state.type_symbol
+        assert isinstance(init_state_ts, TypeSymbol) and isinstance(
+            end_state_ts, TypeSymbol
+        )
+        assert (
+            init_state_ts.ordinal_rank
+            and init_state_ts.ordinal_value
+            and end_state_ts.ordinal_rank
+        )
         init_state = self.visit(node.init_state)
         self.call_stack.peek()[node.var.value] = init_state
         end_state = self.visit(node.end_state)
-        current_state = init_state
+        end_state_ord: int = end_state_ts.ordinal_rank(end_state)
+        current_state_ord: int = init_state_ts.ordinal_rank(init_state)
         with contextlib.suppress(BreakLoop):
-            while current_state < end_state:
+            while current_state_ord < end_state_ord:
                 with contextlib.suppress(ContinueLoop):
                     self.visit(node.expr)
-                current_state += 1
-                self.call_stack.peek()[node.var.value] = current_state
+                current_state_ord += 1
+                self.call_stack.peek()[node.var.value] = init_state_ts.ordinal_value(
+                    current_state_ord
+                )
 
     @override
     def visit_Break(self, node: Break) -> None:

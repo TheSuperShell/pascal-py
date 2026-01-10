@@ -26,6 +26,7 @@ class BinOp[S](AST[S]):
     left: AST
     token: Token
     right: AST
+    type_symbol: S | None = None
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BinOp):
@@ -43,10 +44,11 @@ class BinOp[S](AST[S]):
         return f"{self.left}{self.token.value}{self.right}"
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True)
 class Literal[T, S](AST[S]):
     token: Token
     cast: Callable[[str], T]
+    type_symbol: S | None = None
 
     @property
     def value(self) -> T:
@@ -64,10 +66,11 @@ class Literal[T, S](AST[S]):
         return self.token == other.token
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True)
 class UnaryOp[S](AST[S]):
     token: Token
     expr: AST
+    type_symbol: S | None = None
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, UnaryOp):
@@ -106,9 +109,10 @@ class Assign[S](AST[S]):
         return f"Assign(left={self.left}, right={self.right})"
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True)
 class Var[S](AST[S]):
     token: Token
+    type_symbol: S | None = None
 
     @property
     def value(self) -> str:
@@ -210,10 +214,11 @@ class Function[S](AST[S]):
         return f"Function({self.name=}, {self.params=}, {self.return_type=}, {self.block=})"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class Param[S](AST[S]):
     var_node: Var
     type_node: Type
+    type_symbol: S | None = None
 
     def __str__(self) -> str:
         return f"{self.var_node}: {self.type_node}"

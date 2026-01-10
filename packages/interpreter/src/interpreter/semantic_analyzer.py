@@ -206,7 +206,9 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Literal(self, node: Literal[Any, Symbol]) -> TypeSymbol:
-        return BuiltinTypes.literal_to_builtin(node).value
+        type_symbol = BuiltinTypes.literal_to_builtin(node).value
+        node.type_symbol = type_symbol
+        return type_symbol
 
     @override
     def visit_Assign(self, node: Assign) -> None:
@@ -243,11 +245,14 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError(
                 f"symbol not found {var_name}", ErrorCode.ID_NOT_FOUND, node
             )
+        node.type_symbol = var_symbol.symbol_type
         return var_symbol.symbol_type
 
     @override
     def visit_UnaryOp(self, node: UnaryOp) -> TypeSymbol:
-        return self.visit(node.expr)
+        type_symbol = self.visit(node.expr)
+        node.type_symbol = type_symbol
+        return type_symbol
 
     @override
     def visit_VarDecl(self, node: VarDecl) -> None:
@@ -289,75 +294,102 @@ class SymbolTableVisitor(Visitor):
             )
         match node.token.token_type:
             case TokenType.MINUS | TokenType.FLOAT_DIV | TokenType.MULTIPLICATION:
-                return self._bin_math(left_type, right_type)
+                return self._bin_math(left_type, right_type, node)
             case TokenType.INTEGER_DIV:
-                return self._bin_integer_div(left_type, right_type)
+                return self._bin_integer_div(left_type, right_type, node)
             case TokenType.PLUS:
-                return self._bin_string_concat(left_type, right_type)
+                return self._bin_string_concat(left_type, right_type, node)
             case (
                 TokenType.MORE
                 | TokenType.LESS
                 | TokenType.MORE_OR_EQUAL
                 | TokenType.LESS_OR_EQUAL
             ):
-                return self._bin_compare(left_type, right_type, node.token.token_type)
+                return self._bin_compare(
+                    left_type, right_type, node.token.token_type, node
+                )
             case TokenType.EQUAL | TokenType.NOT_EQUAL:
                 return BuiltinTypes.BOOLEAN.value
             case TokenType.AND | TokenType.OR:
-                return self._bin_bool(left_type, right_type, node.token.token_type)
+                return self._bin_bool(
+                    left_type, right_type, node.token.token_type, node
+                )
         raise SemanticError(
             f"unkown binary operator {node.token}",
             ErrorCode.UNKOWN_BINARY_OPERATOR,
             node,
         )
 
-    def _bin_integer_div(self, left: Symbol, right: Symbol) -> TypeSymbol:
+    def _bin_integer_div(self, left: Symbol, right: Symbol, node: BinOp) -> TypeSymbol:
         if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
             BuiltinTypes.INTEGER.value,
             BuiltinTypes.REAL.value,
         ):
+            node.type_symbol = BuiltinTypes.INTEGER.value
             return BuiltinTypes.INTEGER.value
         raise SemanticError(
             f"unsupported integer division for {left} and {right}",
             ErrorCode.UNSUPPORTED_BINARY_OPERATION,
+            node,
         )
 
-    def _bin_bool(self, left: Symbol, right: Symbol, operator: TokenType) -> TypeSymbol:
+    def _bin_bool(
+        self, left: Symbol, right: Symbol, operator: TokenType, node: BinOp
+    ) -> TypeSymbol:
         if right == left == BuiltinTypes.BOOLEAN.value:
-            return BuiltinTypes.BOOLEAN.value
+            type_symbol = BuiltinTypes.BOOLEAN.value
+            node.type_symbol = type_symbol
+            return type_symbol
         raise SemanticError(
             f"unsupported boolean operator {operator.value} between {left} and {right}",
             ErrorCode.UNSUPPORTED_BINARY_OPERATION,
+            node,
         )
 
     def _bin_compare(
-        self, left: Symbol, right: Symbol, operator: TokenType
+        self, left: Symbol, right: Symbol, operator: TokenType, node: BinOp
     ) -> TypeSymbol:
-        if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
-            if right in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
-                return BuiltinTypes.BOOLEAN.value
+        if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
+            BuiltinTypes.INTEGER.value,
+            BuiltinTypes.REAL.value,
+        ):
+            type_symbol = BuiltinTypes.BOOLEAN.value
+            node.type_symbol = type_symbol
+            return type_symbol
         raise SemanticError(
             f"unsupported {operator.value} compare operation for {left} and {right}",
             ErrorCode.UNSUPPORTED_BINARY_OPERATION,
+            node,
         )
 
-    def _bin_string_concat(self, left: Symbol, right: Symbol) -> TypeSymbol:
-        if left in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value):
-            if right in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value):
-                return BuiltinTypes.STRING.value
-        return self._bin_math(left, right)
+    def _bin_string_concat(
+        self, left: Symbol, right: Symbol, node: BinOp
+    ) -> TypeSymbol:
+        if left in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value) and right in (
+            BuiltinTypes.CHAR.value,
+            BuiltinTypes.STRING.value,
+        ):
+            type_symbol = BuiltinTypes.STRING.value
+            node.type_symbol = type_symbol
+            return type_symbol
+        return self._bin_math(left, right, node)
 
-    def _bin_math(self, left: Symbol, right: Symbol) -> TypeSymbol:
-        if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
-            if right in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
-                return (
-                    BuiltinTypes.REAL.value
-                    if BuiltinTypes.REAL.value in (left, right)
-                    else BuiltinTypes.INTEGER.value
-                )
+    def _bin_math(self, left: Symbol, right: Symbol, node: BinOp) -> TypeSymbol:
+        if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
+            BuiltinTypes.INTEGER.value,
+            BuiltinTypes.REAL.value,
+        ):
+            type_symbol = (
+                BuiltinTypes.REAL.value
+                if BuiltinTypes.REAL.value in (left, right)
+                else BuiltinTypes.INTEGER.value
+            )
+            node.type_symbol = type_symbol
+            return type_symbol
         raise SemanticError(
             f"unsupported + operation for {left} and {right}",
             ErrorCode.UNSUPPORTED_BINARY_OPERATION,
+            node,
         )
 
     @override
@@ -367,6 +399,7 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError(
                 f"unkown type {node.type_node.value}", ErrorCode.UNKOWN_TYPE, node
             )
+        node.type_symbol = type_symbol
         return type_symbol
 
     @override
@@ -418,6 +451,7 @@ class SymbolTableVisitor(Visitor):
             for param in node.actual_params:
                 self.visit(param)
         if callable_symbol.return_type is not None:
+            node.type_symbol = callable_symbol.return_type
             return callable_symbol.return_type
         return None
 
