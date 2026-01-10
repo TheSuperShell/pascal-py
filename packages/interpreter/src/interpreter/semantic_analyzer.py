@@ -471,28 +471,34 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_ForStatement(self, node: ForStatement) -> None:
         var_symbol = self.get_current_scope().lookup_variable(node.var.value)
+        init_state_type = self.visit(node.init_state)
+        end_state_type = self.visit(node.end_state)
         if var_symbol is None:
             raise SemanticError(
-                f"undefined variable {var_symbol}", ErrorCode.ID_NOT_FOUND, node
+                f"unkown variable in if statement {node.var}",
+                ErrorCode.ID_NOT_FOUND,
+                node,
             )
-        if var_symbol.symbol_type != BuiltinTypes.INTEGER.value:
+        if not isinstance(init_state_type, TypeSymbol) or not isinstance(
+            end_state_type, TypeSymbol
+        ):
+            raise SemanticError("unkown init or end types", ErrorCode.UNKOWN_TYPE, node)
+        if init_state_type != end_state_type:
             raise SemanticError(
-                f"variable {var_symbol} in for statement should be integer",
+                f"init state and end state should have the same type, got {init_state_type} and {end_state_type}",
                 ErrorCode.INCORRECT_TYPE,
                 node,
             )
-        init_state = self.visit(node.init_state)
-        if init_state != BuiltinTypes.INTEGER.value:
+        if not init_state_type.is_ordinal:
             raise SemanticError(
-                f"initial state in for statement should be integer, got {init_state}",
+                f"if init and end states should be enumerable, got {init_state_type}",
                 ErrorCode.INCORRECT_TYPE,
                 node,
             )
-        end_state_type = self.visit(node.end_state)
-        if end_state_type != BuiltinTypes.INTEGER.value:
+        if init_state_type != var_symbol.symbol_type:
             raise SemanticError(
-                f"end state in for statement should be integer, got {end_state_type}",
-                ErrorCode.INCORRECT_TYPE,
+                f"cannot assign {init_state_type} to {var_symbol}",
+                ErrorCode.UNASSIGNABLE_TYPES,
                 node,
             )
         self.loop_depth += 1
