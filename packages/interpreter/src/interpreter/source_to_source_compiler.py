@@ -118,7 +118,7 @@ class S2SCompiler(Visitor):
         return ""
 
     @override
-    def visit_Literal(self, node: Literal[Any]) -> Any:
+    def visit_Literal(self, node: Literal[Any, Symbol]) -> Any:
         return str(node.value).upper()
 
     @override

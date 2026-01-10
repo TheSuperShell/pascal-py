@@ -2,7 +2,6 @@ import pytest
 from parser.lexer import Lexer
 from parser.parser import (
     Assign,
-    Bool,
     Condition,
     Exit,
     ForStatement,
@@ -11,14 +10,13 @@ from parser.parser import (
     Block,
     Compound,
     IfStatement,
+    Literal,
     NoOp,
-    Num,
     Param,
     Parser,
     Procedure,
     Call,
     Program,
-    Str,
     Type,
     UnaryOp,
     Var,
@@ -46,7 +44,7 @@ data = [
                                             Token.Id("b"),
                                         ),
                                         Token.assign(),
-                                        Num(Token.const_int("3")),
+                                        Literal[int, None](Token.const_int("3"), int),
                                     ),
                                 )
                             ),
@@ -83,7 +81,7 @@ data = [
                                             Token.Id("b"),
                                         ),
                                         Token.assign(),
-                                        Num(Token.const_int("3")),
+                                        Literal[int, None](Token.const_int("3"), int),
                                     ),
                                 )
                             ),
@@ -100,7 +98,7 @@ data = [
                         Assign(
                             Var(Token.Id("a")),
                             Token.assign(),
-                            Num(Token.const_int("5")),
+                            Literal[int, None](Token.const_int("5"), int),
                         ),
                     )
                 ),
@@ -120,9 +118,9 @@ data = [
                             (
                                 Var(Token.Id("a")),
                                 BinOp(
-                                    Num(Token.const_int("1")),
+                                    Literal[int, None](Token.const_int("1"), int),
                                     Token.plus(),
-                                    Num(Token.const_int("2")),
+                                    Literal[int, None](Token.const_int("2"), int),
                                 ),
                             ),
                             Token.Id("ProcCall"),
@@ -148,7 +146,7 @@ data = [
                         Assign(
                             Var(Token.Id("a")),
                             Token.assign(),
-                            Num(Token.const_int("5")),
+                            Literal[int, None](Token.const_int("5"), int),
                         ),
                         Exit(),
                         Assign(Var(Token.Id("b")), Token.assign(), Var(Token.Id("a"))),
@@ -170,25 +168,36 @@ data = [
                             Var(Token.Id("val")),
                             Token.assign(),
                             BinOp(
-                                Bool(Token.const_bool(False)),
+                                Literal[bool, None](
+                                    Token.const_bool(False),
+                                    lambda x: x.lower() == "true",
+                                ),
                                 Token.Or(),
                                 BinOp(
                                     BinOp(
-                                        Num(Token.const_int("5")),
+                                        Literal[int, None](Token.const_int("5"), int),
                                         Token.plus(),
                                         BinOp(
-                                            Num(Token.const_int("10")),
+                                            Literal[int, None](
+                                                Token.const_int("10"), int
+                                            ),
                                             Token.float_div(),
-                                            Num(Token.const_int("3")),
+                                            Literal[int, None](
+                                                Token.const_int("3"), int
+                                            ),
                                         ),
                                     ),
                                     Token.gt(),
                                     UnaryOp(
                                         Token.Not(),
                                         BinOp(
-                                            Num(Token.const_int("10")),
+                                            Literal[int, None](
+                                                Token.const_int("10"), int
+                                            ),
                                             Token.plus(),
-                                            Num(Token.const_int("0")),
+                                            Literal[int, None](
+                                                Token.const_int("0"), int
+                                            ),
                                         ),
                                     ),
                                 ),
@@ -197,12 +206,16 @@ data = [
                         Assign(
                             Var(Token.Id("x")),
                             Token.assign(),
-                            Bool(Token.const_bool(True)),
+                            Literal[bool, None](
+                                Token.const_bool(True), lambda x: x.lower() == "true"
+                            ),
                         ),
                         Assign(
                             Var(Token.Id("some_text")),
                             Token.assign(),
-                            Str(Token.const_string("hello 'mom'")),
+                            Literal[str, None](
+                                Token.const_string("hello 'mom'"), lambda x: x
+                            ),
                         ),
                         NoOp(),
                     )
@@ -220,26 +233,31 @@ data = [
                     (
                         IfStatement(
                             Condition(
-                                Bool(Token.const_bool(True)),
+                                Literal[bool, None](
+                                    Token.const_bool(True),
+                                    lambda x: x.lower() == "true",
+                                ),
                                 Assign(
                                     Var(Token.Id("x")),
                                     Token.assign(),
-                                    Num(Token.const_int("10")),
+                                    Literal[int, None](Token.const_int("10"), int),
                                 ),
                             ),
                             (
                                 Condition(
                                     BinOp(
-                                        Num(Token.const_int("10")),
+                                        Literal[int, None](Token.const_int("10"), int),
                                         Token.gt(),
-                                        Num(Token.const_int("3")),
+                                        Literal[int, None](Token.const_int("3"), int),
                                     ),
                                     Compound(
                                         (
                                             Assign(
                                                 Var(Token.Id("a")),
                                                 Token.assign(),
-                                                Num(Token.const_int("10")),
+                                                Literal[int, None](
+                                                    Token.const_int("10"), int
+                                                ),
                                             ),
                                         )
                                     ),
@@ -248,7 +266,9 @@ data = [
                             Assign(
                                 Var(Token.Id("b")),
                                 Token.assign(),
-                                Bool(Token.const_bool(False)),
+                                Literal[bool, None](
+                                    Token.const_bool(False), lambda x: bool(x)
+                                ),
                             ),
                         ),
                         NoOp(),
@@ -266,21 +286,21 @@ data = [
                 Compound(
                     (
                         WhileStatement(
-                            Bool(Token.const_bool(True)),
+                            Literal[bool, None](Token.const_bool(True), bool),
                             Assign(
                                 Var(Token.Id("x")),
                                 Token.assign(),
-                                Num(Token.const_int("10")),
+                                Literal[int, None](Token.const_int("10"), int),
                             ),
                         ),
                         ForStatement(
                             Var(Token.Id("x")),
-                            Num(Token.const_int("0")),
-                            Num(Token.const_int("10")),
+                            Literal[int, None](Token.const_int("0"), int),
+                            Literal[int, None](Token.const_int("10"), int),
                             Assign(
                                 Var(Token.Id("y")),
                                 Token.assign(),
-                                Num(Token.const_int("0")),
+                                Literal[int, None](Token.const_int("0"), int),
                             ),
                         ),
                     )
@@ -294,7 +314,7 @@ data = [
 @pytest.mark.parametrize(("code", "result"), data)
 def test_parser(code, result):
     lexer = Lexer(code)
-    parser = Parser(lexer)
+    parser = Parser[None](lexer)
     res = parser.parse()
     assert res == result
 
@@ -339,7 +359,7 @@ decls_data = [
 def test_declaractions(code, result):
     code = f"PROGRAM name; {code} BEGIN END."
     lexer = Lexer(code)
-    parser = Parser(lexer)
+    parser = Parser[None](lexer)
     res = parser.parse()
     exp_result = Program("name", Block(result, Compound((NoOp(),))))
     assert res == exp_result

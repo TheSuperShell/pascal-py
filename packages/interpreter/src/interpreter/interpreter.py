@@ -117,7 +117,7 @@ class Interpreter(Visitor):
         return None
 
     @override
-    def visit_Literal(self, node: Literal[Any]) -> Any:
+    def visit_Literal(self, node: Literal[Any, Symbol]) -> Any:
         return node.value
 
     @override

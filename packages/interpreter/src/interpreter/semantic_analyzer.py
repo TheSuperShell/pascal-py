@@ -205,7 +205,7 @@ class SymbolTableVisitor(Visitor):
         proc_symbol.block_ast = node.block
 
     @override
-    def visit_Literal(self, node: Literal[Any]) -> TypeSymbol:
+    def visit_Literal(self, node: Literal[Any, Symbol]) -> TypeSymbol:
         return BuiltinTypes.literal_to_builtin(node).value
 
     @override

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import inspect
 from typing import Any
-from interpreter.symbols import BuiltinCallableSymbol, TypeSymbol, VarSymbol
+from interpreter.symbols import BuiltinCallableSymbol, Symbol, TypeSymbol, VarSymbol
 from parser.parser import Literal
 from parser.token import TokenType
 
@@ -16,7 +16,7 @@ class BuiltinTypes(Enum):
     STRING = TypeSymbol[str]("STRING", 0)
 
     @classmethod
-    def literal_to_builtin(cls, literal: Literal[Any]) -> "BuiltinTypes":
+    def literal_to_builtin(cls, literal: Literal[Any, Symbol]) -> "BuiltinTypes":
         match literal.token.token_type:
             case TokenType.CHAR_CONST:
                 return cls.CHAR

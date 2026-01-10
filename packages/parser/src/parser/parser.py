@@ -8,7 +8,12 @@ from parser.lexer import Lexer
 from parser.token import Token, TokenType
 
 
-class AST(ABC):
+class AST[S](ABC):
+    __slots__ = "type_symbol"
+
+    def __init__(self) -> None:
+        self.type_symbol: S | None = None
+
     @abstractmethod
     def __repr__(self) -> str: ...
 
@@ -16,8 +21,8 @@ class AST(ABC):
     def __str__(self) -> str: ...
 
 
-@dataclass(slots=True, frozen=True)
-class BinOp(AST):
+@dataclass(slots=True)
+class BinOp[S](AST[S]):
     left: AST
     token: Token
     right: AST
@@ -39,7 +44,7 @@ class BinOp(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Literal[T](AST):
+class Literal[T, S](AST[S]):
     token: Token
     cast: Callable[[str], T]
 
@@ -53,9 +58,14 @@ class Literal[T](AST):
     def __repr__(self) -> str:
         return str(self)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Literal):
+            return False
+        return self.token == other.token
+
 
 @dataclass(slots=True, frozen=True)
-class UnaryOp(AST):
+class UnaryOp[S](AST[S]):
     token: Token
     expr: AST
 
@@ -72,7 +82,7 @@ class UnaryOp(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Compound(AST):
+class Compound[S](AST[S]):
     children: tuple[AST, ...]
 
     def __str__(self) -> str:
@@ -84,7 +94,7 @@ class Compound(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Assign(AST):
+class Assign[S](AST[S]):
     left: "Var"
     token: Token
     right: AST
@@ -97,7 +107,7 @@ class Assign(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Var(AST):
+class Var[S](AST[S]):
     token: Token
 
     @property
@@ -112,7 +122,7 @@ class Var(AST):
 
 
 @dataclass(frozen=True)
-class NoOp(AST):
+class NoOp(AST[None]):
     def __str__(self) -> str:
         return "\\N"
 
@@ -121,7 +131,7 @@ class NoOp(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Program(AST):
+class Program[S](AST[S]):
     name: str
     block: "Block"
 
@@ -133,7 +143,7 @@ class Program(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Block(AST):
+class Block[S](AST[S]):
     declarations: "tuple[VarDecl | Procedure | Function, ...]"
     compund_statement: Compound
 
@@ -145,7 +155,7 @@ class Block(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class VarDecl(AST):
+class VarDecl[S](AST[S]):
     var_node: Var
     type_node: "Type"
 
@@ -157,7 +167,7 @@ class VarDecl(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Type(AST):
+class Type[S](AST[S]):
     token: Token
 
     @property
@@ -172,7 +182,7 @@ class Type(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Procedure(AST):
+class Procedure[S](AST[S]):
     name: str
     block: Block
     params: "tuple[Param, ...]"
@@ -186,7 +196,7 @@ class Procedure(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Function(AST):
+class Function[S](AST[S]):
     name: str
     block: Block
     params: "tuple[Param, ...]"
@@ -201,7 +211,7 @@ class Function(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Param(AST):
+class Param[S](AST[S]):
     var_node: Var
     type_node: Type
 
@@ -213,7 +223,7 @@ class Param(AST):
 
 
 @dataclass(slots=True)
-class Call[S](AST):
+class Call[S](AST[S]):
     name: str
     actual_params: tuple[AST, ...]
     token: Token
@@ -227,7 +237,7 @@ class Call[S](AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Exit(AST):
+class Exit[S](AST[S]):
     expr: None | AST = None
 
     def __str__(self) -> str:
@@ -238,7 +248,7 @@ class Exit(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Condition(AST):
+class Condition[S](AST[S]):
     condition: AST
     expr: AST
 
@@ -250,7 +260,7 @@ class Condition(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class WhileStatement(AST):
+class WhileStatement[S](AST[S]):
     condition: AST
     expr: AST
 
@@ -262,7 +272,7 @@ class WhileStatement(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class IfStatement(AST):
+class IfStatement[S](AST[S]):
     main_condition: Condition
     secondary_conditions: tuple[Condition, ...] = ()
     else_condition: AST | None = None
@@ -278,7 +288,7 @@ class IfStatement(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class ForStatement(AST):
+class ForStatement[S](AST[S]):
     var: Var
     init_state: AST
     end_state: AST
@@ -294,7 +304,7 @@ class ForStatement(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Continue(AST):
+class Continue(AST[None]):
     def __str__(self) -> str:
         return "CONTINUE"
 
@@ -303,7 +313,7 @@ class Continue(AST):
 
 
 @dataclass(frozen=True, slots=True)
-class Break(AST):
+class Break(AST[None]):
     def __str__(self) -> str:
         return "BREAK"
 
@@ -334,7 +344,7 @@ class Parser[S]:
             )
         self.current_token = next(self.lexer)
 
-    def program(self) -> Program:
+    def program(self) -> Program[S]:
         """
         program:
             PROGRAM ID SEMI block DOT
@@ -345,16 +355,16 @@ class Parser[S]:
         self.eat(TokenType.SEMI)
         block_node = self.block()
         self.eat(TokenType.DOT)
-        return Program(prog_name, block_node)
+        return Program[S](prog_name, block_node)
 
-    def block(self) -> Block:
+    def block(self) -> Block[S]:
         """
         block:
             declarations compound_statement
         """
         nodes = self.declarations()
         comp_node = self.compound_statement()
-        return Block(tuple(nodes), comp_node)
+        return Block[S](tuple(nodes), comp_node)
 
     def declarations(self) -> list[VarDecl | Procedure | Function]:
         """
@@ -653,16 +663,16 @@ class Parser[S]:
             return UnaryOp(token, self.compare_expr())
         if token.token_type == TokenType.INTEGER_CONST:
             self.eat(TokenType.INTEGER_CONST)
-            return Literal[int](token, lambda x: int(x))
+            return Literal[int, S](token, lambda x: int(x))
         if token.token_type == TokenType.REAL_CONST:
             self.eat(TokenType.REAL_CONST)
             return Literal(token, lambda x: int(x))
         if token.token_type in (TokenType.CHAR_CONST, TokenType.STRING_CONST):
             self.eat(TokenType.CHAR_CONST, TokenType.STRING_CONST)
-            return Literal[str](token, lambda x: x)
+            return Literal[str, S](token, lambda x: x)
         if token.token_type == TokenType.BOOLEAN_CONST:
             self.eat(TokenType.BOOLEAN_CONST)
-            return Literal[bool](token, lambda x: x.lower() == "true")
+            return Literal[bool, S](token, lambda x: x.lower() == "true")
         if token.token_type == TokenType.OPEN_PARANTH:
             self.eat(TokenType.OPEN_PARANTH)
             result = self.expr()
@@ -688,7 +698,7 @@ class Parser[S]:
             self.eat(
                 TokenType.MULTIPLICATION, TokenType.INTEGER_DIV, TokenType.FLOAT_DIV
             )
-            node = BinOp(node, token, self.factor())
+            node = BinOp[S](node, token, self.factor())
 
         return node
 
