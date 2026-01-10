@@ -17,7 +17,7 @@ from parser.parser import (
     Procedure,
     Call,
     Program,
-    Type,
+    StandardType,
     UnaryOp,
     Var,
     VarDecl,
@@ -87,9 +87,9 @@ data = [
                             ),
                         ),
                         (
-                            Param(Var(Token.Id("a")), Type(Token.integer())),
-                            Param(Var(Token.Id("b")), Type(Token.integer())),
-                            Param(Var(Token.Id("c")), Type(Token.real())),
+                            Param(Var(Token.Id("a")), StandardType(Token.integer())),
+                            Param(Var(Token.Id("b")), StandardType(Token.integer())),
+                            Param(Var(Token.Id("c")), StandardType(Token.real())),
                         ),
                     ),
                 ),
@@ -138,8 +138,8 @@ data = [
             "nums",
             Block(
                 (
-                    VarDecl(Var(Token.Id("a")), Type(Token.integer())),
-                    VarDecl(Var(Token.Id("b")), Type(Token.integer())),
+                    VarDecl(Var(Token.Id("a")), StandardType(Token.integer())),
+                    VarDecl(Var(Token.Id("b")), StandardType(Token.integer())),
                 ),
                 Compound(
                     (
@@ -161,7 +161,7 @@ data = [
         Program(
             "fl",
             Block(
-                (VarDecl(Var(Token.Id("val")), Type(Token.real())),),
+                (VarDecl(Var(Token.Id("val")), StandardType(Token.real())),),
                 Compound(
                     (
                         Assign(
@@ -326,7 +326,7 @@ decls_data = [
             Procedure(
                 "func1",
                 Block((), Compound((NoOp(),))),
-                (Param(Var(Token.Id("a")), Type(Token.integer())),),
+                (Param(Var(Token.Id("a")), StandardType(Token.integer())),),
             ),
         ),
     ],
@@ -336,20 +336,20 @@ decls_data = [
             Function(
                 "func1",
                 Block((), Compound((NoOp(),))),
-                (Param(Var(Token.Id("a")), Type(Token.integer())),),
-                Type(Token.real()),
+                (Param(Var(Token.Id("a")), StandardType(Token.integer())),),
+                StandardType(Token.real()),
             ),
         ),
     ],
     [
         "VAR a, b :integer; VAR c: real; VAR x : BOOLEAN; VAR text : STRING; var character: char;",
         (
-            VarDecl(Var(Token.Id("a")), Type(Token.integer())),
-            VarDecl(Var(Token.Id("b")), Type(Token.integer())),
-            VarDecl(Var(Token.Id("c")), Type(Token.real())),
-            VarDecl(Var(Token.Id("x")), Type(Token.boolean())),
-            VarDecl(Var(Token.Id("text")), Type(Token.string())),
-            VarDecl(Var(Token.Id("character")), Type(Token.char())),
+            VarDecl(Var(Token.Id("a")), StandardType(Token.integer())),
+            VarDecl(Var(Token.Id("b")), StandardType(Token.integer())),
+            VarDecl(Var(Token.Id("c")), StandardType(Token.real())),
+            VarDecl(Var(Token.Id("x")), StandardType(Token.boolean())),
+            VarDecl(Var(Token.Id("text")), StandardType(Token.string())),
+            VarDecl(Var(Token.Id("character")), StandardType(Token.char())),
         ),
     ],
 ]

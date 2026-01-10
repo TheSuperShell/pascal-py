@@ -10,7 +10,6 @@ from parser import (
     NoOp,
     BinOp,
     Procedure,
-    Type,
     UnaryOp,
     Var,
     VarDecl,
@@ -25,6 +24,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    StandardType,
     TypeDecl,
     WhileStatement,
 )
@@ -67,7 +67,7 @@ class Visitor(ABC):
     def visit_VarDecl(self, node: VarDecl) -> Any: ...
 
     @abstractmethod
-    def visit_Type(self, node: Type) -> Any: ...
+    def visit_StandardType(self, node: StandardType) -> Any: ...
 
     @abstractmethod
     def visit_Assign(self, node: Assign) -> Any: ...

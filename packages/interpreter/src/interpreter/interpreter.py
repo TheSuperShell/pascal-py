@@ -19,7 +19,6 @@ from parser import (
     Procedure,
     Call,
     Program,
-    Type,
     UnaryOp,
     Var,
     VarDecl,
@@ -36,6 +35,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    StandardType,
     TypeDecl,
     WhileStatement,
 )
@@ -153,7 +153,7 @@ class Interpreter(Visitor):
         return
 
     @override
-    def visit_Type(self, node: Type) -> Any:
+    def visit_StandardType(self, node: StandardType) -> Any:
         return
 
     @override

@@ -195,8 +195,11 @@ class ConstDecl[S](AST[S]):
         return f"ConstDecl({self.var_node}:{self.literal})"
 
 
+type Type = StandardType | Range
+
+
 @dataclass(frozen=True, slots=True)
-class Type[S](AST[S]):
+class StandardType[S](AST[S]):
     token: Token
 
     @property
@@ -351,6 +354,22 @@ class Break(AST[None]):
         return str(self)
 
 
+@dataclass(slots=True)
+class Range[S](AST[S]):
+    start_val: Literal[Any, S]
+    end_val: Literal[Any, S]
+
+    @property
+    def value(self) -> str:
+        return "RANGE"
+
+    def __str__(self) -> str:
+        return f"{self.start_val}..{self.end_val}"
+
+    def __repr__(self) -> str:
+        return f"Range({self.start_val}, {self.end_val})"
+
+
 class Parser[S]:
     __slots__ = "lexer", "current_token"
 
@@ -474,7 +493,7 @@ class Parser[S]:
             self.eat(TokenType.ID)
         self.eat(TokenType.EQUAL)
         type_spec = self.type_spec()
-        return [TypeDecl(Type(name), type_spec) for name in type_names]
+        return [TypeDecl(StandardType(name), type_spec) for name in type_names]
 
     def function_declaration(self) -> Function:
         """
@@ -562,18 +581,38 @@ class Parser[S]:
     def type_spec(self) -> Type:
         """
         type_spec:
-            INTEGER | REAL | BOOLEAN | STRING | CHAR | ID
+            ID | INTEGER | REAL | BOOLEAN | STRING | CHAR | range_decl
         """
         token = self.current_token
-        self.eat(
+        if self.current_token.token_type in (
+            TokenType.ID,
             TokenType.INTEGER,
             TokenType.REAL,
             TokenType.BOOLEAN,
-            TokenType.STRING,
             TokenType.CHAR,
-            TokenType.ID,
-        )
-        return Type(token)
+            TokenType.STRING,
+        ):
+            self.eat(
+                TokenType.ID,
+                TokenType.INTEGER,
+                TokenType.REAL,
+                TokenType.BOOLEAN,
+                TokenType.STRING,
+                TokenType.CHAR,
+            )
+            return StandardType(token)
+        return self.range_decl()
+
+    def range_decl(self) -> Range:
+        """
+        range_decl:
+            literal DOT DOT literal
+        """
+        start_val = self.literal()
+        self.eat(TokenType.DOT)
+        self.eat(TokenType.DOT)
+        end_val = self.literal()
+        return Range(start_val, end_val)
 
     def compound_statement(self) -> Compound:
         """

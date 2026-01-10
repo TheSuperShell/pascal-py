@@ -25,7 +25,6 @@ from parser import (
     UnaryOp,
     Var,
     VarDecl,
-    Type,
 )
 from interpreter.visitor import Visitor
 from parser.errors import ErrorCode
@@ -42,6 +41,7 @@ from parser.parser import (
     Literal,
     TypeDecl,
     WhileStatement,
+    StandardType,
 )
 from parser.token import TokenType
 
@@ -285,7 +285,7 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(var_symbol)
 
     @override
-    def visit_Type(self, node: Type) -> Symbol:
+    def visit_StandardType(self, node: StandardType) -> Symbol:
         type_symbol = self.get_current_scope().lookup_type(node.value)
         if type_symbol is None:
             raise SemanticError(
