@@ -9,7 +9,6 @@ from parser import (
     Assign,
     Block,
     Compound,
-    Num,
     Param,
     BinOp,
     Procedure,
@@ -22,7 +21,6 @@ from parser import (
 )
 from parser.parser import (
     AST,
-    Bool,
     Break,
     Condition,
     Continue,
@@ -30,7 +28,7 @@ from parser.parser import (
     ForStatement,
     Function,
     IfStatement,
-    Str,
+    Literal,
     WhileStatement,
 )
 from parser.token import TokenType
@@ -119,15 +117,7 @@ class Interpreter(Visitor):
         return None
 
     @override
-    def visit_Num(self, node: Num) -> Any:
-        return node.value
-
-    @override
-    def visit_Bool(self, node: Bool) -> Any:
-        return node.value
-
-    @override
-    def visit_Str(self, node: Str) -> Any:
+    def visit_Literal(self, node: Literal[Any]) -> Any:
         return node.value
 
     @override

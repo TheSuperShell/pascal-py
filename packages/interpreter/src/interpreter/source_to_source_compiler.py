@@ -10,7 +10,6 @@ from parser import (
     Block,
     Compound,
     NoOp,
-    Num,
     Param,
     Procedure,
     Call,
@@ -22,7 +21,6 @@ from parser import (
 )
 from interpreter.visitor import Visitor
 from parser.parser import (
-    Bool,
     Break,
     Condition,
     Continue,
@@ -30,7 +28,7 @@ from parser.parser import (
     ForStatement,
     Function,
     IfStatement,
-    Str,
+    Literal,
     WhileStatement,
 )
 
@@ -120,11 +118,7 @@ class S2SCompiler(Visitor):
         return ""
 
     @override
-    def visit_Num(self, node: Num) -> Any:
-        return str(node.value)
-
-    @override
-    def visit_Bool(self, node: Bool) -> Any:
+    def visit_Literal(self, node: Literal[Any]) -> Any:
         return str(node.value).upper()
 
     @override
@@ -207,10 +201,6 @@ class S2SCompiler(Visitor):
 
     @override
     def visit_IfStatement(self, node: IfStatement) -> Any:
-        return
-
-    @override
-    def visit_Str(self, node: Str) -> Any:
         return
 
     @override

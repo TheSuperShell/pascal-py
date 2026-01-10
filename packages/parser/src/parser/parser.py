@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from parser.errors import ErrorCode, ParserError
@@ -8,9 +9,6 @@ from parser.token import Token, TokenType
 
 
 class AST(ABC):
-    # @abstractmethod
-    # def __eq__(self, other: object) -> bool: ...
-
     @abstractmethod
     def __repr__(self) -> str: ...
 
@@ -41,62 +39,19 @@ class BinOp(AST):
 
 
 @dataclass(slots=True, frozen=True)
-class Num(AST):
+class Literal[T](AST):
     token: Token
+    cast: Callable[[str], T]
 
     @property
-    def value(self) -> int | float:
-        return (
-            int(self.token.value)
-            if self.token.token_type == TokenType.INTEGER_CONST
-            else float(self.token.value)
-        )
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Num):
-            return False
-        return self.value == other.value
-
-    def __repr__(self) -> str:
-        return f"Num({self.value})"
+    def value(self) -> T:
+        return self.cast(self.token.value)
 
     def __str__(self) -> str:
-        return f"{self.value}"
-
-
-@dataclass(slots=True, frozen=True)
-class Str(AST):
-    token: Token
-
-    @property
-    def value(self) -> str:
-        return self.token.value
-
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, Str):
-            return False
-        return value.value == self.value
-
-    def __str__(self) -> str:
-        return self.value
+        return f"Literal({self.value})"
 
     def __repr__(self) -> str:
-        return f"Str('{self.value}')"
-
-
-@dataclass(slots=True, frozen=True)
-class Bool(AST):
-    token: Token
-
-    @property
-    def value(self) -> bool:
-        return True if self.token.value.lower() == "true" else False
-
-    def __str__(self) -> str:
-        return str(self.value)
-
-    def __repr__(self) -> str:
-        return f"Boolean({self.value})"
+        return str(self)
 
 
 @dataclass(slots=True, frozen=True)
@@ -696,15 +651,18 @@ class Parser[S]:
         if token.token_type == TokenType.NOT:
             self.eat(TokenType.NOT)
             return UnaryOp(token, self.compare_expr())
-        if token.token_type in (TokenType.INTEGER_CONST, TokenType.REAL_CONST):
-            self.eat(TokenType.INTEGER_CONST, TokenType.REAL_CONST)
-            return Num(token)
+        if token.token_type == TokenType.INTEGER_CONST:
+            self.eat(TokenType.INTEGER_CONST)
+            return Literal[int](token, lambda x: int(x))
+        if token.token_type == TokenType.REAL_CONST:
+            self.eat(TokenType.REAL_CONST)
+            return Literal(token, lambda x: int(x))
         if token.token_type in (TokenType.CHAR_CONST, TokenType.STRING_CONST):
             self.eat(TokenType.CHAR_CONST, TokenType.STRING_CONST)
-            return Str(token)
+            return Literal[str](token, lambda x: x)
         if token.token_type == TokenType.BOOLEAN_CONST:
             self.eat(TokenType.BOOLEAN_CONST)
-            return Bool(token)
+            return Literal[bool](token, lambda x: x.lower() == "true")
         if token.token_type == TokenType.OPEN_PARANTH:
             self.eat(TokenType.OPEN_PARANTH)
             result = self.expr()

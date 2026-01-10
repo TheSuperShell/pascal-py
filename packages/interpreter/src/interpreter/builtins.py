@@ -2,7 +2,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import inspect
+from typing import Any
 from interpreter.symbols import BuiltinCallableSymbol, TypeSymbol, VarSymbol
+from parser.parser import Literal
+from parser.token import TokenType
 
 
 class BuiltinTypes(Enum):
@@ -11,6 +14,21 @@ class BuiltinTypes(Enum):
     BOOLEAN = TypeSymbol[bool]("BOOLEAN", 0)
     CHAR = TypeSymbol[str]("CHAR", 0, ord, chr)
     STRING = TypeSymbol[str]("STRING", 0)
+
+    @classmethod
+    def literal_to_builtin(cls, literal: Literal[Any]) -> "BuiltinTypes":
+        match literal.token.token_type:
+            case TokenType.CHAR_CONST:
+                return cls.CHAR
+            case TokenType.STRING_CONST:
+                return cls.STRING
+            case TokenType.BOOLEAN_CONST:
+                return cls.BOOLEAN
+            case TokenType.INTEGER_CONST:
+                return cls.INTEGER
+            case TokenType.REAL_CONST:
+                return cls.REAL
+        raise ValueError(f"unsupported literal {literal}")
 
     @classmethod
     def get_pascal_type_from_python_type(

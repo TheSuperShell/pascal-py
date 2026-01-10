@@ -18,7 +18,6 @@ from parser import (
     BinOp,
     Block,
     Compound,
-    Num,
     Param,
     Procedure,
     Call,
@@ -32,7 +31,6 @@ from interpreter.visitor import Visitor
 from parser.errors import ErrorCode
 from parser.parser import (
     AST,
-    Bool,
     Break,
     Condition,
     Continue,
@@ -40,7 +38,7 @@ from parser.parser import (
     ForStatement,
     Function,
     IfStatement,
-    Str,
+    Literal,
     WhileStatement,
 )
 from parser.token import TokenType
@@ -207,16 +205,8 @@ class SymbolTableVisitor(Visitor):
         proc_symbol.block_ast = node.block
 
     @override
-    def visit_Num(self, node: Num) -> TypeSymbol:
-        return (
-            BuiltinTypes.REAL.value
-            if node.token.token_type == TokenType.REAL_CONST
-            else BuiltinTypes.INTEGER.value
-        )
-
-    @override
-    def visit_Bool(self, node: Bool) -> TypeSymbol:
-        return BuiltinTypes.BOOLEAN.value
+    def visit_Literal(self, node: Literal[Any]) -> TypeSymbol:
+        return BuiltinTypes.literal_to_builtin(node).value
 
     @override
     def visit_Assign(self, node: Assign) -> None:
@@ -450,14 +440,6 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
         self.visit(node.expr)
-
-    @override
-    def visit_Str(self, node: Str) -> Symbol:
-        return (
-            BuiltinTypes.STRING.value
-            if node.token.token_type == TokenType.STRING
-            else BuiltinTypes.CHAR.value
-        )
 
     @override
     def visit_WhileStatement(self, node: WhileStatement) -> None:

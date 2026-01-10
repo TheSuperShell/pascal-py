@@ -8,7 +8,6 @@ from parser import (
     Assign,
     Compound,
     NoOp,
-    Num,
     BinOp,
     Procedure,
     Type,
@@ -17,7 +16,6 @@ from parser import (
     VarDecl,
 )
 from parser.parser import (
-    Bool,
     Break,
     Condition,
     Continue,
@@ -25,7 +23,7 @@ from parser.parser import (
     ForStatement,
     Function,
     IfStatement,
-    Str,
+    Literal,
     WhileStatement,
 )
 
@@ -73,10 +71,7 @@ class Visitor(ABC):
     def visit_Assign(self, node: Assign) -> Any: ...
 
     @abstractmethod
-    def visit_Num(self, node: Num) -> Any: ...
-
-    @abstractmethod
-    def visit_Bool(self, node: Bool) -> Any: ...
+    def visit_Literal(self, node: Literal[Any]) -> Any: ...
 
     @abstractmethod
     def visit_Var(self, node: Var) -> Any: ...
@@ -95,9 +90,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_Condition(self, node: Condition) -> Any: ...
-
-    @abstractmethod
-    def visit_Str(self, node: Str) -> Any: ...
 
     @abstractmethod
     def visit_WhileStatement(self, node: WhileStatement) -> None: ...
