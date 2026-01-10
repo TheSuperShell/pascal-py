@@ -90,7 +90,8 @@ class Lexer:
         current_index = self.index
         while self.char is not None and self.char.isdigit():
             self.advance()
-        if self.char != ".":
+        next_char = self.peek()
+        if self.char != "." or next_char is None or not next_char.isdigit():
             return Token.const_int(self.file_text[current_index : self.index])
         self.advance()
         while self.char is not None and self.char.isdigit():

@@ -356,12 +356,9 @@ class Break(AST[None]):
 
 @dataclass(slots=True)
 class Range[S](AST[S]):
+    value: str
     start_val: Literal[Any, S]
     end_val: Literal[Any, S]
-
-    @property
-    def value(self) -> str:
-        return "RANGE"
 
     def __str__(self) -> str:
         return f"{self.start_val}..{self.end_val}"
@@ -612,7 +609,7 @@ class Parser[S]:
         self.eat(TokenType.DOT)
         self.eat(TokenType.DOT)
         end_val = self.literal()
-        return Range(start_val, end_val)
+        return Range(str(hash((start_val.value, end_val.value))), start_val, end_val)
 
     def compound_statement(self) -> Compound:
         """

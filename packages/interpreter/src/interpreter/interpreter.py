@@ -7,6 +7,7 @@ from typing import Any, override
 from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
+    RangeSymbol,
     Symbol,
     TypeSymbol,
 )
@@ -35,6 +36,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    Range,
     StandardType,
     TypeDecl,
     WhileStatement,
@@ -131,7 +133,17 @@ class Interpreter(Visitor):
     @override
     def visit_Assign(self, node: Assign) -> Any:
         var_name = node.left.value
-        self.call_stack.peek()[var_name] = self.visit(node.right)
+        var_value = self.visit(node.right)
+        var_type = node.left.type_symbol
+        if isinstance(var_type, RangeSymbol):
+            assert var_type.ordinal_rank and var_type.ordinal_value
+            var_value_ord = var_type.ordinal_rank(var_value)
+            if var_value_ord < var_type.min_value or var_value_ord > var_type.max_value:
+                raise InterpreterError(
+                    f"the value {var_value} is outside of the range bounds {var_type}",
+                    ErrorCode.RANGE_OUT_OF_BOUNDS,
+                )
+        self.call_stack.peek()[var_name] = var_value
         return None
 
     @override
@@ -191,7 +203,20 @@ class Interpreter(Visitor):
         formal_params = proc_symbol.params
         actual_params = node.actual_params
         for param_symbol, actual_param in zip(formal_params, actual_params):
-            ar[param_symbol.name] = self.visit(actual_param)
+            param_type = param_symbol.symbol_type
+            input_value = self.visit(actual_param)
+            if isinstance(param_type, RangeSymbol):
+                assert param_type.ordinal_rank
+                var_value_ord = param_type.ordinal_rank(input_value)
+                if (
+                    var_value_ord < param_type.min_value
+                    or var_value_ord > param_type.max_value
+                ):
+                    raise InterpreterError(
+                        f"the value {input_value} is outside of the range bounds {param_type}",
+                        ErrorCode.RANGE_OUT_OF_BOUNDS,
+                    )
+            ar[param_symbol.name] = input_value
 
         self.call_stack.push(ar)
 
@@ -290,6 +315,10 @@ class Interpreter(Visitor):
         var_name = node.var_node.value
         value = node.literal.value
         self.call_stack.peek()[var_name] = value
+
+    @override
+    def visit_Range(self, node: Range[Symbol]) -> None:
+        return
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

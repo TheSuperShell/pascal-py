@@ -35,8 +35,8 @@ class FType:
 @dataclass(slots=True)
 class TypeSymbol[T](Symbol):
     f_type: FType
-    ordinal_rank: Callable[[T], int] | None = None
-    ordinal_value: Callable[[int], T] | None = None
+    ordinal_rank: Callable[[T], int] | None
+    ordinal_value: Callable[[int], T] | None
 
     @property
     @override
@@ -51,6 +51,12 @@ class TypeSymbol[T](Symbol):
         if not isinstance(value, TypeSymbol):
             return False
         return self.f_type == value.f_type
+
+
+@dataclass(slots=True)
+class RangeSymbol[T](TypeSymbol[T]):
+    min_value: int
+    max_value: int
 
 
 @dataclass(slots=True)

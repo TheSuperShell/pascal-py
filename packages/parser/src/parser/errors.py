@@ -21,6 +21,7 @@ class ErrorCode(IntEnum):
     UNASSIGNABLE_TYPES = auto()
     OUTSIDE_LOOP = auto()
     ASSIGN_TO_CONST = auto()
+    RANGE_OUT_OF_BOUNDS = auto()
 
 
 class LexerError(Exception):

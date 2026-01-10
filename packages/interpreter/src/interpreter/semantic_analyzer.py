@@ -8,6 +8,7 @@ from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
     ProgramSymbol,
+    RangeSymbol,
     Symbol,
     TypeSymbol,
     VarSymbol,
@@ -39,6 +40,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    Range,
     TypeDecl,
     WhileStatement,
     StandardType,
@@ -116,14 +118,7 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Function(self, node: Function) -> None:
         func_name = node.name
-        return_type = node.return_type
-        return_symbol = self.get_current_scope().lookup_type(return_type.value)
-        if return_symbol is None:
-            raise SemanticError(
-                f"return type {return_type.value} is unkown",
-                ErrorCode.ID_NOT_FOUND,
-                node,
-            )
+        return_symbol = self.visit(node.return_type)
         func_symbol = CallableSymbol(func_name, 0, return_type=return_symbol)
         self.get_current_scope().define(func_symbol)
 
@@ -139,11 +134,7 @@ class SymbolTableVisitor(Visitor):
         self.current_scope = function_scope
 
         for param in node.params:
-            param_type = self.current_scope.lookup_type(param.type_node.value)
-            if param_type is None:
-                raise SemanticError(
-                    f"unkown type {param.type_node.value}", ErrorCode.UNKOWN_TYPE, node
-                )
+            param_type = self.visit(param)
             param_name = param.var_node.value
             var_symbol = VarSymbol(param_name, 0, param_type)
             self.current_scope.define(var_symbol)
@@ -189,12 +180,8 @@ class SymbolTableVisitor(Visitor):
         self.current_scope = procedure_scope
 
         for param in node.params:
-            param_type = self.current_scope.lookup_type(param.type_node.value)
+            param_type = self.visit(param)
             param_name = param.var_node.value
-            if param_type is None:
-                raise SemanticError(
-                    f"unkown type {param.type_node.value}", ErrorCode.UNKOWN_TYPE, node
-                )
             var_symbol = VarSymbol(param_name, 0, param_type)
             self.current_scope.define(var_symbol)
             proc_symbol.params.append(var_symbol)
@@ -214,6 +201,17 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Assign(self, node: Assign) -> None:
+        var_symbol = self.get_current_scope().lookup_variable(node.left.value)
+        if var_symbol is None:
+            raise SemanticError(
+                f"unkown variable {node.left.value}", ErrorCode.ID_NOT_FOUND, node
+            )
+        if var_symbol.const:
+            raise SemanticError(
+                f"cannot assign to a const value {var_symbol}",
+                ErrorCode.ASSIGN_TO_CONST,
+                node,
+            )
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
         if right_type is None:
@@ -258,20 +256,10 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_VarDecl(self, node: VarDecl) -> None:
-        type_name = node.type_node.value
-        type_symbol = self.get_current_scope().lookup_type(type_name)
-        if type_symbol is None:
-            raise SemanticError(f"unkown type {type_name}", ErrorCode.UNKOWN_TYPE, node)
-
+        type_symbol = self.visit(node.type_node)
         var_name = node.var_node.value
         var_symbol = VarSymbol(var_name, 0, type_symbol)
-
-        if var_symbol.const:
-            raise SemanticError(
-                f"cannot assign to a const value {var_symbol}",
-                ErrorCode.ASSIGN_TO_CONST,
-                node,
-            )
+        node.var_node.type_symbol = type_symbol
 
         if (
             self.get_current_scope().lookup_variable(var_name, current_scope_only=True)
@@ -285,12 +273,48 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(var_symbol)
 
     @override
-    def visit_StandardType(self, node: StandardType) -> Symbol:
+    def visit_StandardType(self, node: StandardType) -> TypeSymbol:
         type_symbol = self.get_current_scope().lookup_type(node.value)
         if type_symbol is None:
             raise SemanticError(
                 f"unkown type {node.value}", ErrorCode.UNKOWN_TYPE, node
             )
+        return type_symbol
+
+    @override
+    def visit_Range(self, node: Range[Symbol]) -> TypeSymbol:
+        start_val_type_symbol = BuiltinTypes.literal_to_builtin(node.start_val).value
+        end_val_type_symbol = BuiltinTypes.literal_to_builtin(node.end_val).value
+        if start_val_type_symbol != end_val_type_symbol:
+            raise SemanticError(
+                "start and end types of a range should be the same, "
+                f"got {start_val_type_symbol}, {end_val_type_symbol}",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
+        if (
+            not start_val_type_symbol.is_ordinal
+            or start_val_type_symbol.ordinal_rank is None
+        ):
+            raise SemanticError(
+                f"range can only be created from enumerable values, got {start_val_type_symbol}",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
+        min_value = start_val_type_symbol.ordinal_rank(node.start_val.value)
+        max_value = start_val_type_symbol.ordinal_rank(node.end_val.value)
+        if min_value >= max_value:
+            raise SemanticError()
+        type_symbol = RangeSymbol[Any](
+            node.value,
+            0,
+            start_val_type_symbol.f_type,
+            start_val_type_symbol.ordinal_rank,
+            start_val_type_symbol.ordinal_value,
+            min_value,
+            max_value,
+        )
+        self.get_current_scope().define(type_symbol)
         return type_symbol
 
     @override
@@ -403,11 +427,7 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Param(self, node: Param) -> Symbol:
-        type_symbol = self.get_current_scope().lookup_type(node.type_node.value)
-        if type_symbol is None:
-            raise SemanticError(
-                f"unkown type {node.type_node.value}", ErrorCode.UNKOWN_TYPE, node
-            )
+        type_symbol = self.visit(node.type_node)
         node.type_symbol = type_symbol
         return type_symbol
 
@@ -550,11 +570,20 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
-        type_symbol = self.get_current_scope().lookup_type(node.type_node.value)
-        if type_symbol is None:
-            raise SemanticError(
-                f"unkown type {node.type_node}", ErrorCode.UNKOWN_TYPE, node
+        type_symbol = self.visit(node.type_node)
+        if isinstance(type_symbol, RangeSymbol):
+            self.get_current_scope().define(
+                RangeSymbol(
+                    node.var_node.value,
+                    0,
+                    type_symbol.f_type,
+                    type_symbol.ordinal_rank,
+                    type_symbol.ordinal_value,
+                    type_symbol.min_value,
+                    type_symbol.max_value,
+                )
             )
+            return
         self.get_current_scope().define(
             TypeSymbol(
                 node.var_node.value,

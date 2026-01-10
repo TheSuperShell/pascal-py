@@ -24,6 +24,7 @@ from parser.parser import (
     Function,
     IfStatement,
     Literal,
+    Range,
     StandardType,
     TypeDecl,
     WhileStatement,
@@ -110,3 +111,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_ConstDecl(self, node: ConstDecl[Symbol]) -> None: ...
+
+    @abstractmethod
+    def visit_Range(self, node: Range[Symbol]) -> Any: ...
