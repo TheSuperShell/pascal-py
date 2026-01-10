@@ -453,7 +453,11 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Str(self, node: Str) -> Symbol:
-        return BuiltinTypes.STRING.value
+        return (
+            BuiltinTypes.STRING.value
+            if node.token.token_type == TokenType.STRING
+            else BuiltinTypes.CHAR.value
+        )
 
     @override
     def visit_WhileStatement(self, node: WhileStatement) -> None:

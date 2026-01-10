@@ -1,12 +1,8 @@
 program br_cont;
-    var i: integer;
+    var i: char;
 begin
-    for i := 0 to 10 do
+    for i := 'a' to 'z' do
         begin
-            if i < 2 then
-                continue;
-            if i > 5 then
-                break;
             writeln(i);
         end
 end.
