@@ -25,6 +25,7 @@ from parser.parser import (
     Bool,
     Condition,
     Exit,
+    ForStatement,
     Function,
     IfStatement,
     Str,
@@ -235,6 +236,17 @@ class Interpreter(Visitor):
     def visit_WhileStatement(self, node: WhileStatement) -> None:
         while self.visit(node.condition):
             self.visit(node.expr)
+
+    @override
+    def visit_ForStatement(self, node: ForStatement) -> None:
+        init_state = self.visit(node.init_state)
+        self.call_stack.peek()[node.var.value] = init_state
+        end_state = self.visit(node.end_state)
+        current_state = init_state
+        while current_state < end_state:
+            self.visit(node.expr)
+            current_state += 1
+            self.call_stack.peek()[node.var.value] = current_state
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

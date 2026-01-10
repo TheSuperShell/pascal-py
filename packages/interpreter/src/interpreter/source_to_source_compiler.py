@@ -25,6 +25,7 @@ from parser.parser import (
     Bool,
     Condition,
     Exit,
+    ForStatement,
     Function,
     IfStatement,
     Str,
@@ -212,6 +213,10 @@ class S2SCompiler(Visitor):
 
     @override
     def visit_WhileStatement(self, node: WhileStatement) -> None:
+        return
+
+    @override
+    def visit_ForStatement(self, node: ForStatement) -> None:
         return
 
     def build_output(self, node: AST) -> str:

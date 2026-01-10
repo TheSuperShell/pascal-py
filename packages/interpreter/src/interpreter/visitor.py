@@ -20,6 +20,7 @@ from parser.parser import (
     Bool,
     Condition,
     Exit,
+    ForStatement,
     Function,
     IfStatement,
     Str,
@@ -98,3 +99,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_WhileStatement(self, node: WhileStatement) -> None: ...
+
+    @abstractmethod
+    def visit_ForStatement(self, node: ForStatement) -> None: ...

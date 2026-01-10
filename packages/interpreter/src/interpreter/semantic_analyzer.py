@@ -35,6 +35,7 @@ from parser.parser import (
     Bool,
     Condition,
     Exit,
+    ForStatement,
     Function,
     IfStatement,
     Str,
@@ -286,13 +287,10 @@ class SymbolTableVisitor(Visitor):
                 "one of the node types are unkown", ErrorCode.UNKOWN_TYPE, node
             )
         match node.token.token_type:
-            case (
-                TokenType.MINUS
-                | TokenType.FLOAT_DIV
-                | TokenType.INTEGER_DIV
-                | TokenType.MULTIPLICATION
-            ):
+            case TokenType.MINUS | TokenType.FLOAT_DIV | TokenType.MULTIPLICATION:
                 return self._bin_math(left_type, right_type)
+            case TokenType.INTEGER_DIV:
+                return self._bin_integer_div(left_type, right_type)
             case TokenType.PLUS:
                 return self._bin_string_concat(left_type, right_type)
             case (
@@ -310,6 +308,17 @@ class SymbolTableVisitor(Visitor):
             f"unkown binary operator {node.token}",
             ErrorCode.UNKOWN_BINARY_OPERATOR,
             node,
+        )
+
+    def _bin_integer_div(self, left: Symbol, right: Symbol) -> Symbol:
+        if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
+            BuiltinTypes.INTEGER.value,
+            BuiltinTypes.REAL.value,
+        ):
+            return BuiltinTypes.INTEGER.value
+        raise SemanticError(
+            f"unsupported integer division for {left} and {right}",
+            ErrorCode.UNSUPPORTED_BINARY_OPERATION,
         )
 
     def _bin_bool(self, left: Symbol, right: Symbol, operator: TokenType) -> Symbol:
@@ -439,6 +448,35 @@ class SymbolTableVisitor(Visitor):
         if type_symbol != BuiltinTypes.BOOLEAN.value:
             raise SemanticError(
                 f"while condition should contain boolean, but {type_symbol} was provided",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
+        self.visit(node.expr)
+
+    @override
+    def visit_ForStatement(self, node: ForStatement) -> None:
+        var_symbol = self.get_current_scope().lookup(node.var.value)
+        if var_symbol is None:
+            raise SemanticError(
+                f"undefined variable {var_symbol}", ErrorCode.ID_NOT_FOUND, node
+            )
+        if var_symbol.symbol_type != BuiltinTypes.INTEGER.value:
+            raise SemanticError(
+                f"variable {var_symbol} in for statement should be integer",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
+        init_state = self.visit(node.init_state)
+        if init_state != BuiltinTypes.INTEGER.value:
+            raise SemanticError(
+                f"initial state in for statement should be integer, got {init_state}",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
+        end_state_type = self.visit(node.end_state)
+        if end_state_type != BuiltinTypes.INTEGER.value:
+            raise SemanticError(
+                f"end state in for statement should be integer, got {end_state_type}",
                 ErrorCode.INCORRECT_TYPE,
                 node,
             )
