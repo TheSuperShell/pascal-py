@@ -6,10 +6,10 @@ from interpreter.builtins import BuiltinTypes
 from interpreter.errors import SemanticError
 from interpreter.symbols import (
     BuiltinCallableSymbol,
-    BuiltinTypeSymbol,
     CallableSymbol,
     ProgramSymbol,
     Symbol,
+    TypeSymbol,
     VarSymbol,
 )
 from interpreter.utils import ScopeType, ScopedSymbolTable
@@ -61,9 +61,9 @@ class SymbolTableVisitor(Visitor):
         return self.current_scope
 
     @override
-    def visit_Program(self, node: Program) -> Any:
+    def visit_Program(self, node: Program) -> None:
         program_name = node.name
-        self.get_current_scope().define(VarSymbol(program_name, ProgramSymbol()))
+        self.get_current_scope().define(ProgramSymbol(program_name, 0))
         self.logger.debug("ENTER scope: global")
         global_scope = ScopedSymbolTable(
             "global",
@@ -79,10 +79,10 @@ class SymbolTableVisitor(Visitor):
         self.logger.debug("LEAVE scope: global")
 
     @override
-    def visit_Block(self, node: Block) -> Any:
+    def visit_Block(self, node: Block) -> None:
         for decls in node.declarations:
             self.visit(decls)
-        return self.visit(node.compund_statement)
+        self.visit(node.compund_statement)
 
     @override
     def visit_Exit(self, node: Exit) -> None:
@@ -109,24 +109,23 @@ class SymbolTableVisitor(Visitor):
             self.visit(node.expr)
 
     @override
-    def visit_Compound(self, node: Compound) -> Any:
+    def visit_Compound(self, node: Compound) -> None:
         for child in node.children:
             self.visit(child)
 
     @override
-    def visit_Function(self, node: Function) -> Any:
+    def visit_Function(self, node: Function) -> None:
         func_name = node.name
         return_type = node.return_type
-        return_symbol = self.get_current_scope().lookup(return_type.value)
+        return_symbol = self.get_current_scope().lookup_type(return_type.value)
         if return_symbol is None:
             raise SemanticError(
                 f"return type {return_type.value} is unkown",
                 ErrorCode.ID_NOT_FOUND,
                 node,
             )
-        assert isinstance(return_symbol, BuiltinTypeSymbol)
-        func_symbol = CallableSymbol(func_name, return_symbol)
-        self.get_current_scope().define_callable(func_symbol)
+        func_symbol = CallableSymbol(func_name, 0, return_type=return_symbol)
+        self.get_current_scope().define(func_symbol)
 
         self.logger.debug(f"ENTER scope: {func_name}")
         function_scope = ScopedSymbolTable(
@@ -140,22 +139,30 @@ class SymbolTableVisitor(Visitor):
         self.current_scope = function_scope
 
         for param in node.params:
-            param_type = self.current_scope.lookup(param.type_node.value)
+            param_type = self.current_scope.lookup_type(param.type_node.value)
+            if param_type is None:
+                raise SemanticError(
+                    f"unkown type {param.type_node.value}", ErrorCode.UNKOWN_TYPE, node
+                )
             param_name = param.var_node.value
-            var_symbol = VarSymbol(param_name, param_type)
+            var_symbol = VarSymbol(param_name, 0, param_type)
             self.current_scope.define(var_symbol)
             func_symbol.params.append(var_symbol)
 
-        result_exists = self.current_scope.lookup("result", current_scope_only=True)
-        func_var_exists = self.current_scope.lookup(func_name, current_scope_only=True)
+        result_exists = self.current_scope.lookup_variable(
+            "result", current_scope_only=True
+        )
+        func_var_exists = self.current_scope.lookup_variable(
+            func_name, current_scope_only=True
+        )
         if result_exists is not None or func_var_exists is not None:
             raise SemanticError(
                 f"result and {func_name} are special symbols and cannot be overridden: {result_exists=}, {func_var_exists=}",
                 ErrorCode.DUPLICATE_VARIABLE,
                 node,
             )
-        self.current_scope.define(VarSymbol("result", return_symbol))
-        self.current_scope.define(VarSymbol(func_name, return_symbol))
+        self.current_scope.define(VarSymbol("result", 0, return_symbol))
+        self.current_scope.define(VarSymbol(func_name, 0, return_symbol))
 
         self.visit(node.block)
         self.logger.debug(function_scope)
@@ -165,10 +172,10 @@ class SymbolTableVisitor(Visitor):
         func_symbol.block_ast = node.block
 
     @override
-    def visit_Procedure(self, node: Procedure) -> Any:
+    def visit_Procedure(self, node: Procedure) -> None:
         proc_name = node.name
-        proc_symbol = CallableSymbol(proc_name)
-        self.get_current_scope().define_callable(proc_symbol)
+        proc_symbol = CallableSymbol(proc_name, 0)
+        self.get_current_scope().define(proc_symbol)
 
         self.logger.debug(f"ENTER scope: {proc_name}")
         procedure_scope = ScopedSymbolTable(
@@ -182,9 +189,13 @@ class SymbolTableVisitor(Visitor):
         self.current_scope = procedure_scope
 
         for param in node.params:
-            param_type = self.current_scope.lookup(param.type_node.value)
+            param_type = self.current_scope.lookup_type(param.type_node.value)
             param_name = param.var_node.value
-            var_symbol = VarSymbol(param_name, param_type)
+            if param_type is None:
+                raise SemanticError(
+                    f"unkown type {param.type_node.value}", ErrorCode.UNKOWN_TYPE, node
+                )
+            var_symbol = VarSymbol(param_name, 0, param_type)
             self.current_scope.define(var_symbol)
             proc_symbol.params.append(var_symbol)
 
@@ -196,7 +207,7 @@ class SymbolTableVisitor(Visitor):
         proc_symbol.block_ast = node.block
 
     @override
-    def visit_Num(self, node: Num) -> Symbol:
+    def visit_Num(self, node: Num) -> TypeSymbol:
         return (
             BuiltinTypes.REAL.value
             if node.token.token_type == TokenType.REAL_CONST
@@ -204,11 +215,11 @@ class SymbolTableVisitor(Visitor):
         )
 
     @override
-    def visit_Bool(self, node: Bool) -> Symbol:
+    def visit_Bool(self, node: Bool) -> TypeSymbol:
         return BuiltinTypes.BOOLEAN.value
 
     @override
-    def visit_Assign(self, node: Assign) -> Any:
+    def visit_Assign(self, node: Assign) -> None:
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
         if right_type is None:
@@ -235,33 +246,31 @@ class SymbolTableVisitor(Visitor):
         )
 
     @override
-    def visit_Var(self, node: Var) -> Symbol:
+    def visit_Var(self, node: Var) -> TypeSymbol:
         var_name = node.value
-        var_symbol = self.get_current_scope().lookup(var_name)
+        var_symbol = self.get_current_scope().lookup_variable(var_name)
         if var_symbol is None:
             raise SemanticError(
                 f"symbol not found {var_name}", ErrorCode.ID_NOT_FOUND, node
             )
-        if var_symbol.symbol_type is None:
-            raise SemanticError(
-                f"unkown type for variable {var_symbol}", ErrorCode.UNKOWN_TYPE, node
-            )
         return var_symbol.symbol_type
 
     @override
-    def visit_UnaryOp(self, node: UnaryOp) -> Symbol:
+    def visit_UnaryOp(self, node: UnaryOp) -> TypeSymbol:
         return self.visit(node.expr)
 
     @override
-    def visit_VarDecl(self, node: VarDecl) -> Any:
+    def visit_VarDecl(self, node: VarDecl) -> None:
         type_name = node.type_node.value
-        type_symbol = self.get_current_scope().lookup(type_name)
+        type_symbol = self.get_current_scope().lookup_type(type_name)
+        if type_symbol is None:
+            raise SemanticError(f"unkown type {type_name}", ErrorCode.UNKOWN_TYPE, node)
 
         var_name = node.var_node.value
-        var_symbol = VarSymbol(var_name, type_symbol)
+        var_symbol = VarSymbol(var_name, 0, type_symbol)
 
         if (
-            self.get_current_scope().lookup(var_name, current_scope_only=True)
+            self.get_current_scope().lookup_variable(var_name, current_scope_only=True)
             is not None
         ):
             raise SemanticError(
@@ -273,7 +282,7 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Type(self, node: Type) -> Symbol:
-        type_symbol = self.get_current_scope().lookup(node.value)
+        type_symbol = self.get_current_scope().lookup_type(node.value)
         if type_symbol is None:
             raise SemanticError(
                 f"unkown type {node.value}", ErrorCode.UNKOWN_TYPE, node
@@ -281,7 +290,7 @@ class SymbolTableVisitor(Visitor):
         return type_symbol
 
     @override
-    def visit_BinOp(self, node: BinOp) -> Symbol:
+    def visit_BinOp(self, node: BinOp) -> TypeSymbol:
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
         if left_type is None or right_type is None:
@@ -312,7 +321,7 @@ class SymbolTableVisitor(Visitor):
             node,
         )
 
-    def _bin_integer_div(self, left: Symbol, right: Symbol) -> Symbol:
+    def _bin_integer_div(self, left: Symbol, right: Symbol) -> TypeSymbol:
         if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
             BuiltinTypes.INTEGER.value,
             BuiltinTypes.REAL.value,
@@ -323,7 +332,7 @@ class SymbolTableVisitor(Visitor):
             ErrorCode.UNSUPPORTED_BINARY_OPERATION,
         )
 
-    def _bin_bool(self, left: Symbol, right: Symbol, operator: TokenType) -> Symbol:
+    def _bin_bool(self, left: Symbol, right: Symbol, operator: TokenType) -> TypeSymbol:
         if right == left == BuiltinTypes.BOOLEAN.value:
             return BuiltinTypes.BOOLEAN.value
         raise SemanticError(
@@ -331,7 +340,9 @@ class SymbolTableVisitor(Visitor):
             ErrorCode.UNSUPPORTED_BINARY_OPERATION,
         )
 
-    def _bin_compare(self, left: Symbol, right: Symbol, operator: TokenType) -> Symbol:
+    def _bin_compare(
+        self, left: Symbol, right: Symbol, operator: TokenType
+    ) -> TypeSymbol:
         if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
             if right in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
                 return BuiltinTypes.BOOLEAN.value
@@ -340,13 +351,13 @@ class SymbolTableVisitor(Visitor):
             ErrorCode.UNSUPPORTED_BINARY_OPERATION,
         )
 
-    def _bin_string_concat(self, left: Symbol, right: Symbol) -> Symbol:
+    def _bin_string_concat(self, left: Symbol, right: Symbol) -> TypeSymbol:
         if left in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value):
             if right in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value):
                 return BuiltinTypes.STRING.value
         return self._bin_math(left, right)
 
-    def _bin_math(self, left: Symbol, right: Symbol) -> Symbol:
+    def _bin_math(self, left: Symbol, right: Symbol) -> TypeSymbol:
         if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
             if right in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value):
                 return (
@@ -361,7 +372,7 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Param(self, node: Param) -> Symbol:
-        type_symbol = self.get_current_scope().lookup(node.type_node.value)
+        type_symbol = self.get_current_scope().lookup_type(node.type_node.value)
         if type_symbol is None:
             raise SemanticError(
                 f"unkown type {node.type_node.value}", ErrorCode.UNKOWN_TYPE, node
@@ -369,7 +380,7 @@ class SymbolTableVisitor(Visitor):
         return type_symbol
 
     @override
-    def visit_Call(self, node: Call[Symbol]) -> Symbol | None:
+    def visit_Call(self, node: Call[Symbol]) -> TypeSymbol | None:
         callable_name = node.name
         callable_symbol = self.get_current_scope().lookup_callable(callable_name)
         node.proc_symbol = callable_symbol
@@ -459,7 +470,7 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_ForStatement(self, node: ForStatement) -> None:
-        var_symbol = self.get_current_scope().lookup(node.var.value)
+        var_symbol = self.get_current_scope().lookup_variable(node.var.value)
         if var_symbol is None:
             raise SemanticError(
                 f"undefined variable {var_symbol}", ErrorCode.ID_NOT_FOUND, node
@@ -491,12 +502,16 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Break(self, node: Break) -> None:
         if self.loop_depth <= 0:
-            raise SemanticError()
+            raise SemanticError(
+                "break should be within loop", ErrorCode.OUTSIDE_LOOP, node
+            )
 
     @override
     def visit_Continue(self, node: Continue) -> None:
         if self.loop_depth <= 0:
-            raise SemanticError()
+            raise SemanticError(
+                "continue should be within loop", ErrorCode.OUTSIDE_LOOP, node
+            )
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)

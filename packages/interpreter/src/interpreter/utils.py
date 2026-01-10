@@ -5,6 +5,9 @@ from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
     Symbol,
+    SymbolKind,
+    TypeSymbol,
+    VarSymbol,
 )
 from interpreter.builtins import builtin_function_register
 from dataclasses import dataclass, field
@@ -112,8 +115,7 @@ class ScopedSymbolTable:
         logger: logging.Logger,
         enclosing_scope: "None | ScopedSymbolTable" = None,
     ) -> None:
-        self._symbols: dict[str, Symbol] = {}
-        self._callable_symbols: dict[str, Symbol] = {}
+        self._symbols: dict[tuple[str, SymbolKind], Symbol] = {}
         self.scope_level = scope_level
         self.scope_name = scope_name
         self.enclosing_scope = enclosing_scope
@@ -141,38 +143,52 @@ class ScopedSymbolTable:
     def define(self, symbol: Symbol) -> None:
         self.logger.debug(f"Define: {symbol}")
         symbol.scope = self.scope_level
-        self._symbols[symbol.name.upper()] = symbol
+        self._symbols[(symbol.name.upper(), symbol.kind)] = symbol
 
-    def define_callable(self, symbol: BuiltinCallableSymbol | CallableSymbol) -> None:
-        self.logger.debug(f"Define callable: {symbol}")
-        symbol.scope = self.scope_level
-        self._callable_symbols[symbol.name.upper()] = symbol
-
-    def lookup(self, name: str, *, current_scope_only: bool = False) -> Symbol | None:
+    def lookup(
+        self, name: str, kind: SymbolKind, *, current_scope_only: bool = False
+    ) -> Symbol | None:
         self.logger.debug(f"Lookup (scope name: {self.scope_name}): {name}")
         name = name.upper()
-        symbol = self._symbols.get(name)
+        symbol = self._symbols.get((name, kind))
         if symbol is not None:
             return symbol
         if current_scope_only:
             return None
         if self.enclosing_scope is not None:
-            return self.enclosing_scope.lookup(name)
+            return self.enclosing_scope.lookup(name, kind)
         return None
 
     def lookup_callable(
         self, name: str, *, current_scope_only: bool = False
-    ) -> Symbol | None:
-        self.logger.debug(f"Lookup callable (scope name: {self.scope_name}): {name}")
-        name = name.upper()
-        symbol = self._callable_symbols.get(name)
-        if symbol is not None:
-            return symbol
-        if current_scope_only:
-            return None
-        if self.enclosing_scope is not None:
-            return self.enclosing_scope.lookup_callable(name)
-        return None
+    ) -> BuiltinCallableSymbol | CallableSymbol | None:
+        result = self.lookup(
+            name, SymbolKind.CALLABLE, current_scope_only=current_scope_only
+        )
+        assert (
+            isinstance(result, BuiltinCallableSymbol)
+            or isinstance(result, CallableSymbol)
+            or result is None
+        )
+        return result
+
+    def lookup_variable(
+        self, name: str, *, current_scope_only: bool = False
+    ) -> VarSymbol | None:
+        result = self.lookup(
+            name, SymbolKind.VARIABLE, current_scope_only=current_scope_only
+        )
+        assert isinstance(result, VarSymbol) or result is None
+        return result
+
+    def lookup_type(
+        self, name: str, *, current_scope_only: bool = False
+    ) -> TypeSymbol | None:
+        result = self.lookup(
+            name, SymbolKind.TYPE, current_scope_only=current_scope_only
+        )
+        assert isinstance(result, TypeSymbol) or result is None
+        return result
 
     @classmethod
     def create_builtin_scope(cls, logger: logging.Logger) -> "ScopedSymbolTable":
@@ -183,6 +199,6 @@ class ScopedSymbolTable:
         for t in BuiltinTypes:
             table.define(t.value)
         for f in builtin_function_register.registered_functions:
-            table.define_callable(f)
+            table.define(f)
         logger.debug(table)
         return table

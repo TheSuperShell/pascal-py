@@ -160,10 +160,10 @@ class S2SCompiler(Visitor):
         var_name = node.var_node.value
         var_type = node.type_node.value
         current_scope = self.get_current_scope().scope_level
-        type_symbol = self.get_current_scope().lookup(var_type)
+        type_symbol = self.get_current_scope().lookup_type(var_type)
         if type_symbol is None:
             raise Exception(f"unkown type {var_type}")
-        self.get_current_scope().define(VarSymbol(var_name, type_symbol))
+        self.get_current_scope().define(VarSymbol(var_name, 0, type_symbol))
         return f"{var_name}{current_scope} : {self.visit(node.type_node)}"
 
     @override
@@ -177,7 +177,7 @@ class S2SCompiler(Visitor):
     @override
     def visit_Var(self, node: Var) -> Any:
         var_name = node.value
-        var_symbol = self.get_current_scope().lookup(var_name)
+        var_symbol = self.get_current_scope().lookup_variable(var_name)
         if var_symbol is None:
             raise Exception(f"unkown variable {var_name}")
         return f"<{var_name}{var_symbol.scope}:{var_symbol.symbol_type.name if var_symbol.symbol_type else None}>"
@@ -187,10 +187,10 @@ class S2SCompiler(Visitor):
         var_name = node.var_node.value
         scope_level = self.get_current_scope().scope_level
         var_type = node.type_node.value
-        type_symbol = self.get_current_scope().lookup(var_type)
+        type_symbol = self.get_current_scope().lookup_type(var_type)
         if type_symbol is None:
             raise Exception(f"unkown type {var_type}")
-        self.get_current_scope().define(VarSymbol(var_name, type_symbol))
+        self.get_current_scope().define(VarSymbol(var_name, 0, type_symbol))
         return f"var {var_name}{scope_level} : {var_type};"
 
     @override

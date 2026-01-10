@@ -1,87 +1,94 @@
-from abc import ABC
-from collections.abc import Callable, Sequence
-from typing import Any
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from enum import StrEnum, auto
+from typing import Any, override
 
 from parser.parser import AST
 
 
+class SymbolKind(StrEnum):
+    VARIABLE = auto()
+    CALLABLE = auto()
+    TYPE = auto()
+    OTHER = auto()
+
+
+@dataclass(slots=True)
 class Symbol(ABC):
-    __slots__ = "name", "symbol_type", "scope"
+    name: str
+    scope: int
 
-    def __init__(self, name: str, symbol_type: "None | Symbol" = None) -> None:
-        self.name: str = name
-        self.symbol_type: "None | Symbol" = symbol_type
-        self.scope: int = 0
+    @property
+    @abstractmethod
+    def kind(self) -> SymbolKind: ...
 
     def __str__(self) -> str:
-        return f"<{self.__class__.__name__}(name='{self.name}'" + (
-            f", type='{self.symbol_type.name}')" if self.symbol_type else ")"
-        )
-
-    __repr__ = __str__
+        return f"<{self.kind.name}:{self.name}>"
 
 
-class BuiltinTypeSymbol(Symbol):
-    __slots__ = "name"
+@dataclass(slots=True)
+class TypeSymbol[T](Symbol):
+    ordinal_rank: Callable[[T], int] | None = None
+    ordinal_value: Callable[[int], T] | None = None
 
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
+    @property
+    @override
+    def kind(self) -> SymbolKind:
+        return SymbolKind.TYPE
+
+    @property
+    def is_ordinal(self) -> bool:
+        return self.ordinal_rank is not None and self.ordinal_value is not None
 
 
+@dataclass(slots=True)
 class VarSymbol(Symbol):
-    __slots__ = "name", "symbol_type"
+    symbol_type: TypeSymbol
 
-    def __init__(self, name: str, symbol_type: Symbol | None) -> None:
-        super().__init__(name, symbol_type)
+    @property
+    @override
+    def kind(self) -> SymbolKind:
+        return SymbolKind.VARIABLE
 
 
+@dataclass(slots=True)
 class CallableSymbol(Symbol):
-    __slots__ = "name", "params", "block_ast", "return_type"
+    return_type: TypeSymbol | None = None
+    params: list[VarSymbol] = field(default_factory=list)
+    block_ast: AST | None = None
 
-    def __init__(
-        self,
-        name: str,
-        return_type: BuiltinTypeSymbol | None = None,
-        params: Sequence[Symbol] | None = None,
-        block_ast: AST | None = None,
-    ) -> None:
-        super().__init__(name)
-        self.params: list[Symbol] = list(params) if params is not None else []
-        self.block_ast = block_ast
-        self.return_type = return_type
+    @property
+    @override
+    def kind(self) -> SymbolKind:
+        return SymbolKind.CALLABLE
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
 
-    __repr__ = __str__
 
-
+@dataclass(slots=True)
 class BuiltinCallableSymbol(Symbol):
-    __slots__ = "name", "params", "return_type", "func"
+    func: Callable[..., Any]
+    params: list[VarSymbol] | None = None
+    return_type: TypeSymbol | None = None
 
-    def __init__(
-        self,
-        name: str,
-        func: Callable[..., Any],
-        params: Sequence[Symbol] | None = None,
-        return_type: Symbol | None = None,
-    ) -> None:
-        super().__init__(name)
-        self.params = list(params) if params else None
-        self.return_type = return_type
-        self.func = func
+    @property
+    @override
+    def kind(self) -> SymbolKind:
+        return SymbolKind.CALLABLE
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
 
-    __repr__ = __str__
 
-
+@dataclass(slots=True)
 class ProgramSymbol(Symbol):
-    def __init__(self) -> None:
-        super().__init__("PROGRAM")
+    @property
+    @override
+    def kind(self) -> SymbolKind:
+        return SymbolKind.OTHER
 
+    @override
     def __str__(self) -> str:
         return "PROGRAM"
-
-    __repr__ = __str__

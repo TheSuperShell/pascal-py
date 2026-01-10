@@ -19,6 +19,7 @@ class ErrorCode(IntEnum):
     UNKOWN_BINARY_OPERATOR = auto()
     UNSUPPORTED_BINARY_OPERATION = auto()
     UNASSIGNABLE_TYPES = auto()
+    OUTSIDE_LOOP = auto()
 
 
 class LexerError(Exception):

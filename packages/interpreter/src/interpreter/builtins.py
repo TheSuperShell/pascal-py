@@ -2,15 +2,15 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import inspect
-from interpreter.symbols import BuiltinCallableSymbol, BuiltinTypeSymbol
+from interpreter.symbols import BuiltinCallableSymbol, TypeSymbol, VarSymbol
 
 
 class BuiltinTypes(Enum):
-    INTEGER = BuiltinTypeSymbol("INTEGER")
-    REAL = BuiltinTypeSymbol("REAL")
-    BOOLEAN = BuiltinTypeSymbol("BOOLEAN")
-    CHAR = BuiltinTypeSymbol("CHAR")
-    STRING = BuiltinTypeSymbol("STRING")
+    INTEGER = TypeSymbol[int]("INTEGER", 0, lambda x: x, lambda x: x)
+    REAL = TypeSymbol[float]("REAL", 0)
+    BOOLEAN = TypeSymbol[bool]("BOOLEAN", 0)
+    CHAR = TypeSymbol[str]("CHAR", 0, ord, chr)
+    STRING = TypeSymbol[str]("STRING", 0)
 
     @classmethod
     def get_pascal_type_from_python_type(
@@ -46,8 +46,8 @@ class BuiltinFunctionRegister:
                 else None
             )
             params = sign.parameters
-            param_symbols: list[BuiltinTypeSymbol] | None = []
-            for param in params.values():
+            param_symbols: list[VarSymbol] | None = []
+            for name, param in params.items():
                 if param.kind == inspect._ParameterKind.VAR_POSITIONAL:
                     assert len(params) == 1, (
                         f"only one input parameter is allowed when using *args: {func.__name__}"
@@ -68,11 +68,16 @@ class BuiltinFunctionRegister:
                 )
                 assert param_symbols is not None
                 param_symbols.append(
-                    BuiltinTypes.get_pascal_type_from_python_type(param_type).value
+                    VarSymbol(
+                        name,
+                        0,
+                        BuiltinTypes.get_pascal_type_from_python_type(param_type).value,
+                    )
                 )
             self.registered_functions.append(
                 BuiltinCallableSymbol(
                     symbol_name if symbol_name is not None else func.__name__,
+                    0,
                     func,
                     param_symbols,
                     return_symbol,
@@ -96,6 +101,6 @@ def write(*args: object) -> None:
     print(*args, end="")
 
 
-@builtin_function_register.register_function("LENGTH")
+@builtin_function_register.register_function()
 def length(text: str) -> int:
     return len(text)
