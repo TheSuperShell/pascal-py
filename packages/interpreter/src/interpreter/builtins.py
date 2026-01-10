@@ -88,7 +88,7 @@ builtin_function_register = BuiltinFunctionRegister()
 
 @builtin_function_register.register_function()
 def writeln(*args: object) -> None:
-    print(*args)
+    print(*args, sep="")
 
 
 @builtin_function_register.register_function()

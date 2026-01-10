@@ -281,7 +281,6 @@ class SymbolTableVisitor(Visitor):
     def visit_BinOp(self, node: BinOp) -> Symbol:
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
-        print(left_type, right_type)
         if left_type is None or right_type is None:
             raise SemanticError(
                 "one of the node types are unkown", ErrorCode.UNKOWN_TYPE, node
@@ -397,7 +396,7 @@ class SymbolTableVisitor(Visitor):
         if callable_symbol.params is not None:
             for i, param_node in enumerate(node.actual_params):
                 param_type = self.visit(param_node)
-                expected_type = callable_symbol.params[i]
+                expected_type = callable_symbol.params[i].symbol_type
                 if param_type is None:
                     raise SemanticError(
                         f"unkown function input type {param_node}",
@@ -407,7 +406,7 @@ class SymbolTableVisitor(Visitor):
                 if param_type != expected_type:
                     raise SemanticError(
                         f"incorrect callable {callable_name} input type for value {param_node}: "
-                        f"exepcted {expected_type} got {param_type}",
+                        f"expected {expected_type} got {param_type}",
                         ErrorCode.INCORRECT_INPUT_TYPE,
                         node,
                     )

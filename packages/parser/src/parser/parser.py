@@ -386,19 +386,22 @@ class Parser[S]:
     def declarations(self) -> list[VarDecl | Procedure | Function]:
         """
         declarations:
-            (VAR variable_declaration SEMI)* (procedure_declaration | function_declaration)*
+            (VAR (variable_declaration SEMI)+ | procedure_declaration | function_declaration)*
         """
         decls: list[VarDecl | Procedure | Function] = []
-        while self.current_token.token_type == TokenType.VAR:
-            self.eat(TokenType.VAR)
-            var_decl = self.variable_declaration()
-            decls.extend(var_decl)
-            self.eat(TokenType.SEMI)
         while self.current_token.token_type in (
+            TokenType.VAR,
             TokenType.PROCEDURE,
             TokenType.FUNCTION,
         ):
-            if self.current_token.token_type == TokenType.PROCEDURE:
+            if self.current_token.token_type == TokenType.VAR:
+                self.eat(TokenType.VAR)
+                decls.extend(self.variable_declaration())
+                self.eat(TokenType.SEMI)
+                while self.current_token.token_type == TokenType.ID:
+                    decls.extend(self.variable_declaration())
+                    self.eat(TokenType.SEMI)
+            elif self.current_token.token_type == TokenType.PROCEDURE:
                 decls.append(self.procedure_declaration())
             elif self.current_token.token_type == TokenType.FUNCTION:
                 decls.append(self.function_declaration())
@@ -577,12 +580,10 @@ class Parser[S]:
     def while_statement(self) -> WhileStatement:
         """
         while_statement:
-            WHILE OPEN_PARANTH expr CLOSE_PARANTH DO statement
+            WHILE expr DO statement
         """
         self.eat(TokenType.WHILE)
-        self.eat(TokenType.OPEN_PARANTH)
         condition = self.expr()
-        self.eat(TokenType.CLOSE_PARANTH)
         self.eat(TokenType.DO)
         expr = self.statement()
         return WhileStatement(condition, expr)
@@ -590,11 +591,9 @@ class Parser[S]:
     def condition(self) -> Condition:
         """
         condition:
-            OPEN_PARANTH expr CLOSE_PARANTH THEN statement
+            expr THEN statement
         """
-        self.eat(TokenType.OPEN_PARANTH)
         cond = self.expr()
-        self.eat(TokenType.CLOSE_PARANTH)
         self.eat(TokenType.THEN)
         expr = self.statement()
         return Condition(cond, expr)
