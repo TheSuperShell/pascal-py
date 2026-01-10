@@ -41,7 +41,7 @@ from parser.parser import (
     TypeDecl,
     WhileStatement,
 )
-from parser.token import TokenType
+from parser.token import Token, TokenType
 from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
 
@@ -162,7 +162,8 @@ class Interpreter(Visitor):
 
     @override
     def visit_VarDecl(self, node: VarDecl) -> Any:
-        return
+        if node.default_value is not None:
+            self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
 
     @override
     def visit_StandardType(self, node: StandardType) -> Any:

@@ -4,15 +4,13 @@ program br_cont;
         other_age = age;
         some_range = 0..10;
     var i: char;
-        my_age: other_age;
-        range_test: some_range;
+        my_age: other_age = 30;
+        range_test: some_range = 5;
     procedure test_range(a: 0..10);
     begin
     end;
 begin
-    my_age := 25;
     range_test := 5;
-    test_range(25);
     writeln(range_test);
     writeln('My age + PI is ', my_age + PI);
     for i := 'a' to 'z' do

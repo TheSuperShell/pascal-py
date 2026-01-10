@@ -163,6 +163,7 @@ class Block[S](AST[S]):
 class VarDecl[S](AST[S]):
     var_node: Var
     type_node: "Type"
+    default_value: Literal[Any, S] | None
 
     def __str__(self) -> str:
         return f"{self.var_node}: {self.type_node}"
@@ -560,7 +561,7 @@ class Parser[S]:
     def variable_declaration(self) -> list[VarDecl]:
         """
         variable_declaration:
-            ID (COMMA ID)* COLON type_spec
+            ID (COMMA ID)* COLON type_spec (EQAUL literal)?
         """
         var_nodes = [Var(self.current_token)]
         self.eat(TokenType.ID)
@@ -573,7 +574,11 @@ class Parser[S]:
         self.eat(TokenType.COLON)
 
         type_node = self.type_spec()
-        return [VarDecl(var_node, type_node) for var_node in var_nodes]
+        default_value = None
+        if self.current_token.token_type == TokenType.EQUAL:
+            self.eat(TokenType.EQUAL)
+            default_value = self.literal()
+        return [VarDecl(var_node, type_node, default_value) for var_node in var_nodes]
 
     def type_spec(self) -> Type:
         """

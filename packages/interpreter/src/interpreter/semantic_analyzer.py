@@ -45,7 +45,7 @@ from parser.parser import (
     WhileStatement,
     StandardType,
 )
-from parser.token import TokenType
+from parser.token import Token, TokenType
 
 
 @dataclass(slots=True)
@@ -271,6 +271,8 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
         self.get_current_scope().define(var_symbol)
+        if node.default_value is not None:
+            self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
 
     @override
     def visit_StandardType(self, node: StandardType) -> TypeSymbol:
