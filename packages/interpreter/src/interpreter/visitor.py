@@ -19,6 +19,7 @@ from parser.parser import (
     Condition,
     ConstDecl,
     Continue,
+    Enum,
     Exit,
     ForStatement,
     Function,
@@ -114,3 +115,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_Range(self, node: Range[Symbol]) -> Any: ...
+
+    @abstractmethod
+    def visit_Enum(self, node: Enum[Symbol]) -> Any: ...

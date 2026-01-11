@@ -36,6 +36,7 @@ from parser.parser import (
     Condition,
     ConstDecl,
     Continue,
+    Enum,
     Exit,
     ForStatement,
     Function,
@@ -319,6 +320,10 @@ class SymbolTableVisitor(Visitor):
         )
         self.get_current_scope().define(type_symbol)
         return type_symbol
+
+    @override
+    def visit_Enum(self, node: Enum[Symbol]) -> Any:
+        return
 
     @override
     def visit_BinOp(self, node: BinOp) -> TypeSymbol:

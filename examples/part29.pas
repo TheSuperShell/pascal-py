@@ -6,6 +6,7 @@ program br_cont;
     var i: char;
         my_age: other_age = 30;
         range_test: some_range = 5;
+        values: (one, two, three);
     procedure test_range(a: 0..10);
     begin
     end;

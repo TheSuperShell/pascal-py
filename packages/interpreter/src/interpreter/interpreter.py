@@ -32,6 +32,7 @@ from parser.parser import (
     Condition,
     ConstDecl,
     Continue,
+    Enum,
     Exit,
     ForStatement,
     Function,
@@ -323,6 +324,10 @@ class Interpreter(Visitor):
 
     @override
     def visit_Range(self, node: Range[Symbol]) -> None:
+        return
+
+    @override
+    def visit_Enum(self, node: Enum[Symbol]) -> Any:
         return
 
     def interpret(self, tree: AST) -> AST:

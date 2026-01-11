@@ -196,7 +196,7 @@ class ConstDecl[S](AST[S]):
         return f"ConstDecl({self.var_node}:{self.literal})"
 
 
-type Type = StandardType | Range
+type Type = StandardType | Range | Enum
 
 
 @dataclass(frozen=True, slots=True)
@@ -366,6 +366,18 @@ class Range[S](AST[S]):
 
     def __repr__(self) -> str:
         return f"Range({self.start_val}, {self.end_val})"
+
+
+@dataclass(slots=True)
+class Enum[S](AST[S]):
+    value: str
+    items: list[Var]
+
+    def __str__(self) -> str:
+        return f"({self.items})"
+
+    def __repr__(self) -> str:
+        return f"Enum({self.items})"
 
 
 class Parser[S]:
@@ -583,7 +595,7 @@ class Parser[S]:
     def type_spec(self) -> Type:
         """
         type_spec:
-            ID | INTEGER | REAL | BOOLEAN | STRING | CHAR | range_decl
+            ID | INTEGER | REAL | BOOLEAN | STRING | CHAR | enum_decl | range_decl
         """
         token = self.current_token
         if self.current_token.token_type in (
@@ -603,7 +615,22 @@ class Parser[S]:
                 TokenType.CHAR,
             )
             return StandardType(token)
+        if self.current_token.token_type == TokenType.OPEN_PARANTH:
+            return self.enum_decl()
         return self.range_decl()
+
+    def enum_decl(self) -> Enum[S]:
+        """
+        enum_decl:
+            OPEN_PARANTH variable (COMMA variable)* CLOSE_PARANTH
+        """
+        self.eat(TokenType.OPEN_PARANTH)
+        items = [self.variable()]
+        while self.current_token.token_type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            items.append(self.variable())
+        self.eat(TokenType.CLOSE_PARANTH)
+        return Enum(str(hash(item.value for item in items)), items)
 
     def range_decl(self) -> Range:
         """
@@ -761,12 +788,12 @@ class Parser[S]:
         right = self.expr()
         return Assign(left, token, right)
 
-    def variable(self) -> Var:
+    def variable(self) -> Var[S]:
         """
         var:
             ID
         """
-        node = Var(self.current_token)
+        node = Var[S](self.current_token)
         self.eat(TokenType.ID)
         return node
 
