@@ -296,6 +296,8 @@ class SymbolTableVisitor(Visitor):
             if node.start_val.symbol.symbol_type != node.end_val.symbol.symbol_type:
                 raise SemanticError()
             type_symbol = node.start_val.symbol.symbol_type
+            if not type_symbol.is_ordinal:
+                raise SemanticError()
             min_value = node.start_val.symbol.value
             max_value = node.end_val.symbol.value
 

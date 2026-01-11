@@ -2,7 +2,7 @@ program br_cont;
     const PI = 3.14;
     type 
         numbers = (one, two, three);
-        other_type = one..two;
+        other_type = two..three;
     var 
         values: other_type;
 begin
