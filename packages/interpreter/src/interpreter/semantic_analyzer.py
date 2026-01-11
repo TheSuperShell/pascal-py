@@ -331,6 +331,7 @@ class SymbolTableVisitor(Visitor):
             type_symbol.f_type,
             type_symbol.ordinal_rank,
             type_symbol.ordinal_value,
+            type_symbol.to_string,
             min_value_ord,
             max_value_ord,
         )
@@ -345,6 +346,7 @@ class SymbolTableVisitor(Visitor):
             FType(f"ENUM_{node.value}"),
             lambda x: x,
             lambda x: x,
+            lambda x: str(node.items[x].value),
             [item.value for item in node.items],
         )
         for i, item in enumerate(node.items):
@@ -623,6 +625,7 @@ class SymbolTableVisitor(Visitor):
                     type_symbol.f_type,
                     type_symbol.ordinal_rank,
                     type_symbol.ordinal_value,
+                    type_symbol.to_string,
                     type_symbol.min_value,
                     type_symbol.max_value,
                 )
@@ -635,6 +638,7 @@ class SymbolTableVisitor(Visitor):
                 type_symbol.f_type,
                 type_symbol.ordinal_rank,
                 type_symbol.ordinal_value,
+                type_symbol.to_string,
             )
         )
 

@@ -15,11 +15,13 @@ from parser.token import TokenType
 
 
 class BuiltinTypes(Enum):
-    INTEGER = TypeSymbol[int]("INTEGER", 0, FType("INTEGER"), lambda x: x, lambda x: x)
-    REAL = TypeSymbol[float]("REAL", 0, FType("REAL"), None, None)
-    BOOLEAN = TypeSymbol[bool]("BOOLEAN", 0, FType("BOOLEAN"), None, None)
-    CHAR = TypeSymbol[str]("CHAR", 0, FType("CHAR"), ord, chr)
-    STRING = TypeSymbol[str]("STRING", 0, FType("STRING"), None, None)
+    INTEGER = TypeSymbol[int](
+        "INTEGER", 0, FType("INTEGER"), lambda x: x, lambda x: x, str
+    )
+    REAL = TypeSymbol[float]("REAL", 0, FType("REAL"), None, None, str)
+    BOOLEAN = TypeSymbol[bool]("BOOLEAN", 0, FType("BOOLEAN"), None, None, str)
+    CHAR = TypeSymbol[str]("CHAR", 0, FType("CHAR"), ord, chr, lambda x: x)
+    STRING = TypeSymbol[str]("STRING", 0, FType("STRING"), None, None, lambda x: x)
 
     @classmethod
     def literal_to_builtin(cls, literal: Literal[Any, Symbol]) -> "BuiltinTypes":

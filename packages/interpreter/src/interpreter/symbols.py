@@ -37,6 +37,7 @@ class TypeSymbol[T](Symbol):
     f_type: FType
     ordinal_rank: Callable[[T], int] | None
     ordinal_value: Callable[[int], T] | None
+    to_string: Callable[[T], str] | None
 
     @property
     @override

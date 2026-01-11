@@ -165,7 +165,7 @@ class Block[S](AST[S]):
 class VarDecl[S](AST[S]):
     var_node: Var
     type_node: "Type"
-    default_value: Literal[Any, S] | None
+    default_value: Literal[Any, S] | None = None
 
     def __str__(self) -> str:
         return f"{self.var_node}: {self.type_node}"
