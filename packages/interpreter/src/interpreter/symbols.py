@@ -24,7 +24,7 @@ class Symbol(ABC):
     def kind(self) -> SymbolKind: ...
 
     def __str__(self) -> str:
-        return f"<{self.kind.name}:{self.name}>"
+        return f"<{self.kind.name}-{self.__class__.__name__}:{self.name}>"
 
 
 @dataclass(slots=True, frozen=True)
@@ -49,7 +49,7 @@ class TypeSymbol[T](Symbol):
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, TypeSymbol):
-            return False
+            raise
         return self.f_type == value.f_type
 
 
@@ -57,6 +57,11 @@ class TypeSymbol[T](Symbol):
 class RangeSymbol[T](TypeSymbol[T]):
     min_value: int
     max_value: int
+
+
+@dataclass(slots=True)
+class EnumSymbol(TypeSymbol[int]):
+    items: list[str]
 
 
 @dataclass(slots=True)

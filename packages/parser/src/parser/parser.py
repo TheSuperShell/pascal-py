@@ -10,9 +10,10 @@ from parser.token import Token, TokenType
 
 
 class AST[S](ABC):
-    __slots__ = "type_symbol"
+    __slots__ = "type_symbol", "symbol"
 
     def __init__(self) -> None:
+        self.symbol: S | None = None
         self.type_symbol: S | None = None
 
     @abstractmethod
@@ -114,6 +115,7 @@ class Assign[S](AST[S]):
 class Var[S](AST[S]):
     token: Token
     type_symbol: S | None = None
+    symbol: S | None = None
 
     @property
     def value(self) -> str:
@@ -358,8 +360,8 @@ class Break(AST[None]):
 @dataclass(slots=True)
 class Range[S](AST[S]):
     value: str
-    start_val: Literal[Any, S]
-    end_val: Literal[Any, S]
+    start_val: Literal[Any, S] | Var[S]
+    end_val: Literal[Any, S] | Var[S]
 
     def __str__(self) -> str:
         return f"{self.start_val}..{self.end_val}"
@@ -595,9 +597,21 @@ class Parser[S]:
     def type_spec(self) -> Type:
         """
         type_spec:
-            ID | INTEGER | REAL | BOOLEAN | STRING | CHAR | enum_decl | range_decl
+            (ID (DOT DOT ID)?) |
+            INTEGER | REAL | BOOLEAN | STRING | CHAR | enum_decl |
+            literal DOT DOT literal
         """
         token = self.current_token
+        if self.current_token.token_type == TokenType.ID:
+            var = self.current_token
+            self.eat(TokenType.ID)
+            if self.current_token.token_type == TokenType.DOT:
+                self.eat(TokenType.DOT)
+                self.eat(TokenType.DOT)
+                end = self.current_token
+                self.eat(TokenType.ID)
+                return Range(str(hash((var.value, end.value))), Var(var), Var(end))
+            return StandardType(var)
         if self.current_token.token_type in (
             TokenType.ID,
             TokenType.INTEGER,
@@ -617,7 +631,11 @@ class Parser[S]:
             return StandardType(token)
         if self.current_token.token_type == TokenType.OPEN_PARANTH:
             return self.enum_decl()
-        return self.range_decl()
+        start = self.literal()
+        self.eat(TokenType.DOT)
+        self.eat(TokenType.DOT)
+        end = self.literal()
+        return Range(str(hash((start.value, end.value))), start, end)
 
     def enum_decl(self) -> Enum[S]:
         """
@@ -631,17 +649,6 @@ class Parser[S]:
             items.append(self.variable())
         self.eat(TokenType.CLOSE_PARANTH)
         return Enum(str(hash(item.value for item in items)), items)
-
-    def range_decl(self) -> Range:
-        """
-        range_decl:
-            literal DOT DOT literal
-        """
-        start_val = self.literal()
-        self.eat(TokenType.DOT)
-        self.eat(TokenType.DOT)
-        end_val = self.literal()
-        return Range(str(hash((start_val.value, end_val.value))), start_val, end_val)
 
     def compound_statement(self) -> Compound:
         """

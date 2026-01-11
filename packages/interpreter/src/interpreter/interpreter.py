@@ -151,9 +151,8 @@ class Interpreter(Visitor):
     @override
     def visit_Var(self, node: Var) -> Any:
         var_name = node.value
-        type_symbol = node.type_symbol
-        if isinstance(type_symbol, ConstSymbol):
-            return type_symbol.value
+        if isinstance(node.symbol, ConstSymbol):
+            return node.symbol.value
         val = self.call_stack.lookup(var_name)
         if val is None:
             raise InterpreterError(
@@ -318,9 +317,7 @@ class Interpreter(Visitor):
 
     @override
     def visit_ConstDecl(self, node: ConstDecl[Symbol]) -> None:
-        var_name = node.var_node.value
-        value = node.literal.value
-        self.call_stack.peek()[var_name] = value
+        return
 
     @override
     def visit_Range(self, node: Range[Symbol]) -> None:
@@ -328,7 +325,8 @@ class Interpreter(Visitor):
 
     @override
     def visit_Enum(self, node: Enum[Symbol]) -> Any:
-        return
+        for i, item in enumerate(node.items):
+            self.call_stack.peek()[item.value] = i
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

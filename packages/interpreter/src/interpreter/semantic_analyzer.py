@@ -8,6 +8,8 @@ from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
     ConstSymbol,
+    EnumSymbol,
+    FType,
     ProgramSymbol,
     RangeSymbol,
     Symbol,
@@ -203,18 +205,13 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Assign(self, node: Assign) -> None:
-        var_symbol = self.get_current_scope().lookup_variable(node.left.value)
-        if var_symbol is None:
+        left_type = self.visit(node.left)
+        if isinstance(left_type, ConstSymbol):
             raise SemanticError(
-                f"unkown variable {node.left.value}", ErrorCode.ID_NOT_FOUND, node
-            )
-        if isinstance(var_symbol, ConstSymbol):
-            raise SemanticError(
-                f"cannot assign to a const value {var_symbol}",
+                f"cannot assign to a const value {left_type}",
                 ErrorCode.ASSIGN_TO_CONST,
                 node,
             )
-        left_type = self.visit(node.left)
         right_type = self.visit(node.right)
         if right_type is None:
             raise SemanticError(
@@ -222,7 +219,8 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.UNKOWN_TYPE,
                 node,
             )
-        if left_type == right_type:
+
+        if left_type.f_type == right_type.f_type:
             return
         if left_type == BuiltinTypes.REAL.value and right_type in (
             BuiltinTypes.REAL.value,
@@ -248,6 +246,7 @@ class SymbolTableVisitor(Visitor):
                 f"symbol not found {var_name}", ErrorCode.ID_NOT_FOUND, node
             )
         node.type_symbol = var_symbol.symbol_type
+        node.symbol = var_symbol
         return var_symbol.symbol_type
 
     @override
@@ -287,43 +286,78 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Range(self, node: Range[Symbol]) -> TypeSymbol:
-        start_val_type_symbol = BuiltinTypes.literal_to_builtin(node.start_val).value
-        end_val_type_symbol = BuiltinTypes.literal_to_builtin(node.end_val).value
-        if start_val_type_symbol != end_val_type_symbol:
-            raise SemanticError(
-                "start and end types of a range should be the same, "
-                f"got {start_val_type_symbol}, {end_val_type_symbol}",
-                ErrorCode.INCORRECT_TYPE,
-                node,
-            )
-        if (
-            not start_val_type_symbol.is_ordinal
-            or start_val_type_symbol.ordinal_rank is None
-        ):
-            raise SemanticError(
-                f"range can only be created from enumerable values, got {start_val_type_symbol}",
-                ErrorCode.INCORRECT_TYPE,
-                node,
-            )
-        min_value = start_val_type_symbol.ordinal_rank(node.start_val.value)
-        max_value = start_val_type_symbol.ordinal_rank(node.end_val.value)
-        if min_value >= max_value:
+        if isinstance(node.start_val, Var) and isinstance(node.end_val, Var):
+            self.visit(node.start_val)
+            self.visit(node.end_val)
+            if not isinstance(node.start_val.symbol, ConstSymbol) or not isinstance(
+                node.end_val.symbol, ConstSymbol
+            ):
+                raise SemanticError()
+            if node.start_val.symbol.symbol_type != node.end_val.symbol.symbol_type:
+                raise SemanticError()
+            type_symbol = node.start_val.symbol.symbol_type
+            min_value = node.start_val.symbol.value
+            max_value = node.end_val.symbol.value
+
+        elif isinstance(node.start_val, Literal) and isinstance(node.end_val, Literal):
+            type_symbol = BuiltinTypes.literal_to_builtin(node.start_val).value
+            min_value = node.start_val.value
+            max_value = node.end_val.value
+        else:
             raise SemanticError()
+        return self._get_range(node, min_value, max_value, type_symbol)
+
+    def _get_range(
+        self,
+        node: Range[Symbol],
+        min_value: Any,
+        max_value: Any,
+        type_symbol: TypeSymbol[Any],
+    ) -> RangeSymbol[Any]:
+        assert type_symbol.ordinal_rank
+        min_value_ord = type_symbol.ordinal_rank(min_value)
+        max_value_ord = type_symbol.ordinal_rank(max_value)
+        if min_value_ord >= max_value_ord:
+            raise SemanticError(
+                "min range value cannot be bigger or equal to max value",
+                ErrorCode.RANGE_OUT_OF_BOUNDS,
+                node,
+            )
         type_symbol = RangeSymbol[Any](
             node.value,
             0,
-            start_val_type_symbol.f_type,
-            start_val_type_symbol.ordinal_rank,
-            start_val_type_symbol.ordinal_value,
-            min_value,
-            max_value,
+            type_symbol.f_type,
+            type_symbol.ordinal_rank,
+            type_symbol.ordinal_value,
+            min_value_ord,
+            max_value_ord,
         )
         self.get_current_scope().define(type_symbol)
         return type_symbol
 
     @override
-    def visit_Enum(self, node: Enum[Symbol]) -> Any:
-        return
+    def visit_Enum(self, node: Enum[Symbol]) -> TypeSymbol:
+        type_symbol = EnumSymbol(
+            node.value,
+            0,
+            FType(f"ENUM_{node.value}"),
+            lambda x: x,
+            lambda x: x,
+            [item.value for item in node.items],
+        )
+        for i, item in enumerate(node.items):
+            item_const = ConstSymbol[int](item.value, 0, type_symbol, i)
+            var_name = item.value
+            if (
+                self.get_current_scope().lookup_variable(
+                    var_name, current_scope_only=True
+                )
+                is not None
+            ):
+                raise SemanticError()
+            self.get_current_scope().define(item_const)
+        self.get_current_scope().define(type_symbol)
+        return type_symbol
 
     @override
     def visit_BinOp(self, node: BinOp) -> TypeSymbol:
