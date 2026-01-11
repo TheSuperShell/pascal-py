@@ -62,7 +62,17 @@ class RangeSymbol[T](TypeSymbol[T]):
 @dataclass(slots=True)
 class VarSymbol(Symbol):
     symbol_type: TypeSymbol
-    const: bool = False
+
+    @property
+    @override
+    def kind(self) -> SymbolKind:
+        return SymbolKind.VARIABLE
+
+
+@dataclass(slots=True)
+class ConstSymbol[T](Symbol):
+    symbol_type: TypeSymbol[T]
+    value: T
 
     @property
     @override

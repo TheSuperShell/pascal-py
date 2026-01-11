@@ -7,6 +7,7 @@ from typing import Any, override
 from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
+    ConstSymbol,
     RangeSymbol,
     Symbol,
     TypeSymbol,
@@ -149,6 +150,9 @@ class Interpreter(Visitor):
     @override
     def visit_Var(self, node: Var) -> Any:
         var_name = node.value
+        type_symbol = node.type_symbol
+        if isinstance(type_symbol, ConstSymbol):
+            return type_symbol.value
         val = self.call_stack.lookup(var_name)
         if val is None:
             raise InterpreterError(

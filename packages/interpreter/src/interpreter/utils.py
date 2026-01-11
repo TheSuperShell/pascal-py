@@ -4,6 +4,7 @@ from interpreter.builtins import BuiltinTypes
 from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
+    ConstSymbol,
     Symbol,
     SymbolKind,
     TypeSymbol,
@@ -174,11 +175,15 @@ class ScopedSymbolTable:
 
     def lookup_variable(
         self, name: str, *, current_scope_only: bool = False
-    ) -> VarSymbol | None:
+    ) -> VarSymbol | ConstSymbol | None:
         result = self.lookup(
             name, SymbolKind.VARIABLE, current_scope_only=current_scope_only
         )
-        assert isinstance(result, VarSymbol) or result is None
+        assert (
+            isinstance(result, VarSymbol)
+            or isinstance(result, ConstSymbol)
+            or result is None
+        )
         return result
 
     def lookup_type(

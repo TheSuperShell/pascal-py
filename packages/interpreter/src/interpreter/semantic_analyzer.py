@@ -7,6 +7,7 @@ from interpreter.errors import SemanticError
 from interpreter.symbols import (
     BuiltinCallableSymbol,
     CallableSymbol,
+    ConstSymbol,
     ProgramSymbol,
     RangeSymbol,
     Symbol,
@@ -206,7 +207,7 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError(
                 f"unkown variable {node.left.value}", ErrorCode.ID_NOT_FOUND, node
             )
-        if var_symbol.const:
+        if isinstance(var_symbol, ConstSymbol):
             raise SemanticError(
                 f"cannot assign to a const value {var_symbol}",
                 ErrorCode.ASSIGN_TO_CONST,
@@ -608,7 +609,8 @@ class SymbolTableVisitor(Visitor):
             )
         value = node.literal
         value_type = BuiltinTypes.literal_to_builtin(value).value
-        self.get_current_scope().define(VarSymbol(var_name, 0, value_type, True))
+        const_type = ConstSymbol[Any](var_name, 0, value_type, value.value)
+        self.get_current_scope().define(const_type)
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)
