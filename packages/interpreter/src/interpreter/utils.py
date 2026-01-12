@@ -3,14 +3,14 @@ import logging
 from interpreter.builtins import BuiltinTypes
 from interpreter.symbols import (
     BuiltinCallableSymbol,
-    CallableSymbol,
+    CustomCallableSymbol,
     ConstSymbol,
     Symbol,
     SymbolKind,
     TypeSymbol,
     VarSymbol,
 )
-from interpreter.builtins import builtin_function_register
+from interpreter.builtins import create_builtin_functions
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -162,13 +162,13 @@ class ScopedSymbolTable:
 
     def lookup_callable(
         self, name: str, *, current_scope_only: bool = False
-    ) -> BuiltinCallableSymbol | CallableSymbol | None:
+    ) -> BuiltinCallableSymbol | CustomCallableSymbol | None:
         result = self.lookup(
             name, SymbolKind.CALLABLE, current_scope_only=current_scope_only
         )
         assert (
             isinstance(result, BuiltinCallableSymbol)
-            or isinstance(result, CallableSymbol)
+            or isinstance(result, CustomCallableSymbol)
             or result is None
         )
         return result
@@ -203,7 +203,7 @@ class ScopedSymbolTable:
         )
         for t in BuiltinTypes:
             table.define(t.value)
-        for f in builtin_function_register.registered_functions:
+        for f in create_builtin_functions():
             table.define(f)
         logger.debug(table)
         return table

@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from typing import Any, override
 from interpreter.symbols import (
     BuiltinCallableSymbol,
-    CallableSymbol,
+    BuiltinInput,
+    CustomCallableSymbol,
     ConstSymbol,
     RangeSymbol,
     Symbol,
@@ -182,11 +183,11 @@ class Interpreter(Visitor):
     def _visit_builtin_callable(
         self, symbol: BuiltinCallableSymbol, node: Call[Symbol]
     ) -> Any:
-        inputs = []
+        inputs: BuiltinInput = []
         for param in node.actual_params:
-            inputs.append(self.visit(param))
+            inputs.append((self.visit(param), param.type_symbol))
         self.logger.debug(f"CALL builtin: {symbol.name}")
-        return symbol.func(*inputs)
+        return symbol.func(inputs)
 
     @override
     def visit_Call(self, node: Call[Symbol]) -> Any:
@@ -195,7 +196,7 @@ class Interpreter(Visitor):
             raise InterpreterError(f"{node.name} is not recognised")
         if isinstance(proc_symbol, BuiltinCallableSymbol):
             return self._visit_builtin_callable(proc_symbol, node)
-        assert isinstance(proc_symbol, CallableSymbol)
+        assert isinstance(proc_symbol, CustomCallableSymbol)
         if proc_symbol.block_ast is None:
             raise InterpreterError(f"{node.name} body is not declared")
         proc_name = node.name

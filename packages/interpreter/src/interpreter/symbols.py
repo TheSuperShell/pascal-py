@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 from typing import Any, override
@@ -87,7 +87,7 @@ class ConstSymbol[T](Symbol):
 
 
 @dataclass(slots=True)
-class CallableSymbol(Symbol):
+class CustomCallableSymbol(Symbol):
     return_type: TypeSymbol | None = None
     params: list[VarSymbol] = field(default_factory=list)
     block_ast: AST | None = None
@@ -101,9 +101,12 @@ class CallableSymbol(Symbol):
         return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
 
 
+type BuiltinInput = Sequence[tuple[Any, TypeSymbol | None]]
+
+
 @dataclass(slots=True)
 class BuiltinCallableSymbol(Symbol):
-    func: Callable[..., Any]
+    func: Callable[[BuiltinInput], Any]
     params: list[VarSymbol] | None = None
     return_type: TypeSymbol | None = None
 

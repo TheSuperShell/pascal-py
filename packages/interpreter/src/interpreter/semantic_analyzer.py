@@ -6,7 +6,7 @@ from interpreter.builtins import BuiltinTypes
 from interpreter.errors import SemanticError
 from interpreter.symbols import (
     BuiltinCallableSymbol,
-    CallableSymbol,
+    CustomCallableSymbol,
     ConstSymbol,
     EnumSymbol,
     FType,
@@ -123,7 +123,7 @@ class SymbolTableVisitor(Visitor):
     def visit_Function(self, node: Function) -> None:
         func_name = node.name
         return_symbol = self.visit(node.return_type)
-        func_symbol = CallableSymbol(func_name, 0, return_type=return_symbol)
+        func_symbol = CustomCallableSymbol(func_name, 0, return_type=return_symbol)
         self.get_current_scope().define(func_symbol)
 
         self.logger.debug(f"ENTER scope: {func_name}")
@@ -169,7 +169,7 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Procedure(self, node: Procedure) -> None:
         proc_name = node.name
-        proc_symbol = CallableSymbol(proc_name, 0)
+        proc_symbol = CustomCallableSymbol(proc_name, 0)
         self.get_current_scope().define(proc_symbol)
 
         self.logger.debug(f"ENTER scope: {proc_name}")
@@ -487,7 +487,7 @@ class SymbolTableVisitor(Visitor):
                 f"no callable found: {callable_name}", ErrorCode.ID_NOT_FOUND, node
             )
         if not (
-            isinstance(callable_symbol, CallableSymbol)
+            isinstance(callable_symbol, CustomCallableSymbol)
             or isinstance(callable_symbol, BuiltinCallableSymbol)
         ):
             raise SemanticError(
