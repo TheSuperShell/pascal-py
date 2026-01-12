@@ -176,7 +176,7 @@ class VarDecl[S](AST[S]):
 
 @dataclass(frozen=True, slots=True)
 class TypeDecl[S](AST[S]):
-    var_node: "Type"
+    var_node: Var
     type_node: "Type"
 
     def __str__(self) -> str:
@@ -371,7 +371,6 @@ class Break(AST[None]):
 
 @dataclass(slots=True)
 class Range[S](AST[S]):
-    value: str
     start_val: Literal[Any, S] | Var[S]
     end_val: Literal[Any, S] | Var[S]
 
@@ -384,7 +383,6 @@ class Range[S](AST[S]):
 
 @dataclass(slots=True)
 class Enum[S](AST[S]):
-    value: str
     items: list[Var]
 
     def __str__(self) -> str:
@@ -517,7 +515,7 @@ class Parser[S]:
             self.eat(TokenType.ID)
         self.eat(TokenType.EQUAL)
         type_spec = self.type_spec()
-        return [TypeDecl(StandardType(name), type_spec) for name in type_names]
+        return [TypeDecl(Var(name), type_spec) for name in type_names]
 
     def function_declaration(self) -> Function:
         """
@@ -623,7 +621,7 @@ class Parser[S]:
                 self.eat(TokenType.DOT)
                 end = self.current_token
                 self.eat(TokenType.ID)
-                return Range(str(hash((var.value, end.value))), Var(var), Var(end))
+                return Range(Var(var), Var(end))
             return StandardType(var)
         if self.current_token.token_type in (
             TokenType.ID,
@@ -650,7 +648,7 @@ class Parser[S]:
         self.eat(TokenType.DOT)
         self.eat(TokenType.DOT)
         end = self.literal()
-        return Range(str(hash((start.value, end.value))), start, end)
+        return Range(start, end)
 
     def array_decl(self) -> Array[S]:
         """
@@ -676,7 +674,7 @@ class Parser[S]:
             self.eat(TokenType.COMMA)
             items.append(self.variable())
         self.eat(TokenType.CLOSE_PARANTH)
-        return Enum(str(hash(item.value for item in items)), items)
+        return Enum(items)
 
     def compound_statement(self) -> Compound:
         """

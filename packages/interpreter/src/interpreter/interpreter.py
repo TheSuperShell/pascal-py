@@ -29,6 +29,7 @@ from parser import (
 from parser.errors import ErrorCode
 from parser.parser import (
     AST,
+    Array,
     Break,
     Condition,
     ConstDecl,
@@ -322,6 +323,10 @@ class Interpreter(Visitor):
 
     @override
     def visit_Range(self, node: Range[Symbol]) -> None:
+        return
+
+    @override
+    def visit_Array(self, node: Array[Symbol]) -> None:
         return
 
     @override

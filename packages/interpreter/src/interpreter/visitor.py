@@ -15,6 +15,7 @@ from parser import (
     VarDecl,
 )
 from parser.parser import (
+    Array,
     Break,
     Condition,
     ConstDecl,
@@ -118,3 +119,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_Enum(self, node: Enum[Symbol]) -> Any: ...
+
+    @abstractmethod
+    def visit_Array(self, node: Array[Symbol]) -> Any: ...

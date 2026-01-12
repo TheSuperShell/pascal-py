@@ -5,6 +5,7 @@ from typing import Any, Self, override
 from interpreter.builtins import BuiltinTypes
 from interpreter.errors import SemanticError
 from interpreter.symbols import (
+    ArraySymbol,
     BuiltinCallableSymbol,
     CustomCallableSymbol,
     ConstSymbol,
@@ -34,6 +35,7 @@ from interpreter.visitor import Visitor
 from parser.errors import ErrorCode
 from parser.parser import (
     AST,
+    Array,
     Break,
     Condition,
     ConstDecl,
@@ -220,7 +222,7 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
 
-        if left_type.f_type == right_type.f_type:
+        if left_type == right_type:
             return
         if left_type == BuiltinTypes.REAL.value and right_type in (
             BuiltinTypes.REAL.value,
@@ -326,7 +328,7 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
         type_symbol = RangeSymbol[Any](
-            node.value,
+            "RANGE",
             0,
             type_symbol.f_type,
             type_symbol.ordinal_rank,
@@ -335,15 +337,14 @@ class SymbolTableVisitor(Visitor):
             min_value_ord,
             max_value_ord,
         )
-        self.get_current_scope().define(type_symbol)
         return type_symbol
 
     @override
     def visit_Enum(self, node: Enum[Symbol]) -> TypeSymbol:
         type_symbol = EnumSymbol(
-            node.value,
+            "ENUM",
             0,
-            FType(f"ENUM_{node.value}"),
+            FType("ENUM"),
             lambda x: x,
             lambda x: x,
             lambda x: str(node.items[x].value),
@@ -360,7 +361,6 @@ class SymbolTableVisitor(Visitor):
             ):
                 raise SemanticError()
             self.get_current_scope().define(item_const)
-        self.get_current_scope().define(type_symbol)
         return type_symbol
 
     @override
@@ -617,6 +617,20 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
         type_symbol = self.visit(node.type_node)
+        if isinstance(type_symbol, ArraySymbol):
+            self.get_current_scope().define(
+                ArraySymbol[Any, Any](
+                    node.var_node.value,
+                    0,
+                    type_symbol.f_type,
+                    None,
+                    None,
+                    str,
+                    type_symbol.element_type,
+                    type_symbol.index_type,
+                )
+            )
+            return
         if isinstance(type_symbol, RangeSymbol):
             self.get_current_scope().define(
                 RangeSymbol(
@@ -656,6 +670,24 @@ class SymbolTableVisitor(Visitor):
         value_type = BuiltinTypes.literal_to_builtin(value).value
         const_type = ConstSymbol[Any](var_name, 0, value_type, value.value)
         self.get_current_scope().define(const_type)
+
+    @override
+    def visit_Array(self, node: Array[Symbol]) -> TypeSymbol:
+        index_type = self.visit(node.index_type)
+        element_type = self.visit(node.element_type)
+        if not index_type.is_ordinal:
+            raise SemanticError()
+        type_symbol = ArraySymbol[Any, Any](
+            "ARRAY",
+            0,
+            FType("ARRAY"),
+            None,
+            None,
+            str,
+            element_type,
+            index_type,
+        )
+        return type_symbol
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)

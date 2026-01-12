@@ -59,10 +59,34 @@ class RangeSymbol[T](TypeSymbol[T]):
     min_value: int
     max_value: int
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, TypeSymbol):
+            raise
+        return self.f_type == value.f_type
+
 
 @dataclass(slots=True)
 class EnumSymbol(TypeSymbol[int]):
     items: list[str]
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, EnumSymbol):
+            return False
+        return self.items == value.items
+
+
+@dataclass(slots=True)
+class ArraySymbol[I, T](TypeSymbol[list[T]]):
+    element_type: TypeSymbol[T]
+    index_type: TypeSymbol[I]
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, ArraySymbol):
+            return False
+        return (
+            self.element_type == value.element_type
+            and self.index_type == value.index_type
+        )
 
 
 @dataclass(slots=True)
