@@ -1,6 +1,7 @@
 import pytest
 from parser.lexer import Lexer
 from parser.parser import (
+    Array,
     Assign,
     Condition,
     Exit,
@@ -350,6 +351,15 @@ decls_data = [
             VarDecl(Var(Token.Id("x")), StandardType(Token.boolean())),
             VarDecl(Var(Token.Id("text")), StandardType(Token.string())),
             VarDecl(Var(Token.Id("character")), StandardType(Token.char())),
+        ),
+    ],
+    [
+        "VAR arr: array[integer] of string;",
+        (
+            VarDecl(
+                Var(Token.Id("arr")),
+                Array(StandardType(Token.integer()), StandardType(Token.string())),
+            ),
         ),
     ],
 ]

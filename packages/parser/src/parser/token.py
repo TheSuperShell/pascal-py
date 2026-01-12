@@ -53,6 +53,10 @@ class TokenType(IntEnum):
     BREAK = auto()
     TYPE = auto()
     CONST = auto()
+    OPEN_BRACKET = auto()
+    CLOSE_BRACKET = auto()
+    ARRAY = auto()
+    OF = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -279,3 +283,19 @@ class Token:
     @classmethod
     def const(cls) -> "Token":
         return Token(TokenType.CONST, "CONST")
+
+    @classmethod
+    def open_bracket(cls) -> "Token":
+        return Token(TokenType.OPEN_BRACKET, "[")
+
+    @classmethod
+    def close_bracket(cls) -> "Token":
+        return Token(TokenType.CLOSE_BRACKET, "]")
+
+    @classmethod
+    def array(cls) -> "Token":
+        return Token(TokenType.ARRAY, "ARRAY")
+
+    @classmethod
+    def of(cls) -> "Token":
+        return Token(TokenType.OF, "OF")

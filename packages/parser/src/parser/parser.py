@@ -198,7 +198,19 @@ class ConstDecl[S](AST[S]):
         return f"ConstDecl({self.var_node}:{self.literal})"
 
 
-type Type = StandardType | Range | Enum
+type Type = StandardType | Range | Enum | Array
+
+
+@dataclass(frozen=True, slots=True)
+class Array[S](AST[S]):
+    index_type: Type
+    element_type: Type
+
+    def __str__(self) -> str:
+        return f"{self.element_type}[{self.index_type}]"
+
+    def __repr__(self) -> str:
+        return f"ARRAY({self.index_type=}, {self.element_type=})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -599,6 +611,7 @@ class Parser[S]:
         type_spec:
             (ID (DOT DOT ID)?) |
             INTEGER | REAL | BOOLEAN | STRING | CHAR | enum_decl |
+            array_decl |
             literal DOT DOT literal
         """
         token = self.current_token
@@ -631,11 +644,26 @@ class Parser[S]:
             return StandardType(token)
         if self.current_token.token_type == TokenType.OPEN_PARANTH:
             return self.enum_decl()
+        if self.current_token.token_type == TokenType.ARRAY:
+            return self.array_decl()
         start = self.literal()
         self.eat(TokenType.DOT)
         self.eat(TokenType.DOT)
         end = self.literal()
         return Range(str(hash((start.value, end.value))), start, end)
+
+    def array_decl(self) -> Array[S]:
+        """
+        array_decl:
+            ARRAY OPEN_BRACKET type_spec CLOSE_BRACKET OF type_spec
+        """
+        self.eat(TokenType.ARRAY)
+        self.eat(TokenType.OPEN_BRACKET)
+        index_type = self.type_spec()
+        self.eat(TokenType.CLOSE_BRACKET)
+        self.eat(TokenType.OF)
+        element_type = self.type_spec()
+        return Array[S](index_type, element_type)
 
     def enum_decl(self) -> Enum[S]:
         """

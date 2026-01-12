@@ -32,6 +32,8 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "BREAK": Token.Break(),
     "TYPE": Token.Type(),
     "CONST": Token.const(),
+    "ARRAY": Token.array(),
+    "OF": Token.of(),
 }
 
 
@@ -159,6 +161,12 @@ class Lexer:
         if self.char == ")":
             self.advance()
             return Token.close_p()
+        if self.char == "[":
+            self.advance()
+            return Token.open_bracket()
+        if self.char == "]":
+            self.advance()
+            return Token.close_bracket()
         if self.char.isdigit():
             return self.number()
         if self.char == "'":
