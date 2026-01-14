@@ -78,7 +78,12 @@ class EnumSymbol(TypeSymbol[int]):
 @dataclass(slots=True)
 class ArraySymbol[I, T](TypeSymbol[list[T]]):
     element_type: TypeSymbol[T]
-    index_type: TypeSymbol[I]
+    index_type: RangeSymbol[I]
+
+    def get_index_from_index_value(self, value: I) -> int:
+        assert self.index_type.ordinal_rank
+        value_ord = self.index_type.ordinal_rank(value)
+        return value_ord - self.index_type.min_value
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, ArraySymbol):

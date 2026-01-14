@@ -36,6 +36,7 @@ from parser.errors import ErrorCode
 from parser.parser import (
     AST,
     Array,
+    AssignIndex,
     Break,
     Condition,
     ConstDecl,
@@ -45,6 +46,7 @@ from parser.parser import (
     ForStatement,
     Function,
     IfStatement,
+    IndexOf,
     Literal,
     Range,
     TypeDecl,
@@ -221,7 +223,11 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.UNKOWN_TYPE,
                 node,
             )
+        self._assignable(left_type, right_type, node.right, node.left)
 
+    def _assignable(
+        self, left_type: TypeSymbol, right_type: TypeSymbol, right: AST, left: AST
+    ) -> None:
         if left_type == right_type:
             return
         if left_type == BuiltinTypes.REAL.value and right_type in (
@@ -229,13 +235,13 @@ class SymbolTableVisitor(Visitor):
             BuiltinTypes.INTEGER.value,
         ):
             return
-        if left_type == BuiltinTypes.STRING and right_type in (
-            BuiltinTypes.STRING,
-            BuiltinTypes.CHAR,
+        if left_type == BuiltinTypes.STRING.value and right_type in (
+            BuiltinTypes.STRING.value,
+            BuiltinTypes.CHAR.value,
         ):
             return
         raise SemanticError(
-            f"cannot assing {node.right} of type {right_type} to variable {node.left} of type {left_type}",
+            f"cannot assing {right} of type {right_type} to variable {left} of type {left_type}",
             ErrorCode.UNASSIGNABLE_TYPES,
         )
 
@@ -337,6 +343,7 @@ class SymbolTableVisitor(Visitor):
             min_value_ord,
             max_value_ord,
         )
+        node.type_symbol = type_symbol
         return type_symbol
 
     @override
@@ -361,6 +368,7 @@ class SymbolTableVisitor(Visitor):
             ):
                 raise SemanticError()
             self.get_current_scope().define(item_const)
+        node.type_symbol = type_symbol
         return type_symbol
 
     @override
@@ -472,7 +480,7 @@ class SymbolTableVisitor(Visitor):
         )
 
     @override
-    def visit_Param(self, node: Param) -> Symbol:
+    def visit_Param(self, node: Param) -> TypeSymbol:
         type_symbol = self.visit(node.type_node)
         node.type_symbol = type_symbol
         return type_symbol
@@ -531,7 +539,7 @@ class SymbolTableVisitor(Visitor):
         return None
 
     @override
-    def visit_IfStatement(self, node: IfStatement) -> Any:
+    def visit_IfStatement(self, node: IfStatement) -> None:
         self.visit(node.main_condition)
         for other_cond in node.secondary_conditions:
             self.visit(other_cond)
@@ -675,8 +683,6 @@ class SymbolTableVisitor(Visitor):
     def visit_Array(self, node: Array[Symbol]) -> TypeSymbol:
         index_type = self.visit(node.index_type)
         element_type = self.visit(node.element_type)
-        if not index_type.is_ordinal:
-            raise SemanticError()
         type_symbol = ArraySymbol[Any, Any](
             "ARRAY",
             0,
@@ -688,6 +694,27 @@ class SymbolTableVisitor(Visitor):
             index_type,
         )
         return type_symbol
+
+    def visit_IndexOf(self, node: IndexOf[Symbol]) -> TypeSymbol:
+        index_type = self.visit(node.index_value)
+        var_type = self.visit(node.var_node)
+        if not isinstance(var_type, ArraySymbol):
+            raise SemanticError()
+        if index_type != var_type.index_type:
+            raise SemanticError()
+        node.type_symbol = var_type
+        return var_type.element_type
+
+    def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> None:
+        left_type = self.visit(node.left)
+        right_type = self.visit(node.right)
+        if right_type is None:
+            raise SemanticError(
+                f"type of {node.right} in assignment is unkown",
+                ErrorCode.UNKOWN_TYPE,
+                node,
+            )
+        self._assignable(left_type, right_type, node.left, node.right)
 
     def analyze(self, tree: AST) -> AST:
         self.visit(tree)

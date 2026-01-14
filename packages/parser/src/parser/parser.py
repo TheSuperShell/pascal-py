@@ -198,13 +198,14 @@ class ConstDecl[S](AST[S]):
         return f"ConstDecl({self.var_node}:{self.literal})"
 
 
-type Type = StandardType | Range | Enum | Array
+type Type[S] = StandardType[S] | Range[S] | Enum[S] | Array[S]
 
 
 @dataclass(frozen=True, slots=True)
 class Array[S](AST[S]):
-    index_type: Type
-    element_type: Type
+    index_type: "Range[S]"
+    element_type: Type[S]
+    type_symbol: S | None = None
 
     def __str__(self) -> str:
         return f"{self.element_type}[{self.index_type}]"
@@ -390,6 +391,32 @@ class Enum[S](AST[S]):
 
     def __repr__(self) -> str:
         return f"Enum({self.items})"
+
+
+@dataclass(slots=True)
+class IndexOf[S](AST[S]):
+    var_node: Var
+    index_value: AST
+    type_symbol: S | None = None
+
+    def __str__(self) -> str:
+        return f"{self.var_node}[{self.index_value}]"
+
+    def __repr__(self) -> str:
+        return f"IndexOf({self.var_node=}, {self.index_value=})"
+
+
+@dataclass(slots=True)
+class AssignIndex[S](AST[S]):
+    left: IndexOf[S]
+    right: AST[S]
+    type_symbol: S | None = None
+
+    def __str__(self) -> str:
+        return f"{self.left} := {self.right}"
+
+    def __repr__(self) -> str:
+        return f"AssignIndex({self.left=}, {self.right=})"
 
 
 class Parser[S]:
@@ -653,11 +680,23 @@ class Parser[S]:
     def array_decl(self) -> Array[S]:
         """
         array_decl:
-            ARRAY OPEN_BRACKET type_spec CLOSE_BRACKET OF type_spec
+            ARRAY OPEN_BRACKET (ID DOT DOT ID | literal DOT DOT literal) CLOSE_BRACKET OF type_spec
         """
         self.eat(TokenType.ARRAY)
         self.eat(TokenType.OPEN_BRACKET)
-        index_type = self.type_spec()
+        if self.current_token.token_type == TokenType.ID:
+            init_index = Var(self.current_token)
+            self.eat(TokenType.ID)
+            self.eat(TokenType.DOT)
+            self.eat(TokenType.DOT)
+            end_index = Var(self.current_token)
+            self.eat(TokenType.ID)
+        else:
+            init_index = self.literal()
+            self.eat(TokenType.DOT)
+            self.eat(TokenType.DOT)
+            end_index = self.literal()
+        index_type = Range[S](init_index, end_index)
         self.eat(TokenType.CLOSE_BRACKET)
         self.eat(TokenType.OF)
         element_type = self.type_spec()
@@ -712,6 +751,7 @@ class Parser[S]:
             compound_statement |
             call_statement |
             assignment_statement |
+            index_assignment_statement |
             if_statement |
             while_statement |
             for_statement |
@@ -729,6 +769,8 @@ class Parser[S]:
         if self.current_token.token_type == TokenType.ID and self.lexer.char == "(":
             return self.call_statement()
         if self.current_token.token_type == TokenType.ID:
+            if self.lexer.char == "[":
+                return self.index_assignment_statement()
             return self.assignement_statement()
         if self.current_token.token_type == TokenType.IF:
             return self.if_statement()
@@ -739,6 +781,16 @@ class Parser[S]:
         if self.current_token.token_type == TokenType.EXIT:
             return self.exit_statement()
         return NoOp()
+
+    def index_assignment_statement(self) -> AssignIndex:
+        """
+        index_assignement_statement:
+            index_of_statement ASSIGN expr
+        """
+        index_of = self.index_of_statement()
+        self.eat(TokenType.ASSIGN)
+        left = self.expr()
+        return AssignIndex(index_of, left)
 
     def for_statement(self) -> ForStatement:
         """
@@ -854,6 +906,7 @@ class Parser[S]:
             literal |
             OPEN_PARANTH expr CLOSE_PARANTH |
             call_statement |
+            index_of_statement |
             variable
         """
         token = self.current_token
@@ -878,7 +931,21 @@ class Parser[S]:
             return result
         if token.token_type == TokenType.ID and self.lexer.char == "(":
             return self.call_statement()
+        if token.token_type == TokenType.ID and self.lexer.char == "[":
+            return self.index_of_statement()
         return self.variable()
+
+    def index_of_statement(self) -> IndexOf[S]:
+        """
+        index_of_statement:
+            ID OPEN_BRACKET expr CLOSE_BRACKET
+        """
+        var_node = Var(self.current_token)
+        self.eat(TokenType.ID)
+        self.eat(TokenType.OPEN_BRACKET)
+        expr = self.expr()
+        self.eat(TokenType.CLOSE_BRACKET)
+        return IndexOf[S](var_node, expr)
 
     def mult_expr(self) -> AST:
         """

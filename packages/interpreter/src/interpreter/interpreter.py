@@ -5,6 +5,7 @@ from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
 from typing import Any, override
 from interpreter.symbols import (
+    ArraySymbol,
     BuiltinCallableSymbol,
     BuiltinInput,
     CustomCallableSymbol,
@@ -30,6 +31,7 @@ from parser.errors import ErrorCode
 from parser.parser import (
     AST,
     Array,
+    AssignIndex,
     Break,
     Condition,
     ConstDecl,
@@ -39,6 +41,7 @@ from parser.parser import (
     ForStatement,
     Function,
     IfStatement,
+    IndexOf,
     Literal,
     Range,
     StandardType,
@@ -170,6 +173,12 @@ class Interpreter(Visitor):
     def visit_VarDecl(self, node: VarDecl) -> Any:
         if node.default_value is not None:
             self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
+        elif isinstance(node.type_node, Array):
+            array_type = node.var_node.type_symbol
+            assert isinstance(array_type, ArraySymbol)
+            length = array_type.index_type.max_value - array_type.index_type.min_value
+            array = [None for _ in range(length)]
+            self.call_stack.peek()[node.var_node.value] = array
 
     @override
     def visit_StandardType(self, node: StandardType) -> Any:
@@ -333,6 +342,32 @@ class Interpreter(Visitor):
     def visit_Enum(self, node: Enum[Symbol]) -> Any:
         for i, item in enumerate(node.items):
             self.call_stack.peek()[item.value] = i
+
+    @override
+    def visit_IndexOf(self, node: IndexOf[Symbol]) -> Any:
+        array: list[Any] = self.visit(node.var_node)
+        array_type = node.var_node.type_symbol
+        assert isinstance(array_type, ArraySymbol)
+        index_value = array_type.get_index_from_index_value(
+            self.visit(node.index_value)
+        )
+        if index_value < 0 or index_value >= len(array):
+            raise InterpreterError("index our of range", ErrorCode.INDEX_OUT_OF_RANGE)
+        return array[index_value]
+
+    @override
+    def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> Any:
+        array: list[Any] = self.visit(node.left.var_node)
+        array_type = node.left.var_node.type_symbol
+        assert isinstance(array_type, ArraySymbol)
+        index_value = array_type.get_index_from_index_value(
+            self.visit(node.left.index_value)
+        )
+        if index_value < 0 or index_value >= len(array):
+            raise InterpreterError(
+                f"index our of range: {index_value}", ErrorCode.INDEX_OUT_OF_RANGE
+            )
+        array[index_value] = self.visit(node.right)
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

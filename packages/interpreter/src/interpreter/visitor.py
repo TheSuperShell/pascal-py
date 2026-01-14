@@ -16,6 +16,7 @@ from parser import (
 )
 from parser.parser import (
     Array,
+    AssignIndex,
     Break,
     Condition,
     ConstDecl,
@@ -25,6 +26,7 @@ from parser.parser import (
     ForStatement,
     Function,
     IfStatement,
+    IndexOf,
     Literal,
     Range,
     StandardType,
@@ -122,3 +124,9 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_Array(self, node: Array[Symbol]) -> Any: ...
+
+    @abstractmethod
+    def visit_IndexOf(self, node: IndexOf[Symbol]) -> Any: ...
+
+    @abstractmethod
+    def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> Any: ...

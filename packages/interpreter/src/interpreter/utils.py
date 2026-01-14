@@ -76,7 +76,7 @@ class CallStack:
             raise Exception("stack is empty")
         return self._records[-1]
 
-    def lookup(self, key: str) -> ActivationRecord | None:
+    def lookup(self, key: str) -> Any:
         for record in reversed(self._records):
             if key in record:
                 return record[key]
