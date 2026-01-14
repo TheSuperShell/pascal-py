@@ -173,9 +173,8 @@ class Interpreter(Visitor):
     def visit_VarDecl(self, node: VarDecl) -> Any:
         if node.default_value is not None:
             self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
-        elif isinstance(node.type_node, Array):
+        elif isinstance(node.var_node.type_symbol, ArraySymbol):
             array_type = node.var_node.type_symbol
-            assert isinstance(array_type, ArraySymbol)
             length = array_type.index_type.max_value - array_type.index_type.min_value
             array = [None for _ in range(length)]
             self.call_stack.peek()[node.var_node.value] = array
