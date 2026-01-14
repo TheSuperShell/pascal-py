@@ -175,9 +175,14 @@ class Interpreter(Visitor):
             self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
         elif isinstance(node.var_node.type_symbol, ArraySymbol):
             array_type = node.var_node.type_symbol
-            length = array_type.index_type.max_value - array_type.index_type.min_value
-            array = [None for _ in range(length)]
+            array = self._array_init(array_type)
             self.call_stack.peek()[node.var_node.value] = array
+
+    def _array_init(self, type_symbol: ArraySymbol) -> list[Any]:
+        length = type_symbol.index_type.max_value - type_symbol.index_type.min_value
+        if not isinstance(type_symbol.element_type, ArraySymbol):
+            return [None for _ in range(length)]
+        return [self._array_init(type_symbol.element_type) for _ in range(length)]
 
     @override
     def visit_StandardType(self, node: StandardType) -> Any:
@@ -352,10 +357,21 @@ class Interpreter(Visitor):
         )
         if index_value < 0 or index_value >= len(array):
             raise InterpreterError("index our of range", ErrorCode.INDEX_OUT_OF_RANGE)
-        return array[index_value]
+        val = array[index_value]
+        for ind in node.other_indicies:
+            array_type = array_type.element_type
+            assert isinstance(array_type, ArraySymbol)
+            index_value = array_type.get_index_from_index_value(self.visit(ind))
+            if index_value < 0 or index_value >= len(array):
+                raise InterpreterError(
+                    "index our of range", ErrorCode.INDEX_OUT_OF_RANGE
+                )
+            val = val[index_value]
+        return val
 
     @override
     def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> Any:
+        value = self.visit(node.right)
         array: list[Any] = self.visit(node.left.var_node)
         array_type = node.left.var_node.type_symbol
         assert isinstance(array_type, ArraySymbol)
@@ -366,7 +382,16 @@ class Interpreter(Visitor):
             raise InterpreterError(
                 f"index our of range: {index_value}", ErrorCode.INDEX_OUT_OF_RANGE
             )
-        array[index_value] = self.visit(node.right)
+        for ind in node.left.other_indicies:
+            array = array[index_value]
+            array_type = array_type.element_type
+            assert isinstance(array_type, ArraySymbol)
+            index_value = array_type.get_index_from_index_value(self.visit(ind))
+            if index_value < 0 or index_value >= len(array):
+                raise InterpreterError(
+                    f"index our of range: {index_value}", ErrorCode.INDEX_OUT_OF_RANGE
+                )
+        array[index_value] = value
 
     def interpret(self, tree: AST) -> AST:
         self.visit(tree)

@@ -397,6 +397,7 @@ class Enum[S](AST[S]):
 class IndexOf[S](AST[S]):
     var_node: Var
     index_value: AST
+    other_indicies: list[AST]
     type_symbol: S | None = None
 
     def __str__(self) -> str:
@@ -942,14 +943,18 @@ class Parser[S]:
     def index_of_statement(self) -> IndexOf[S]:
         """
         index_of_statement:
-            ID OPEN_BRACKET expr CLOSE_BRACKET
+            ID OPEN_BRACKET expr (COMMA expr)* CLOSE_BRACKET
         """
         var_node = Var(self.current_token)
         self.eat(TokenType.ID)
         self.eat(TokenType.OPEN_BRACKET)
         expr = self.expr()
+        other_indicies: list[AST] = []
+        while self.current_token.token_type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            other_indicies.append(self.expr())
         self.eat(TokenType.CLOSE_BRACKET)
-        return IndexOf[S](var_node, expr)
+        return IndexOf[S](var_node, expr, other_indicies)
 
     def mult_expr(self) -> AST:
         """

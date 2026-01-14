@@ -765,6 +765,13 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError()
         if index_type != var_type.index_type:
             raise SemanticError()
+        for index_node in node.other_indicies:
+            var_type = var_type.element_type
+            if not isinstance(var_type, ArraySymbol):
+                raise SemanticError("variable index dimention is wrong")
+            index_type = self.visit(index_node)
+            if index_type != var_type.index_type:
+                raise SemanticError()
         node.type_symbol = var_type
         return var_type.element_type
 
