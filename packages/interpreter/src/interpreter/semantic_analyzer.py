@@ -681,7 +681,20 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_Array(self, node: Array[Symbol]) -> TypeSymbol:
-        index_type = self.visit(node.index_type)
+        if isinstance(node.index_type, Var):
+            index_type = self.get_current_scope().lookup_type(node.index_type.value)
+            if index_type is None:
+                raise SemanticError(
+                    f"unkown type {node.index_type}", ErrorCode.UNKOWN_TYPE, node
+                )
+        else:
+            index_type = self.visit(node.index_type)
+        if not isinstance(index_type, RangeSymbol):
+            raise SemanticError(
+                f"array index type should be range, got {index_type}",
+                ErrorCode.INCORRECT_TYPE,
+                node,
+            )
         element_type = self.visit(node.element_type)
         type_symbol = ArraySymbol[Any, Any](
             "ARRAY",

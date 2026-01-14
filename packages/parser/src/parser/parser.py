@@ -203,7 +203,7 @@ type Type[S] = StandardType[S] | Range[S] | Enum[S] | Array[S]
 
 @dataclass(frozen=True, slots=True)
 class Array[S](AST[S]):
-    index_type: "Range[S]"
+    index_type: "Range[S] | Var[S]"
     element_type: Type[S]
     type_symbol: S | None = None
 
@@ -680,23 +680,27 @@ class Parser[S]:
     def array_decl(self) -> Array[S]:
         """
         array_decl:
-            ARRAY OPEN_BRACKET (ID DOT DOT ID | literal DOT DOT literal) CLOSE_BRACKET OF type_spec
+            ARRAY OPEN_BRACKET (ID (DOT DOT ID)? | literal DOT DOT literal) CLOSE_BRACKET OF type_spec
         """
         self.eat(TokenType.ARRAY)
         self.eat(TokenType.OPEN_BRACKET)
         if self.current_token.token_type == TokenType.ID:
             init_index = Var(self.current_token)
             self.eat(TokenType.ID)
-            self.eat(TokenType.DOT)
-            self.eat(TokenType.DOT)
-            end_index = Var(self.current_token)
-            self.eat(TokenType.ID)
+            if self.current_token.token_type == TokenType.DOT:
+                self.eat(TokenType.DOT)
+                self.eat(TokenType.DOT)
+                end_index = Var(self.current_token)
+                self.eat(TokenType.ID)
+                index_type = Range[S](init_index, end_index)
+            else:
+                index_type = init_index
         else:
             init_index = self.literal()
             self.eat(TokenType.DOT)
             self.eat(TokenType.DOT)
             end_index = self.literal()
-        index_type = Range[S](init_index, end_index)
+            index_type = Range[S](init_index, end_index)
         self.eat(TokenType.CLOSE_BRACKET)
         self.eat(TokenType.OF)
         element_type = self.type_spec()

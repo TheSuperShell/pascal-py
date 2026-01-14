@@ -1,11 +1,10 @@
 program arr;
-const PI = 3.14;
-    var a: array[0..3] of array[0..3] of real;
-    var i: integer;
-    var j: integer;
+    const PI = 3.14;
+    type angles = 0..361;
+    var a: array[angles] of real;
+        i: angles;
 begin
-    for i := 0 to 3 do
-        for j := 0 to 3 do
-            a[i][j] := i * j;
+    for i := 0 to 361 do
+        a[i] := i / 360 * PI;
     writeln(a)
 end.
