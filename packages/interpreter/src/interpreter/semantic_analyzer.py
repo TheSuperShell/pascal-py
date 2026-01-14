@@ -105,15 +105,6 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.INVALID_EXIT,
                 node,
             )
-        elif (
-            self.get_current_scope().scope_type == ScopeType.FUNCTION
-            and node.expr is None
-        ):
-            raise SemanticError(
-                "function should return a value",
-                ErrorCode.INVALID_EXIT,
-                node,
-            )
         self.logger.debug(f"EXIT {self.get_current_scope().scope_name}")
         if node.expr:
             self.visit(node.expr)
@@ -122,6 +113,56 @@ class SymbolTableVisitor(Visitor):
     def visit_Compound(self, node: Compound) -> None:
         for child in node.children:
             self.visit(child)
+
+    def _analyze_function_return(
+        self, stmt: AST, in_assigned: bool
+    ) -> tuple[bool, bool]:
+        if isinstance(stmt, Exit):
+            if stmt.expr is not None:
+                return True, False
+            if not in_assigned:
+                raise SemanticError(
+                    "function exited, but returned no value", ErrorCode.NO_RETURN, stmt
+                )
+        if isinstance(stmt, Assign):
+            if stmt.left.value.lower() in ("result"):
+                return True, True
+            return in_assigned, True
+        if isinstance(stmt, IfStatement):
+            thens = [
+                self._analyze_function_return(stmt.main_condition.expr, in_assigned)
+            ]
+            for other_cond in stmt.secondary_conditions:
+                thens.append(
+                    self._analyze_function_return(other_cond.expr, in_assigned)
+                )
+            if stmt.else_condition is None:
+                else_out = in_assigned
+                else_fall = True
+            else:
+                else_out, else_fall = self._analyze_function_return(
+                    stmt.else_condition, in_assigned
+                )
+            thens.append((else_out, else_fall))
+            fall = any(a[1] for a in thens)
+            out = True
+            for then_out, then_fall in thens:
+                out = out and (not then_fall or then_out)
+            return out, fall
+
+        if isinstance(stmt, WhileStatement) or isinstance(stmt, ForStatement):
+            self._analyze_function_return(stmt.expr, in_assigned)
+            return in_assigned, True
+
+        if isinstance(stmt, Block):
+            assigned = in_assigned
+            fall = True
+            for child in stmt.compund_statement.children:
+                if not fall:
+                    break
+                assigned, fall = self._analyze_function_return(child, assigned)
+            return assigned, fall
+        return in_assigned, True
 
     @override
     def visit_Function(self, node: Function) -> None:
@@ -165,6 +206,15 @@ class SymbolTableVisitor(Visitor):
 
         self.visit(node.block)
         self.logger.debug(function_scope)
+
+        return_assigned, can_fallthrough = self._analyze_function_return(
+            node.block, False
+        )
+        if can_fallthrough and not return_assigned:
+            raise SemanticError(
+                "function may not return the result", ErrorCode.NO_RETURN, node
+            )
+
         self.current_scope = self.get_current_scope().enclosing_scope
         self.logger.debug(f"LEAVE scope: {func_name}")
 
