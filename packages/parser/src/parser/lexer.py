@@ -35,6 +35,7 @@ _RESERVED_KEYWORDS: dict[str, Token] = {
     "ARRAY": Token.array(),
     "OF": Token.of(),
     "IN": Token.In(),
+    "OUT": Token.out(),
 }
 
 

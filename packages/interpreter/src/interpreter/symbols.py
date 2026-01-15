@@ -115,9 +115,15 @@ class ConstSymbol[T](Symbol):
         return SymbolKind.VARIABLE
 
 
+class ParamMode(StrEnum):
+    VALUE = auto()
+    REF = auto()
+
+
 @dataclass(slots=True)
 class CustomCallableSymbol(Symbol):
     return_type: TypeSymbol | None = None
+    param_modes: list[ParamMode] = field(default_factory=list)
     params: list[VarSymbol] = field(default_factory=list)
     block_ast: AST | None = None
 
@@ -131,11 +137,6 @@ class CustomCallableSymbol(Symbol):
 
 
 type BuiltinInput = Sequence[tuple[Any, TypeSymbol | None]]
-
-
-class ParamMode(StrEnum):
-    VALUE = auto()
-    REF = auto()
 
 
 @dataclass(slots=True)

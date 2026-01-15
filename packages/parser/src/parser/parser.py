@@ -263,6 +263,7 @@ class Function[S](AST[S]):
 class Param[S](AST[S]):
     var_node: Var
     type_node: Type
+    out: bool
     type_symbol: S | None = None
 
     def __str__(self) -> str:
@@ -612,17 +613,23 @@ class Parser[S]:
     def formal_parameters(self) -> list[Param]:
         """
         formal_parameters:
-            ID (COMMA ID)* COLON type_spec
+            OUT? ID (COMMA OUT? ID)* COLON type_spec
         """
-        names = [self.current_token]
+        out = self.current_token.token_type == TokenType.OUT
+        if out:
+            self.eat(TokenType.OUT)
+        names = [(out, self.current_token)]
         self.eat(TokenType.ID)
         while self.current_token.token_type == TokenType.COMMA:
             self.eat(TokenType.COMMA)
-            names.append(self.current_token)
+            out = self.current_token.token_type == TokenType.OUT
+            if out:
+                self.eat(TokenType.OUT)
+            names.append((out, self.current_token))
             self.eat(TokenType.ID)
         self.eat(TokenType.COLON)
         param_type = self.type_spec()
-        return [Param(Var(name), param_type) for name in names]
+        return [Param(Var(name), param_type, out) for out, name in names]
 
     def variable_declaration(self) -> list[VarDecl]:
         """

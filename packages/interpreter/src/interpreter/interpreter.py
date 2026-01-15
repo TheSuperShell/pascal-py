@@ -239,21 +239,29 @@ class Interpreter(Visitor):
         )
         formal_params = proc_symbol.params
         actual_params = node.actual_params
-        for param_symbol, actual_param in zip(formal_params, actual_params):
+        for param_symbol, param_mode, actual_param in zip(
+            formal_params, proc_symbol.param_modes, actual_params
+        ):
             param_type = param_symbol.symbol_type
-            input_value = self.visit(actual_param)
-            if isinstance(param_type, RangeSymbol):
-                assert param_type.ordinal_rank
-                var_value_ord = param_type.ordinal_rank(input_value)
-                if (
-                    var_value_ord < param_type.min_value
-                    or var_value_ord > param_type.max_value
-                ):
-                    raise InterpreterError(
-                        f"the value {input_value} is outside of the range bounds {param_type}",
-                        ErrorCode.RANGE_OUT_OF_BOUNDS,
-                    )
-            ar[param_symbol.name] = input_value
+            if param_mode == ParamMode.VALUE:
+                input_value = self.visit(actual_param)
+                var_ref = VarRef(param_symbol.name, input_value)
+                if isinstance(param_type, RangeSymbol):
+                    assert param_type.ordinal_rank
+                    var_value_ord = param_type.ordinal_rank(input_value)
+                    if (
+                        var_value_ord < param_type.min_value
+                        or var_value_ord > param_type.max_value
+                    ):
+                        raise InterpreterError(
+                            f"the value {input_value} is outside of the range bounds {param_type}",
+                            ErrorCode.RANGE_OUT_OF_BOUNDS,
+                        )
+            else:
+                assert isinstance(actual_param, Var)
+                var_ref = self.call_stack.lookup(actual_param.value)
+                assert var_ref is not None
+            ar[param_symbol.name] = var_ref
 
         self.call_stack.push(ar)
 

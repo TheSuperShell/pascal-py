@@ -11,6 +11,7 @@ from interpreter.symbols import (
     ConstSymbol,
     EnumSymbol,
     FType,
+    ParamMode,
     ProgramSymbol,
     RangeSymbol,
     Symbol,
@@ -189,6 +190,9 @@ class SymbolTableVisitor(Visitor):
             var_symbol = VarSymbol(param_name, 0, param_type)
             self.current_scope.define(var_symbol)
             func_symbol.params.append(var_symbol)
+            func_symbol.param_modes.append(
+                ParamMode.REF if param.out else ParamMode.VALUE
+            )
 
         result_exists = self.current_scope.lookup_variable(
             "result", current_scope_only=True
@@ -244,6 +248,9 @@ class SymbolTableVisitor(Visitor):
             var_symbol = VarSymbol(param_name, 0, param_type)
             self.current_scope.define(var_symbol)
             proc_symbol.params.append(var_symbol)
+            proc_symbol.param_modes.append(
+                ParamMode.REF if param.out else ParamMode.VALUE
+            )
 
         self.visit(node.block)
         self.logger.debug(procedure_scope)
@@ -567,8 +574,14 @@ class SymbolTableVisitor(Visitor):
             )
         if callable_symbol.params is not None:
             for i, param_node in enumerate(node.actual_params):
-                param_type = self.visit(param_node)
+                if callable_symbol.param_modes[i] == ParamMode.REF and not isinstance(
+                    param_node, Var
+                ):
+                    raise SemanticError(
+                        f"out param should be a variable, not {node.actual_params}"
+                    )
                 expected_type = callable_symbol.params[i].symbol_type
+                param_type = self.visit(param_node)
                 if param_type is None:
                     raise SemanticError(
                         f"unkown function input type {param_node}",

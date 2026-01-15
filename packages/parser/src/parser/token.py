@@ -58,6 +58,7 @@ class TokenType(IntEnum):
     ARRAY = auto()
     OF = auto()
     IN = auto()
+    OUT = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -304,3 +305,7 @@ class Token:
     @classmethod
     def In(cls) -> "Token":
         return Token(TokenType.IN, "IN")
+
+    @classmethod
+    def out(cls) -> "Token":
+        return Token(TokenType.OUT, "OUT")

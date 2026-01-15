@@ -84,7 +84,7 @@ def create_builtin_functions(io: IO = StdIO()) -> list[BuiltinCallableSymbol]:
             to_string = val_type.to_string if val_type and val_type.to_string else str
             io.write(to_string(val))
 
-    def writeln(args: BuiltinInput, end: str = "\n") -> None:
+    def writeln(args: BuiltinInput) -> None:
         write(args)
         io.write("\n")
 

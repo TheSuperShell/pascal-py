@@ -1,10 +1,10 @@
 program incorrect_func;
-    function sum(num1: real; num2: real): real;
+    var a: integer = 5;
+    procedure sum(out b: integer);
     begin
-        while True do
-            exit(1);
-        exit(0);
+        b:= 10;
     end;
 begin
-    writeln(sum(1.0, 3.0));
+    sum(a);
+    writeln(a);
 end.
