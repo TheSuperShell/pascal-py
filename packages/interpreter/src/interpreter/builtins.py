@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Protocol
 from interpreter.symbols import (
     BuiltinCallableSymbol,
     BuiltinInput,
@@ -52,7 +52,45 @@ class BuiltinTypes(Enum):
         raise ValueError(f"unsupported type {python_type}")
 
 
-def create_builtin_functions() -> list[BuiltinCallableSymbol]:
+class IO(Protocol):
+    def read(self) -> str:
+        """read the input of the program
+
+        Returns:
+            str: input
+        """
+        ...
+
+    def write(self, value: str) -> None:
+        """write to the output of the program
+
+        Args:
+            value (str): output
+        """
+        ...
+
+
+class StdIO:
+    def read(self) -> str:
+        return input()
+
+    def write(self, value: str) -> None:
+        print(value, sep="", end="")
+
+
+def create_builtin_functions(io: IO = StdIO()) -> list[BuiltinCallableSymbol]:
+    def write(args: BuiltinInput) -> None:
+        for val, val_type in args:
+            to_string = val_type.to_string if val_type and val_type.to_string else str
+            io.write(to_string(val))
+
+    def writeln(args: BuiltinInput, end: str = "\n") -> None:
+        write(args)
+        io.write("\n")
+
+    def readln(args: BuiltinInput) -> None:
+        args[0][0].set(io.read())
+
     result = []
     result.append(
         BuiltinCallableSymbol("writeln", 0, writeln, [ParamMode.VALUE], None, None)
@@ -80,22 +118,6 @@ def create_builtin_functions() -> list[BuiltinCallableSymbol]:
     return result
 
 
-def writeln(args: BuiltinInput, end: str = "\n") -> None:
-    result = []
-    for val, val_type in args:
-        to_string = val_type.to_string if val_type and val_type.to_string else str
-        result.append(to_string(val))
-    print(*result, sep="", end=end)
-
-
-def write(args: BuiltinInput) -> None:
-    writeln(args, "")
-
-
 def length(args: BuiltinInput) -> int:
     text = args[0][0]
     return len(text)
-
-
-def readln(args: BuiltinInput) -> None:
-    args[0][0].set(input())
