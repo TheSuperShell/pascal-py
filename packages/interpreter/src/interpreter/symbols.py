@@ -133,9 +133,15 @@ class CustomCallableSymbol(Symbol):
 type BuiltinInput = Sequence[tuple[Any, TypeSymbol | None]]
 
 
+class ParamMode(StrEnum):
+    VALUE = auto()
+    REF = auto()
+
+
 @dataclass(slots=True)
 class BuiltinCallableSymbol(Symbol):
     func: Callable[[BuiltinInput], Any]
+    param_modes: list[ParamMode]
     params: list[VarSymbol] | None = None
     return_type: TypeSymbol | None = None
 

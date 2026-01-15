@@ -4,6 +4,7 @@ from interpreter.symbols import (
     BuiltinCallableSymbol,
     BuiltinInput,
     FType,
+    ParamMode,
     Symbol,
     TypeSymbol,
     VarSymbol,
@@ -53,13 +54,25 @@ class BuiltinTypes(Enum):
 
 def create_builtin_functions() -> list[BuiltinCallableSymbol]:
     result = []
-    result.append(BuiltinCallableSymbol("writeln", 0, writeln, None, None))
-    result.append(BuiltinCallableSymbol("write", 0, write, None, None))
+    result.append(
+        BuiltinCallableSymbol("writeln", 0, writeln, [ParamMode.VALUE], None, None)
+    )
+    result.append(BuiltinCallableSymbol("write", 0, write, [ParamMode.VALUE], None))
+    result.append(
+        BuiltinCallableSymbol(
+            "readln",
+            0,
+            readln,
+            [ParamMode.REF],
+            [VarSymbol("inp_var", 0, BuiltinTypes.STRING.value)],
+        )
+    )
     result.append(
         BuiltinCallableSymbol(
             "length",
             0,
             length,
+            [ParamMode.VALUE],
             [VarSymbol("text", 0, BuiltinTypes.STRING.value)],
             BuiltinTypes.INTEGER.value,
         )
@@ -82,3 +95,7 @@ def write(args: BuiltinInput) -> None:
 def length(args: BuiltinInput) -> int:
     text = args[0][0]
     return len(text)
+
+
+def readln(args: BuiltinInput) -> None:
+    args[0][0].set(input())

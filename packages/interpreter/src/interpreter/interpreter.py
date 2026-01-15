@@ -10,6 +10,7 @@ from interpreter.symbols import (
     BuiltinInput,
     CustomCallableSymbol,
     ConstSymbol,
+    ParamMode,
     RangeSymbol,
     Symbol,
     TypeSymbol,
@@ -50,7 +51,7 @@ from parser.parser import (
     WhileStatement,
 )
 from parser.token import TokenType
-from interpreter.utils import ARType, ActivationRecord, CallStack, VarRef
+from interpreter.utils import ARType, ActivationRecord, CallStack, Ref, VarRef
 from interpreter.visitor import Visitor
 
 
@@ -159,7 +160,7 @@ class Interpreter(Visitor):
         var_name = node.value
         if isinstance(node.symbol, ConstSymbol):
             return node.symbol.value
-        val = self.call_stack.lookup(var_name)
+        val = self.call_stack.lookup_value(var_name)
         if val is None:
             raise InterpreterError(
                 f"unkown variable {var_name} or the variable is not set",
@@ -198,12 +199,24 @@ class Interpreter(Visitor):
         right = self.visit(node.right)
         return _OPERATIONS[node.token.token_type](left, right)
 
+    def _visit_ref(self, node: AST[Symbol]) -> Ref:
+        assert isinstance(node, Var)
+        variable = self.call_stack.lookup(node.value)
+        if variable is None:
+            raise InterpreterError(f"variable {node.value} reference does not exist")
+        return variable
+
     def _visit_builtin_callable(
         self, symbol: BuiltinCallableSymbol, node: Call[Symbol]
     ) -> Any:
         inputs: BuiltinInput = []
-        for param in node.actual_params:
-            inputs.append((self.visit(param), param.type_symbol))
+        for i, param in enumerate(node.actual_params):
+            mode_ind = i if symbol.params else 0
+            mode = symbol.param_modes[mode_ind]
+            val = (
+                self.visit(param) if mode == ParamMode.VALUE else self._visit_ref(param)
+            )
+            inputs.append((val, param.type_symbol))
         self.logger.debug(f"CALL builtin: {symbol.name}")
         return symbol.func(inputs)
 
