@@ -38,6 +38,7 @@ from parser.parser import (
     Continue,
     Enum,
     Exit,
+    ForInStatement,
     ForStatement,
     Function,
     IfStatement,
@@ -289,6 +290,19 @@ class Interpreter(Visitor):
     def visit_WhileStatement(self, node: WhileStatement) -> None:
         with contextlib.suppress(BreakLoop):
             while self.visit(node.condition):
+                with contextlib.suppress(ContinueLoop):
+                    self.visit(node.expr)
+
+    @override
+    def visit_ForInStatement(self, node: ForInStatement[Symbol]) -> None:
+        range_type_symbol = node.range_expr.type_symbol
+        assert isinstance(range_type_symbol, RangeSymbol)
+        assert range_type_symbol.ordinal_value
+        with contextlib.suppress(BreakLoop):
+            for i in range(range_type_symbol.min_value, range_type_symbol.max_value):
+                self.call_stack.peek()[node.var.value] = (
+                    range_type_symbol.ordinal_value(i)
+                )
                 with contextlib.suppress(ContinueLoop):
                     self.visit(node.expr)
 

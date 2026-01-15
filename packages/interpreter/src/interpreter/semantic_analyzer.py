@@ -43,6 +43,7 @@ from parser.parser import (
     Continue,
     Enum,
     Exit,
+    ForInStatement,
     ForStatement,
     Function,
     IfStatement,
@@ -340,6 +341,7 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError(
                 f"unkown type {node.value}", ErrorCode.UNKOWN_TYPE, node
             )
+        node.type_symbol = type_symbol
         return type_symbol
 
     @override
@@ -615,6 +617,20 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError(
                 f"while condition should contain boolean, but {type_symbol} was provided",
                 ErrorCode.INCORRECT_TYPE,
+                node,
+            )
+        self.loop_depth += 1
+        self.visit(node.expr)
+        self.loop_depth -= 1
+
+    @override
+    def visit_ForInStatement(self, node: ForInStatement[Symbol]) -> None:
+        var_symbol = self.get_current_scope().lookup_variable(node.var.value)
+        self.visit(node.range_expr)
+        if var_symbol is None:
+            raise SemanticError(
+                f"unkown variable in if statement {node.var}",
+                ErrorCode.ID_NOT_FOUND,
                 node,
             )
         self.loop_depth += 1

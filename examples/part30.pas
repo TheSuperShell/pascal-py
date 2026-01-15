@@ -1,9 +1,11 @@
 program arr;
-    const PI = 3.14;
+    const 
+        PI = 3.14;
     type 
-        example_arr = array[0..10] of array['a'..'z'] of string;
-    var a: example_arr;
+        some_vals = 13..25;
+    var 
+        i: integer;
 begin
-    a[5, 'f'] := 'Hello';
-    writeln(a[5, 'f'])
+    for i in some_vals do
+        writeln(i);
 end.

@@ -57,6 +57,7 @@ class TokenType(IntEnum):
     CLOSE_BRACKET = auto()
     ARRAY = auto()
     OF = auto()
+    IN = auto()
     EOF = auto()
 
     def __str__(self) -> str:
@@ -299,3 +300,7 @@ class Token:
     @classmethod
     def of(cls) -> "Token":
         return Token(TokenType.OF, "OF")
+
+    @classmethod
+    def In(cls) -> "Token":
+        return Token(TokenType.IN, "IN")

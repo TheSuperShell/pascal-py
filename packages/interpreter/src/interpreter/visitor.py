@@ -23,6 +23,7 @@ from parser.parser import (
     Continue,
     Enum,
     Exit,
+    ForInStatement,
     ForStatement,
     Function,
     IfStatement,
@@ -130,3 +131,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> Any: ...
+
+    @abstractmethod
+    def visit_ForInStatement(self, node: ForInStatement[Symbol]) -> None: ...

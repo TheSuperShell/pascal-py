@@ -214,9 +214,10 @@ class Array[S](AST[S]):
         return f"ARRAY({self.index_type=}, {self.element_type=})"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class StandardType[S](AST[S]):
     token: Token
+    type_symbol: S | None = None
 
     @property
     def value(self) -> str:
@@ -338,10 +339,10 @@ class IfStatement[S](AST[S]):
 
 @dataclass(slots=True, frozen=True)
 class ForStatement[S](AST[S]):
-    var: Var
-    init_state: AST
-    end_state: AST
-    expr: AST
+    var: Var[S]
+    init_state: AST[S]
+    end_state: AST[S]
+    expr: AST[S]
 
     def __str__(self) -> str:
         return (
@@ -350,6 +351,19 @@ class ForStatement[S](AST[S]):
 
     def __repr__(self) -> str:
         return f"ForStatement({self.var=}, {self.init_state=}, {self.end_state=}, {self.expr=})"
+
+
+@dataclass(slots=True, frozen=True)
+class ForInStatement[S](AST[S]):
+    var: Var[S]
+    range_expr: "Range[S] | StandardType"
+    expr: AST[S]
+
+    def __str__(self) -> str:
+        return f"for {self.var} in {self.range_expr} do {self.expr}"
+
+    def __repr__(self) -> str:
+        return f"ForInStatement({self.var=}, {self.range_expr=}, {self.expr=})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -632,15 +646,11 @@ class Parser[S]:
             default_value = self.literal()
         return [VarDecl(var_node, type_node, default_value) for var_node in var_nodes]
 
-    def type_spec(self) -> Type:
+    def range_statement(self) -> Range | StandardType:
         """
-        type_spec:
-            (ID (DOT DOT ID)?) |
-            INTEGER | REAL | BOOLEAN | STRING | CHAR | enum_decl |
-            array_decl |
-            literal DOT DOT literal
+        range_statement:
+            ID (DOT DOT ID)? | literal DOT DOT literal
         """
-        token = self.current_token
         if self.current_token.token_type == TokenType.ID:
             var = self.current_token
             self.eat(TokenType.ID)
@@ -651,6 +661,21 @@ class Parser[S]:
                 self.eat(TokenType.ID)
                 return Range(Var(var), Var(end))
             return StandardType(var)
+        start = self.literal()
+        self.eat(TokenType.DOT)
+        self.eat(TokenType.DOT)
+        end = self.literal()
+        return Range(start, end)
+
+    def type_spec(self) -> Type:
+        """
+        type_spec:
+            INTEGER | REAL | BOOLEAN | STRING | CHAR |
+            enum_decl |
+            array_decl |
+            range_statement
+        """
+        token = self.current_token
         if self.current_token.token_type in (
             TokenType.ID,
             TokenType.INTEGER,
@@ -672,11 +697,7 @@ class Parser[S]:
             return self.enum_decl()
         if self.current_token.token_type == TokenType.ARRAY:
             return self.array_decl()
-        start = self.literal()
-        self.eat(TokenType.DOT)
-        self.eat(TokenType.DOT)
-        end = self.literal()
-        return Range(start, end)
+        return self.range_statement()
 
     def array_decl(self) -> Array[S]:
         """
@@ -797,21 +818,27 @@ class Parser[S]:
         left = self.expr()
         return AssignIndex(index_of, left)
 
-    def for_statement(self) -> ForStatement:
+    def for_statement(self) -> ForStatement | ForInStatement:
         """
         for_statement:
-            FOR id ASSIGN expr TO expr DO loop_statement
+            FOR id (ASSIGN expr TO expr | IN range_statement) DO loop_statement
         """
         self.eat(TokenType.FOR)
         var = self.current_token
         self.eat(TokenType.ID)
-        self.eat(TokenType.ASSIGN)
-        init_state = self.expr()
-        self.eat(TokenType.TO)
-        end_state = self.expr()
+        if self.current_token.token_type == TokenType.ASSIGN:
+            self.eat(TokenType.ASSIGN)
+            init_state = self.expr()
+            self.eat(TokenType.TO)
+            end_state = self.expr()
+            self.eat(TokenType.DO)
+            expr = self.statement()
+            return ForStatement(Var(var), init_state, end_state, expr)
+        self.eat(TokenType.IN)
+        range_expr = self.range_statement()
         self.eat(TokenType.DO)
         expr = self.statement()
-        return ForStatement(Var(var), init_state, end_state, expr)
+        return ForInStatement(Var(var), range_expr, expr)
 
     def while_statement(self) -> WhileStatement:
         """
