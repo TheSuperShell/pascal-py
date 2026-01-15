@@ -12,7 +12,30 @@ from interpreter.symbols import (
 )
 from interpreter.builtins import create_builtin_functions
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol
+
+
+class Ref[T](Protocol):
+    @property
+    def name(self) -> str: ...
+    def get(self) -> T | None: ...
+    def set(self, val: T) -> None: ...
+    def __str__(self) -> str: ...
+
+
+@dataclass(slots=True)
+class VarRef[T]:
+    name: str
+    value: T | None = None
+
+    def get(self) -> T | None:
+        return self.value
+
+    def set(self, val: T) -> None:
+        self.value = val
+
+    def __str__(self) -> str:
+        return str(self.value)
 
 
 class ARType(StrEnum):
@@ -26,19 +49,24 @@ class ActivationRecord:
     name: str
     ar_type: ARType
     nesting_level: int
-    members: dict[str, Any] = field(default_factory=dict)
+    members: dict[str, Ref[Any]] = field(default_factory=dict)
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: Ref[Any]) -> None:
         self.members[key.upper()] = value
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> Ref[Any]:
         return self.members[key.upper()]
 
     def __contains__(self, key: str) -> bool:
         return key.upper() in self.members
 
-    def get(self, key: str) -> Any:
+    def get(self, key: str) -> Ref[Any] | None:
         return self.members.get(key.upper())
+
+    def get_value(self, key: str) -> Any | None:
+        if key not in self:
+            return None
+        return self.members[key.upper()].get()
 
     def __str__(self) -> str:
         lines = [f"{self.nesting_level}: {self.ar_type.value} {self.name}"]
@@ -76,10 +104,10 @@ class CallStack:
             raise Exception("stack is empty")
         return self._records[-1]
 
-    def lookup(self, key: str) -> Any:
+    def lookup(self, key: str) -> Any | None:
         for record in reversed(self._records):
             if key in record:
-                return record[key]
+                return record[key].get()
         return None
 
     def __str__(self) -> str:

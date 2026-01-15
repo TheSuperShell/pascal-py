@@ -49,8 +49,8 @@ from parser.parser import (
     TypeDecl,
     WhileStatement,
 )
-from parser.token import Token, TokenType
-from interpreter.utils import ARType, ActivationRecord, CallStack
+from parser.token import TokenType
+from interpreter.utils import ARType, ActivationRecord, CallStack, VarRef
 from interpreter.visitor import Visitor
 
 
@@ -151,7 +151,7 @@ class Interpreter(Visitor):
                     f"the value {var_value} is outside of the range bounds {var_type}",
                     ErrorCode.RANGE_OUT_OF_BOUNDS,
                 )
-        self.call_stack.peek()[var_name] = var_value
+        self.call_stack.peek()[var_name].set(var_value)
         return None
 
     @override
@@ -162,7 +162,8 @@ class Interpreter(Visitor):
         val = self.call_stack.lookup(var_name)
         if val is None:
             raise InterpreterError(
-                f"unkown variable {var_name}", ErrorCode.UNASSIGNED_VARIABLE
+                f"unkown variable {var_name} or the variable is not set",
+                ErrorCode.UNASSIGNED_VARIABLE,
             )
         return val
 
@@ -171,13 +172,15 @@ class Interpreter(Visitor):
         return _UNARY_OP[node.token.token_type](self.visit(node.expr))
 
     @override
-    def visit_VarDecl(self, node: VarDecl) -> Any:
+    def visit_VarDecl(self, node: VarDecl[Symbol]) -> Any:
+        var_ref = VarRef[Any](node.var_node.value)
         if node.default_value is not None:
-            self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
+            var_ref.set(node.default_value.value)
         elif isinstance(node.var_node.type_symbol, ArraySymbol):
             array_type = node.var_node.type_symbol
             array = self._array_init(array_type)
-            self.call_stack.peek()[node.var_node.value] = array
+            var_ref.set(array)
+        self.call_stack.peek()[node.var_node.value] = var_ref
 
     def _array_init(self, type_symbol: ArraySymbol) -> list[Any]:
         length = type_symbol.index_type.max_value - type_symbol.index_type.min_value
@@ -300,7 +303,7 @@ class Interpreter(Visitor):
         assert range_type_symbol.ordinal_value
         with contextlib.suppress(BreakLoop):
             for i in range(range_type_symbol.min_value, range_type_symbol.max_value):
-                self.call_stack.peek()[node.var.value] = (
+                self.call_stack.peek()[node.var.value].set(
                     range_type_symbol.ordinal_value(i)
                 )
                 with contextlib.suppress(ContinueLoop):
@@ -319,7 +322,7 @@ class Interpreter(Visitor):
             and end_state_ts.ordinal_rank
         )
         init_state = self.visit(node.init_state)
-        self.call_stack.peek()[node.var.value] = init_state
+        self.call_stack.peek()[node.var.value].set(init_state)
         end_state = self.visit(node.end_state)
         end_state_ord: int = end_state_ts.ordinal_rank(end_state)
         current_state_ord: int = init_state_ts.ordinal_rank(init_state)
@@ -328,8 +331,8 @@ class Interpreter(Visitor):
                 with contextlib.suppress(ContinueLoop):
                     self.visit(node.expr)
                 current_state_ord += 1
-                self.call_stack.peek()[node.var.value] = init_state_ts.ordinal_value(
-                    current_state_ord
+                self.call_stack.peek()[node.var.value].set(
+                    init_state_ts.ordinal_value(current_state_ord)
                 )
 
     @override
@@ -359,7 +362,7 @@ class Interpreter(Visitor):
     @override
     def visit_Enum(self, node: Enum[Symbol]) -> Any:
         for i, item in enumerate(node.items):
-            self.call_stack.peek()[item.value] = i
+            self.call_stack.peek()[item.value].set(i)
 
     @override
     def visit_IndexOf(self, node: IndexOf[Symbol]) -> Any:
