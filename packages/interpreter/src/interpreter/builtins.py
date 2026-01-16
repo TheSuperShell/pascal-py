@@ -8,19 +8,21 @@ from interpreter.symbols import (
     Symbol,
     TypeSymbol,
     VarSymbol,
+    cast,
 )
+from interpreter.symbols import VarRef
 from parser.parser import Literal
 from parser.token import TokenType
 
 
 class BuiltinTypes(Enum):
     INTEGER = TypeSymbol[int](
-        "INTEGER", 0, FType("INTEGER"), lambda x: x, lambda x: x, str
+        "INTEGER", FType("INTEGER"), lambda x: x, lambda x: x, str
     )
-    REAL = TypeSymbol[float]("REAL", 0, FType("REAL"), None, None, str)
-    BOOLEAN = TypeSymbol[bool]("BOOLEAN", 0, FType("BOOLEAN"), int, bool, str)
-    CHAR = TypeSymbol[str]("CHAR", 0, FType("CHAR"), ord, chr, lambda x: x)
-    STRING = TypeSymbol[str]("STRING", 0, FType("STRING"), None, None, lambda x: x)
+    REAL = TypeSymbol[float]("REAL", FType("REAL"), None, None, str)
+    BOOLEAN = TypeSymbol[bool]("BOOLEAN", FType("BOOLEAN"), int, bool, str)
+    CHAR = TypeSymbol[str]("CHAR", FType("CHAR"), ord, chr, lambda x: x)
+    STRING = TypeSymbol[str]("STRING", FType("STRING"), None, None, lambda x: x)
 
     @classmethod
     def literal_to_builtin(cls, literal: Literal[Any, Symbol]) -> "BuiltinTypes":
@@ -89,46 +91,44 @@ def create_builtin_functions(io: IO = StdIO()) -> list[BuiltinCallableSymbol]:
         io.write("\n")
 
     def readln(args: BuiltinInput) -> None:
-        args[0][0].set(io.read())
+        cast(args[0][0], VarRef).set(io.read())
 
     result = []
     result.append(
-        BuiltinCallableSymbol("writeln", 0, writeln, [ParamMode.VALUE], None, None)
+        BuiltinCallableSymbol("writeln", writeln, None, [ParamMode.VALUE], None)
     )
-    result.append(BuiltinCallableSymbol("write", 0, write, [ParamMode.VALUE], None))
+    result.append(BuiltinCallableSymbol("write", write, None, [ParamMode.VALUE]))
     result.append(
         BuiltinCallableSymbol(
             "readln",
-            0,
             readln,
+            None,
             [ParamMode.REF],
-            [VarSymbol("inp_var", 0, BuiltinTypes.STRING.value)],
+            [VarSymbol("inp_var", BuiltinTypes.STRING.value)],
         )
     )
     result.append(
         BuiltinCallableSymbol(
             "length",
-            0,
             length,
-            [ParamMode.VALUE],
-            [VarSymbol("text", 0, BuiltinTypes.STRING.value)],
             BuiltinTypes.INTEGER.value,
+            [ParamMode.VALUE],
+            [VarSymbol("text", BuiltinTypes.STRING.value)],
         )
     )
     result.append(
         BuiltinCallableSymbol(
-            "setlength", 0, setlength, [ParamMode.REF, ParamMode.VALUE], None
+            "setlength", setlength, None, [ParamMode.REF, ParamMode.VALUE]
         )
     )
     return result
 
 
 def length(args: BuiltinInput) -> int:
-    text = args[0][0]
-    return len(text)
+    return len(cast(args[0][0], str))
 
 
 def setlength(args: BuiltinInput) -> None:
-    arr = args[0][0]
-    size = args[1][0]
+    arr = cast(args[0][0], VarRef)
+    size = cast(args[1][0], int)
     arr.set([None for _ in range(size)])

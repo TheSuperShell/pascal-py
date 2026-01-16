@@ -1,10 +1,41 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum, auto
-from typing import Any, override
+from typing import Generic, Protocol, TypeVar, override
 
 from parser.parser import AST
+
+
+class Ref[T](Protocol):
+    @property
+    def name(self) -> str: ...
+    def get(self) -> T | None: ...
+    def set(self, val: T) -> None: ...
+    def __str__(self) -> str: ...
+
+
+@dataclass(slots=True)
+class VarRef[T]:
+    name: str
+    value: T | None = None
+
+    def get(self) -> T | None:
+        return self.value
+
+    def set(self, val: T) -> None:
+        self.value = val
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+
+type PythonTypes = int | str | bool | float | list[PythonTypes | None]
+
+
+def cast[T](v: PythonTypes | Ref, expected_type: type[T]) -> T:
+    assert isinstance(v, expected_type)
+    return v
 
 
 class SymbolKind(StrEnum):
@@ -14,14 +45,16 @@ class SymbolKind(StrEnum):
     OTHER = auto()
 
 
-@dataclass(slots=True)
 class Symbol(ABC):
-    name: str
-    scope: int
+    __slots__ = "name", "scope", "kind"
 
-    @property
-    @abstractmethod
-    def kind(self) -> SymbolKind: ...
+    def __init__(self, name: str, kind: SymbolKind) -> None:
+        self.name = name
+        self.kind = kind
+        self.scope: int = 0
+
+    def set_scope(self, value: int) -> None:
+        self.scope = value
 
     def __str__(self) -> str:
         return f"<{self.kind.name}-{self.__class__.__name__}:{self.name}>"
@@ -32,21 +65,27 @@ class FType:
     name: str
 
 
-@dataclass(slots=True)
-class TypeSymbol[T](Symbol):
-    f_type: FType
-    ordinal_rank: Callable[[T], int] | None
-    ordinal_value: Callable[[int], T] | None
-    to_string: Callable[[T], str] | None
+T = TypeVar("T", bound=PythonTypes, covariant=True)
 
-    @property
-    @override
-    def kind(self) -> SymbolKind:
-        return SymbolKind.TYPE
 
-    @property
-    def indexable(self) -> bool:
-        return False
+class TypeSymbol(Symbol, Generic[T]):
+    __slots__ = "f_type", "ordinal_rank", "ordinal_value", "to_string", "indexable"
+
+    def __init__(
+        self,
+        name: str,
+        f_type: FType,
+        ordial_rank: Callable[[T], int] | None = None,
+        ordinal_value: Callable[[int], T] | None = None,
+        to_string: Callable[[T], str] | None = None,
+        indexable: bool = False,
+    ) -> None:
+        super().__init__(name, SymbolKind.TYPE)
+        self.f_type = f_type
+        self.ordinal_rank = ordial_rank
+        self.ordinal_value = ordinal_value
+        self.to_string = to_string
+        self.indexable = indexable
 
     @property
     def is_ordinal(self) -> bool:
@@ -58,10 +97,22 @@ class TypeSymbol[T](Symbol):
         return self.f_type == value.f_type
 
 
-@dataclass(slots=True)
-class RangeSymbol[T](TypeSymbol[T]):
-    min_value: int
-    max_value: int
+class RangeSymbol(Generic[T], TypeSymbol[T]):
+    __slots__ = "min_value", "max_value"
+
+    def __init__(
+        self, name: str, type_symbol: TypeSymbol[T], min_value: int, max_value: int
+    ) -> None:
+        super().__init__(
+            name,
+            type_symbol.f_type,
+            type_symbol.ordinal_rank,
+            type_symbol.ordinal_value,
+            type_symbol.to_string,
+            False,
+        )
+        self.min_value = min_value
+        self.max_value = max_value
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, TypeSymbol):
@@ -69,9 +120,14 @@ class RangeSymbol[T](TypeSymbol[T]):
         return self.f_type == value.f_type
 
 
-@dataclass(slots=True)
 class EnumSymbol(TypeSymbol[int]):
-    items: list[str]
+    __slots__ = "items"
+
+    def __init__(self, name: str, items: Sequence[str]) -> None:
+        super().__init__(
+            name, FType("ENUM"), lambda x: x, lambda x: x, lambda x: items[x], False
+        )
+        self.items: tuple[str, ...] = tuple(items)
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, EnumSymbol):
@@ -79,23 +135,42 @@ class EnumSymbol(TypeSymbol[int]):
         return self.items == value.items
 
 
-@dataclass(slots=True)
-class ArraySymbol[I, T](TypeSymbol[list[T]]):
-    element_type: TypeSymbol[T]
-    index_type: RangeSymbol[I]
+In = TypeVar("In", bound=PythonTypes)
 
-    @property
-    @override
-    def indexable(self) -> bool:
-        return True
 
-    def get_index_from_index_value(self, value: I) -> int:
+class ArraySymbol(Generic[In, T], TypeSymbol[T], ABC):
+    __slots__ = "element_type", "index_type"
+
+    def __init__(self, name: str) -> None:
+        super().__init__(name, FType("ARRAY"), None, None, str, True)
+        self.element_type: TypeSymbol[T]
+        self.index_type: TypeSymbol[In]
+
+    @abstractmethod
+    def get_index_from_index_value(self, value: In) -> int: ...
+
+    @abstractmethod
+    def __eq__(self, value: object) -> bool: ...
+
+
+class RangedArraySymbol(Generic[In, T], ArraySymbol[In, T]):
+    __slots__ = "element_type", "index_type"
+
+    def __init__(
+        self, name: str, element_type: TypeSymbol[T], index_type: TypeSymbol[In]
+    ) -> None:
+        super().__init__(name)
+        self.element_type = element_type
+        self.index_type = index_type
+
+    def get_index_from_index_value(self, value: In) -> int:
         assert self.index_type.ordinal_rank
+        assert isinstance(self.index_type, RangeSymbol)
         value_ord = self.index_type.ordinal_rank(value)
         return value_ord - self.index_type.min_value
 
     def __eq__(self, value: object) -> bool:
-        if not isinstance(value, ArraySymbol):
+        if not isinstance(value, RangedArraySymbol):
             return False
         return (
             self.element_type == value.element_type
@@ -103,15 +178,15 @@ class ArraySymbol[I, T](TypeSymbol[list[T]]):
         )
 
 
-@dataclass(slots=True)
-class DynamicArraySymbol[T](TypeSymbol[T]):
-    element_type: TypeSymbol[T]
-    index_type: TypeSymbol[int]
+class DynamicArraySymbol(Generic[T], ArraySymbol[int, T]):
+    __slots__ = "element_type", "index_type"
 
-    @property
-    @override
-    def indexable(self) -> bool:
-        return True
+    def __init__(
+        self, name: str, element_type: TypeSymbol[T], index_type: TypeSymbol[int]
+    ) -> None:
+        super().__init__(name)
+        self.element_type = element_type
+        self.index_type = index_type
 
     def get_index_from_index_value(self, value: int) -> int:
         return value
@@ -122,25 +197,21 @@ class DynamicArraySymbol[T](TypeSymbol[T]):
         return self.element_type == value.element_type
 
 
-@dataclass(slots=True)
-class VarSymbol(Symbol):
-    symbol_type: TypeSymbol
+class VarSymbol(Symbol, Generic[T]):
+    __slots__ = "symbol_type"
 
-    @property
-    @override
-    def kind(self) -> SymbolKind:
-        return SymbolKind.VARIABLE
+    def __init__(self, name: str, symbol_type: TypeSymbol[T]) -> None:
+        super().__init__(name, SymbolKind.VARIABLE)
+        self.symbol_type = symbol_type
 
 
-@dataclass(slots=True)
-class ConstSymbol[T](Symbol):
-    symbol_type: TypeSymbol[T]
-    value: T
+class ConstSymbol(Generic[T], Symbol):
+    __slots__ = "symbol_type", "value"
 
-    @property
-    @override
-    def kind(self) -> SymbolKind:
-        return SymbolKind.VARIABLE
+    def __init__(self, name: str, symbol_type: TypeSymbol[T], value: T) -> None:
+        super().__init__(name, SymbolKind.VARIABLE)
+        self.symbol_type = symbol_type
+        self.value = value
 
 
 class ParamMode(StrEnum):
@@ -148,47 +219,68 @@ class ParamMode(StrEnum):
     REF = auto()
 
 
-@dataclass(slots=True)
-class CustomCallableSymbol(Symbol):
-    return_type: TypeSymbol | None = None
-    param_modes: list[ParamMode] = field(default_factory=list)
-    params: list[VarSymbol] = field(default_factory=list)
-    block_ast: AST | None = None
+class CallableSymbol(Symbol, ABC):
+    __slots__ = "return_type", "param_modes", "params"
 
-    @property
-    @override
-    def kind(self) -> SymbolKind:
-        return SymbolKind.CALLABLE
+    def __init__(
+        self,
+        name: str,
+        return_type: TypeSymbol[PythonTypes] | None = None,
+        param_modes: Sequence[ParamMode] | None = None,
+        params: Sequence[VarSymbol[PythonTypes]] | None = None,
+    ) -> None:
+        super().__init__(name, SymbolKind.CALLABLE)
+        self.return_type: TypeSymbol[PythonTypes] | None = return_type
+        self.param_modes: list[ParamMode] = (
+            list(param_modes) if param_modes is not None else []
+        )
+        self.params: list[VarSymbol[PythonTypes]] | None = (
+            list(params) if params is not None else None
+        )
+
+
+class CustomCallableSymbol(CallableSymbol):
+    __slots__ = "block_ast"
+
+    def __init__(
+        self,
+        name: str,
+        return_type: TypeSymbol[PythonTypes] | None = None,
+        param_modes: Sequence[ParamMode] | None = None,
+        params: Sequence[VarSymbol[PythonTypes]] | None = None,
+        block_ast: AST[Symbol] | None = None,
+    ) -> None:
+        super().__init__(name, return_type, param_modes, params)
+        self.block_ast: AST[Symbol] | None = block_ast
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
 
 
-type BuiltinInput = Sequence[tuple[Any, TypeSymbol | None]]
+type BuiltinInput = Sequence[tuple[PythonTypes | Ref[PythonTypes], TypeSymbol | None]]
 
 
-@dataclass(slots=True)
-class BuiltinCallableSymbol(Symbol):
-    func: Callable[[BuiltinInput], Any]
-    param_modes: list[ParamMode]
-    params: list[VarSymbol] | None = None
-    return_type: TypeSymbol | None = None
+class BuiltinCallableSymbol(CallableSymbol):
+    __slots__ = "func"
 
-    @property
-    @override
-    def kind(self) -> SymbolKind:
-        return SymbolKind.CALLABLE
+    def __init__(
+        self,
+        name: str,
+        func: Callable[[BuiltinInput], PythonTypes | None],
+        return_type: TypeSymbol[PythonTypes] | None = None,
+        param_modes: Sequence[ParamMode] | None = None,
+        params: Sequence[VarSymbol[PythonTypes]] | None = None,
+    ) -> None:
+        super().__init__(name, return_type, param_modes, params)
+        self.func: Callable[[BuiltinInput], PythonTypes | None] = func
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
 
 
-@dataclass(slots=True)
 class ProgramSymbol(Symbol):
-    @property
-    @override
-    def kind(self) -> SymbolKind:
-        return SymbolKind.OTHER
+    def __init__(self, name: str) -> None:
+        super().__init__(name, SymbolKind.OTHER)
 
     @override
     def __str__(self) -> str:

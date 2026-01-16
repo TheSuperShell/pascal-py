@@ -5,6 +5,7 @@ from interpreter.symbols import (
     BuiltinCallableSymbol,
     CustomCallableSymbol,
     ConstSymbol,
+    Ref,
     Symbol,
     SymbolKind,
     TypeSymbol,
@@ -12,30 +13,7 @@ from interpreter.symbols import (
 )
 from interpreter.builtins import create_builtin_functions
 from dataclasses import dataclass, field
-from typing import Any, Protocol
-
-
-class Ref[T](Protocol):
-    @property
-    def name(self) -> str: ...
-    def get(self) -> T | None: ...
-    def set(self, val: T) -> None: ...
-    def __str__(self) -> str: ...
-
-
-@dataclass(slots=True)
-class VarRef[T]:
-    name: str
-    value: T | None = None
-
-    def get(self) -> T | None:
-        return self.value
-
-    def set(self, val: T) -> None:
-        self.value = val
-
-    def __str__(self) -> str:
-        return str(self.value)
+from typing import Any
 
 
 class ARType(StrEnum):
@@ -177,7 +155,7 @@ class ScopedSymbolTable:
 
     def define(self, symbol: Symbol) -> None:
         self.logger.debug(f"Define: {symbol}")
-        symbol.scope = self.scope_level
+        symbol.set_scope(self.scope_level)
         self._symbols[(symbol.name.upper(), symbol.kind)] = symbol
 
     def lookup(

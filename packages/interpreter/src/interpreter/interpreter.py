@@ -5,7 +5,7 @@ from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
 from typing import Any, override
 from interpreter.symbols import (
-    ArraySymbol,
+    RangedArraySymbol,
     BuiltinCallableSymbol,
     BuiltinInput,
     CustomCallableSymbol,
@@ -13,8 +13,10 @@ from interpreter.symbols import (
     DynamicArraySymbol,
     ParamMode,
     RangeSymbol,
+    Ref,
     Symbol,
     TypeSymbol,
+    VarRef,
 )
 from parser import (
     Assign,
@@ -53,7 +55,7 @@ from parser.parser import (
     WhileStatement,
 )
 from parser.token import TokenType
-from interpreter.utils import ARType, ActivationRecord, CallStack, Ref, VarRef
+from interpreter.utils import ARType, ActivationRecord, CallStack
 from interpreter.visitor import Visitor
 
 
@@ -179,15 +181,17 @@ class Interpreter(Visitor):
         var_ref = VarRef[Any](node.var_node.value)
         if node.default_value is not None:
             var_ref.set(node.default_value.value)
-        elif isinstance(node.var_node.type_symbol, ArraySymbol):
+        elif isinstance(node.var_node.type_symbol, RangedArraySymbol):
             array_type = node.var_node.type_symbol
             array = self._array_init(array_type)
             var_ref.set(array)
         self.call_stack.peek()[node.var_node.value] = var_ref
 
-    def _array_init(self, type_symbol: ArraySymbol) -> list[Any]:
-        length = type_symbol.index_type.max_value - type_symbol.index_type.min_value
-        if not isinstance(type_symbol.element_type, ArraySymbol):
+    def _array_init(self, type_symbol: RangedArraySymbol) -> list[Any]:
+        index_type = type_symbol.index_type
+        assert isinstance(index_type, RangeSymbol)
+        length = index_type.max_value - index_type.min_value
+        if not isinstance(type_symbol.element_type, RangedArraySymbol):
             return [None for _ in range(length)]
         return [self._array_init(type_symbol.element_type) for _ in range(length)]
 
@@ -402,7 +406,7 @@ class Interpreter(Visitor):
     def visit_IndexOf(self, node: IndexOf[Symbol]) -> Any:
         array: list[Any] = self.visit(node.var_node)
         array_type = node.var_node.type_symbol
-        assert isinstance(array_type, ArraySymbol)
+        assert isinstance(array_type, RangedArraySymbol)
         index_value = array_type.get_index_from_index_value(
             self.visit(node.index_value)
         )
@@ -411,7 +415,7 @@ class Interpreter(Visitor):
         val = array[index_value]
         for ind in node.other_indicies:
             array_type = array_type.element_type
-            assert isinstance(array_type, ArraySymbol)
+            assert isinstance(array_type, RangedArraySymbol)
             index_value = array_type.get_index_from_index_value(self.visit(ind))
             if index_value < 0 or index_value >= len(array):
                 raise InterpreterError(
@@ -425,7 +429,7 @@ class Interpreter(Visitor):
         value = self.visit(node.right)
         array: list[Any] = self.visit(node.left.var_node)
         array_type = node.left.var_node.type_symbol
-        assert isinstance(array_type, ArraySymbol) or isinstance(
+        assert isinstance(array_type, RangedArraySymbol) or isinstance(
             array_type, DynamicArraySymbol
         )
         index_value = array_type.get_index_from_index_value(
@@ -438,7 +442,7 @@ class Interpreter(Visitor):
         for ind in node.left.other_indicies:
             array = array[index_value]
             array_type = array_type.element_type
-            assert isinstance(array_type, ArraySymbol)
+            assert isinstance(array_type, RangedArraySymbol)
             index_value = array_type.get_index_from_index_value(self.visit(ind))
             if index_value < 0 or index_value >= len(array):
                 raise InterpreterError(

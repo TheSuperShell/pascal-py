@@ -5,13 +5,13 @@ from typing import Any, Self, override
 from interpreter.builtins import BuiltinTypes
 from interpreter.errors import SemanticError
 from interpreter.symbols import (
-    ArraySymbol,
+    PythonTypes,
+    RangedArraySymbol,
     BuiltinCallableSymbol,
     CustomCallableSymbol,
     ConstSymbol,
     DynamicArraySymbol,
     EnumSymbol,
-    FType,
     ParamMode,
     ProgramSymbol,
     RangeSymbol,
@@ -75,9 +75,9 @@ class SymbolTableVisitor(Visitor):
         return self.current_scope
 
     @override
-    def visit_Program(self, node: Program) -> None:
+    def visit_Program(self, node: Program[Symbol]) -> None:
         program_name = node.name
-        self.get_current_scope().define(ProgramSymbol(program_name, 0))
+        self.get_current_scope().define(ProgramSymbol(program_name))
         self.logger.debug("ENTER scope: global")
         global_scope = ScopedSymbolTable(
             "global",
@@ -93,13 +93,13 @@ class SymbolTableVisitor(Visitor):
         self.logger.debug("LEAVE scope: global")
 
     @override
-    def visit_Block(self, node: Block) -> None:
+    def visit_Block(self, node: Block[Symbol]) -> None:
         for decls in node.declarations:
             self.visit(decls)
         self.visit(node.compund_statement)
 
     @override
-    def visit_Exit(self, node: Exit) -> None:
+    def visit_Exit(self, node: Exit[Symbol]) -> None:
         if (
             self.get_current_scope().scope_type != ScopeType.FUNCTION
             and node.expr is not None
@@ -119,7 +119,7 @@ class SymbolTableVisitor(Visitor):
             self.visit(child)
 
     def _analyze_function_return(
-        self, stmt: AST, in_assigned: bool
+        self, stmt: AST[Symbol], in_assigned: bool
     ) -> tuple[bool, bool]:
         if isinstance(stmt, Exit):
             if stmt.expr is not None:
@@ -169,10 +169,12 @@ class SymbolTableVisitor(Visitor):
         return in_assigned, True
 
     @override
-    def visit_Function(self, node: Function) -> None:
+    def visit_Function(self, node: Function[Symbol]) -> None:
         func_name = node.name
         return_symbol = self.visit(node.return_type)
-        func_symbol = CustomCallableSymbol(func_name, 0, return_type=return_symbol)
+        func_symbol = CustomCallableSymbol(
+            func_name, return_type=return_symbol, params=[]
+        )
         self.get_current_scope().define(func_symbol)
 
         self.logger.debug(f"ENTER scope: {func_name}")
@@ -189,8 +191,9 @@ class SymbolTableVisitor(Visitor):
         for param in node.params:
             param_type = self.visit(param)
             param_name = param.var_node.value
-            var_symbol = VarSymbol(param_name, 0, param_type)
+            var_symbol = VarSymbol[PythonTypes](param_name, param_type)
             self.current_scope.define(var_symbol)
+            assert func_symbol.params is not None
             func_symbol.params.append(var_symbol)
             func_symbol.param_modes.append(
                 ParamMode.REF if param.out else ParamMode.VALUE
@@ -208,8 +211,8 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.DUPLICATE_VARIABLE,
                 node,
             )
-        self.current_scope.define(VarSymbol("result", 0, return_symbol))
-        self.current_scope.define(VarSymbol(func_name, 0, return_symbol))
+        self.current_scope.define(VarSymbol[PythonTypes]("result", return_symbol))
+        self.current_scope.define(VarSymbol[PythonTypes](func_name, return_symbol))
 
         self.visit(node.block)
         self.logger.debug(function_scope)
@@ -230,7 +233,7 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_Procedure(self, node: Procedure) -> None:
         proc_name = node.name
-        proc_symbol = CustomCallableSymbol(proc_name, 0)
+        proc_symbol = CustomCallableSymbol(proc_name, params=[])
         self.get_current_scope().define(proc_symbol)
 
         self.logger.debug(f"ENTER scope: {proc_name}")
@@ -247,8 +250,9 @@ class SymbolTableVisitor(Visitor):
         for param in node.params:
             param_type = self.visit(param)
             param_name = param.var_node.value
-            var_symbol = VarSymbol(param_name, 0, param_type)
+            var_symbol = VarSymbol(param_name, param_type)
             self.current_scope.define(var_symbol)
+            assert proc_symbol.params is not None
             proc_symbol.params.append(var_symbol)
             proc_symbol.param_modes.append(
                 ParamMode.REF if param.out else ParamMode.VALUE
@@ -327,7 +331,7 @@ class SymbolTableVisitor(Visitor):
     def visit_VarDecl(self, node: VarDecl) -> None:
         type_symbol = self.visit(node.type_node)
         var_name = node.var_node.value
-        var_symbol = VarSymbol(var_name, 0, type_symbol)
+        var_symbol = VarSymbol(var_name, type_symbol)
         node.var_node.type_symbol = type_symbol
 
         if (
@@ -395,31 +399,16 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
         type_symbol = RangeSymbol[Any](
-            "RANGE",
-            0,
-            type_symbol.f_type,
-            type_symbol.ordinal_rank,
-            type_symbol.ordinal_value,
-            type_symbol.to_string,
-            min_value_ord,
-            max_value_ord,
+            "RANGE", type_symbol, min_value_ord, max_value_ord
         )
         node.type_symbol = type_symbol
         return type_symbol
 
     @override
     def visit_Enum(self, node: Enum[Symbol]) -> TypeSymbol:
-        type_symbol = EnumSymbol(
-            "ENUM",
-            0,
-            FType("ENUM"),
-            lambda x: x,
-            lambda x: x,
-            lambda x: str(node.items[x].value),
-            [item.value for item in node.items],
-        )
+        type_symbol = EnumSymbol("ENUM", [item.value for item in node.items])
         for i, item in enumerate(node.items):
-            item_const = ConstSymbol[int](item.value, 0, type_symbol, i)
+            item_const = ConstSymbol[int](item.value, type_symbol, i)
             var_name = item.value
             if (
                 self.get_current_scope().lookup_variable(
@@ -706,15 +695,10 @@ class SymbolTableVisitor(Visitor):
     @override
     def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
         type_symbol = self.visit(node.type_node)
-        if isinstance(type_symbol, ArraySymbol):
+        if isinstance(type_symbol, RangedArraySymbol):
             self.get_current_scope().define(
-                ArraySymbol[Any, Any](
+                RangedArraySymbol[Any, Any](
                     node.var_node.value,
-                    0,
-                    type_symbol.f_type,
-                    None,
-                    None,
-                    str,
                     type_symbol.element_type,
                     type_symbol.index_type,
                 )
@@ -724,11 +708,6 @@ class SymbolTableVisitor(Visitor):
             self.get_current_scope().define(
                 DynamicArraySymbol[Any](
                     node.var_node.value,
-                    0,
-                    type_symbol.f_type,
-                    None,
-                    None,
-                    str,
                     type_symbol.element_type,
                     type_symbol.index_type,
                 )
@@ -738,11 +717,7 @@ class SymbolTableVisitor(Visitor):
             self.get_current_scope().define(
                 RangeSymbol(
                     node.var_node.value,
-                    0,
-                    type_symbol.f_type,
-                    type_symbol.ordinal_rank,
-                    type_symbol.ordinal_value,
-                    type_symbol.to_string,
+                    type_symbol,
                     type_symbol.min_value,
                     type_symbol.max_value,
                 )
@@ -751,7 +726,6 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(
             TypeSymbol(
                 node.var_node.value,
-                0,
                 type_symbol.f_type,
                 type_symbol.ordinal_rank,
                 type_symbol.ordinal_value,
@@ -771,21 +745,14 @@ class SymbolTableVisitor(Visitor):
             )
         value = node.literal
         value_type = BuiltinTypes.literal_to_builtin(value).value
-        const_type = ConstSymbol[Any](var_name, 0, value_type, value.value)
+        const_type = ConstSymbol[Any](var_name, value_type, value.value)
         self.get_current_scope().define(const_type)
 
     @override
     def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> TypeSymbol:
         element_type = self.visit(node.element_type)
         type_symbol = DynamicArraySymbol(
-            "DYNAMIC_ARRAY",
-            0,
-            FType("DYNAMIC_ARRAY"),
-            None,
-            None,
-            str,
-            element_type,
-            BuiltinTypes.INTEGER.value,
+            "DYNAMIC_ARRAY", element_type, BuiltinTypes.INTEGER.value
         )
         return type_symbol
 
@@ -806,16 +773,7 @@ class SymbolTableVisitor(Visitor):
                 node,
             )
         element_type = self.visit(node.element_type)
-        type_symbol = ArraySymbol[Any, Any](
-            "ARRAY",
-            0,
-            FType("ARRAY"),
-            None,
-            None,
-            str,
-            element_type,
-            index_type,
-        )
+        type_symbol = RangedArraySymbol[Any, Any]("ARRAY", element_type, index_type)
         return type_symbol
 
     def visit_IndexOf(self, node: IndexOf[Symbol]) -> TypeSymbol:
@@ -827,7 +785,7 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError()
         for index_node in node.other_indicies:
             var_type = var_type.element_type
-            if not isinstance(var_type, ArraySymbol):
+            if not isinstance(var_type, RangedArraySymbol):
                 raise SemanticError("variable index dimention is wrong")
             index_type = self.visit(index_node)
             if index_type != var_type.index_type:
@@ -846,6 +804,6 @@ class SymbolTableVisitor(Visitor):
             )
         self._assignable(left_type, right_type, node.left, node.right)
 
-    def analyze(self, tree: AST) -> AST:
+    def analyze(self, tree: AST[Symbol]) -> AST[Symbol]:
         self.visit(tree)
         return tree
