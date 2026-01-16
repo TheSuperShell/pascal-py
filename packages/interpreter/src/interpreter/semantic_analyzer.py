@@ -5,6 +5,7 @@ from typing import Any, Self, override
 from interpreter.builtins import BuiltinTypes
 from interpreter.errors import SemanticError
 from interpreter.symbols import (
+    ArraySymbol,
     PythonTypes,
     RangedArraySymbol,
     BuiltinCallableSymbol,
@@ -61,7 +62,7 @@ from parser.token import Token, TokenType
 
 
 @dataclass(slots=True)
-class SymbolTableVisitor(Visitor):
+class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
     logger: logging.Logger
     current_scope: ScopedSymbolTable | None = None
     loop_depth: int = 0
@@ -114,7 +115,7 @@ class SymbolTableVisitor(Visitor):
             self.visit(node.expr)
 
     @override
-    def visit_Compound(self, node: Compound) -> None:
+    def visit_Compound(self, node: Compound[Symbol]) -> None:
         for child in node.children:
             self.visit(child)
 
@@ -172,6 +173,7 @@ class SymbolTableVisitor(Visitor):
     def visit_Function(self, node: Function[Symbol]) -> None:
         func_name = node.name
         return_symbol = self.visit(node.return_type)
+        assert return_symbol is not None
         func_symbol = CustomCallableSymbol(
             func_name, return_type=return_symbol, params=[]
         )
@@ -190,6 +192,7 @@ class SymbolTableVisitor(Visitor):
 
         for param in node.params:
             param_type = self.visit(param)
+            assert param_type is not None
             param_name = param.var_node.value
             var_symbol = VarSymbol[PythonTypes](param_name, param_type)
             self.current_scope.define(var_symbol)
@@ -231,7 +234,7 @@ class SymbolTableVisitor(Visitor):
         func_symbol.block_ast = node.block
 
     @override
-    def visit_Procedure(self, node: Procedure) -> None:
+    def visit_Procedure(self, node: Procedure[Symbol]) -> None:
         proc_name = node.name
         proc_symbol = CustomCallableSymbol(proc_name, params=[])
         self.get_current_scope().define(proc_symbol)
@@ -250,6 +253,7 @@ class SymbolTableVisitor(Visitor):
         for param in node.params:
             param_type = self.visit(param)
             param_name = param.var_node.value
+            assert param_type is not None
             var_symbol = VarSymbol(param_name, param_type)
             self.current_scope.define(var_symbol)
             assert proc_symbol.params is not None
@@ -266,14 +270,17 @@ class SymbolTableVisitor(Visitor):
         proc_symbol.block_ast = node.block
 
     @override
-    def visit_Literal(self, node: Literal[Any, Symbol]) -> TypeSymbol:
+    def visit_Literal(
+        self, node: Literal[PythonTypes, Symbol]
+    ) -> TypeSymbol[PythonTypes]:
         type_symbol = BuiltinTypes.literal_to_builtin(node).value
         node.type_symbol = type_symbol
         return type_symbol
 
     @override
-    def visit_Assign(self, node: Assign) -> None:
+    def visit_Assign(self, node: Assign[Symbol]) -> None:
         left_type = self.visit(node.left)
+        assert left_type is not None
         if isinstance(left_type, ConstSymbol):
             raise SemanticError(
                 f"cannot assign to a const value {left_type}",
@@ -290,7 +297,11 @@ class SymbolTableVisitor(Visitor):
         self._assignable(left_type, right_type, node.right, node.left)
 
     def _assignable(
-        self, left_type: TypeSymbol, right_type: TypeSymbol, right: AST, left: AST
+        self,
+        left_type: TypeSymbol[PythonTypes],
+        right_type: TypeSymbol[PythonTypes],
+        right: AST[Symbol],
+        left: AST[Symbol],
     ) -> None:
         if left_type == right_type:
             return
@@ -310,7 +321,7 @@ class SymbolTableVisitor(Visitor):
         )
 
     @override
-    def visit_Var(self, node: Var) -> TypeSymbol:
+    def visit_Var(self, node: Var[Symbol]) -> TypeSymbol[PythonTypes]:
         var_name = node.value
         var_symbol = self.get_current_scope().lookup_variable(var_name)
         if var_symbol is None:
@@ -322,14 +333,15 @@ class SymbolTableVisitor(Visitor):
         return var_symbol.symbol_type
 
     @override
-    def visit_UnaryOp(self, node: UnaryOp) -> TypeSymbol:
+    def visit_UnaryOp(self, node: UnaryOp[Symbol]) -> TypeSymbol[PythonTypes]:
         type_symbol = self.visit(node.expr)
         node.type_symbol = type_symbol
+        assert type_symbol is not None
         return type_symbol
 
     @override
-    def visit_VarDecl(self, node: VarDecl) -> None:
-        type_symbol = self.visit(node.type_node)
+    def visit_VarDecl(self, node: VarDecl[Symbol]) -> None:
+        type_symbol = self.visit_not_none(node.type_node)
         var_name = node.var_node.value
         var_symbol = VarSymbol(var_name, type_symbol)
         node.var_node.type_symbol = type_symbol
@@ -348,7 +360,7 @@ class SymbolTableVisitor(Visitor):
             self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
 
     @override
-    def visit_StandardType(self, node: StandardType) -> TypeSymbol:
+    def visit_StandardType(self, node: StandardType[Symbol]) -> TypeSymbol[PythonTypes]:
         type_symbol = self.get_current_scope().lookup_type(node.value)
         if type_symbol is None:
             raise SemanticError(
@@ -358,7 +370,7 @@ class SymbolTableVisitor(Visitor):
         return type_symbol
 
     @override
-    def visit_Range(self, node: Range[Symbol]) -> TypeSymbol:
+    def visit_Range(self, node: Range[Symbol]) -> TypeSymbol[PythonTypes]:
         if isinstance(node.start_val, Var) and isinstance(node.end_val, Var):
             self.visit(node.start_val)
             self.visit(node.end_val)
@@ -382,13 +394,13 @@ class SymbolTableVisitor(Visitor):
             raise SemanticError()
         return self._get_range(node, min_value, max_value, type_symbol)
 
-    def _get_range(
+    def _get_range[T: PythonTypes](
         self,
         node: Range[Symbol],
-        min_value: Any,
-        max_value: Any,
-        type_symbol: TypeSymbol[Any],
-    ) -> RangeSymbol[Any]:
+        min_value: T,
+        max_value: T,
+        type_symbol: TypeSymbol[T],
+    ) -> RangeSymbol[T]:
         assert type_symbol.ordinal_rank
         min_value_ord = type_symbol.ordinal_rank(min_value)
         max_value_ord = type_symbol.ordinal_rank(max_value)
@@ -398,14 +410,12 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.RANGE_OUT_OF_BOUNDS,
                 node,
             )
-        type_symbol = RangeSymbol[Any](
-            "RANGE", type_symbol, min_value_ord, max_value_ord
-        )
+        type_symbol = RangeSymbol[T]("RANGE", type_symbol, min_value_ord, max_value_ord)
         node.type_symbol = type_symbol
         return type_symbol
 
     @override
-    def visit_Enum(self, node: Enum[Symbol]) -> TypeSymbol:
+    def visit_Enum(self, node: Enum[Symbol]) -> TypeSymbol[PythonTypes]:
         type_symbol = EnumSymbol("ENUM", [item.value for item in node.items])
         for i, item in enumerate(node.items):
             item_const = ConstSymbol[int](item.value, type_symbol, i)
@@ -422,7 +432,7 @@ class SymbolTableVisitor(Visitor):
         return type_symbol
 
     @override
-    def visit_BinOp(self, node: BinOp) -> TypeSymbol:
+    def visit_BinOp(self, node: BinOp[Symbol]) -> TypeSymbol[PythonTypes]:
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
         if left_type is None or right_type is None:
@@ -457,7 +467,9 @@ class SymbolTableVisitor(Visitor):
             node,
         )
 
-    def _bin_integer_div(self, left: Symbol, right: Symbol, node: BinOp) -> TypeSymbol:
+    def _bin_integer_div(
+        self, left: Symbol, right: Symbol, node: BinOp[Symbol]
+    ) -> TypeSymbol[PythonTypes]:
         if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
             BuiltinTypes.INTEGER.value,
             BuiltinTypes.REAL.value,
@@ -471,8 +483,8 @@ class SymbolTableVisitor(Visitor):
         )
 
     def _bin_bool(
-        self, left: Symbol, right: Symbol, operator: TokenType, node: BinOp
-    ) -> TypeSymbol:
+        self, left: Symbol, right: Symbol, operator: TokenType, node: BinOp[Symbol]
+    ) -> TypeSymbol[PythonTypes]:
         if right == left == BuiltinTypes.BOOLEAN.value:
             type_symbol = BuiltinTypes.BOOLEAN.value
             node.type_symbol = type_symbol
@@ -484,8 +496,8 @@ class SymbolTableVisitor(Visitor):
         )
 
     def _bin_compare(
-        self, left: Symbol, right: Symbol, operator: TokenType, node: BinOp
-    ) -> TypeSymbol:
+        self, left: Symbol, right: Symbol, operator: TokenType, node: BinOp[Symbol]
+    ) -> TypeSymbol[PythonTypes]:
         if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
             BuiltinTypes.INTEGER.value,
             BuiltinTypes.REAL.value,
@@ -501,7 +513,7 @@ class SymbolTableVisitor(Visitor):
 
     def _bin_string_concat(
         self, left: Symbol, right: Symbol, node: BinOp
-    ) -> TypeSymbol:
+    ) -> TypeSymbol[PythonTypes]:
         if left in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value) and right in (
             BuiltinTypes.CHAR.value,
             BuiltinTypes.STRING.value,
@@ -511,7 +523,9 @@ class SymbolTableVisitor(Visitor):
             return type_symbol
         return self._bin_math(left, right, node)
 
-    def _bin_math(self, left: Symbol, right: Symbol, node: BinOp) -> TypeSymbol:
+    def _bin_math(
+        self, left: Symbol, right: Symbol, node: BinOp[Symbol]
+    ) -> TypeSymbol[PythonTypes]:
         if left in (BuiltinTypes.INTEGER.value, BuiltinTypes.REAL.value) and right in (
             BuiltinTypes.INTEGER.value,
             BuiltinTypes.REAL.value,
@@ -530,13 +544,13 @@ class SymbolTableVisitor(Visitor):
         )
 
     @override
-    def visit_Param(self, node: Param) -> TypeSymbol:
-        type_symbol = self.visit(node.type_node)
+    def visit_Param(self, node: Param[Symbol]) -> TypeSymbol[PythonTypes]:
+        type_symbol = self.visit_not_none(node.type_node)
         node.type_symbol = type_symbol
         return type_symbol
 
     @override
-    def visit_Call(self, node: Call[Symbol]) -> TypeSymbol | None:
+    def visit_Call(self, node: Call[Symbol]) -> TypeSymbol[PythonTypes] | None:
         callable_name = node.name
         callable_symbol = self.get_current_scope().lookup_callable(callable_name)
         node.proc_symbol = callable_symbol
@@ -595,7 +609,7 @@ class SymbolTableVisitor(Visitor):
         return None
 
     @override
-    def visit_IfStatement(self, node: IfStatement) -> None:
+    def visit_IfStatement(self, node: IfStatement[Symbol]) -> None:
         self.visit(node.main_condition)
         for other_cond in node.secondary_conditions:
             self.visit(other_cond)
@@ -604,7 +618,7 @@ class SymbolTableVisitor(Visitor):
         return None
 
     @override
-    def visit_Condition(self, node: Condition) -> None:
+    def visit_Condition(self, node: Condition[Symbol]) -> None:
         type_symbol = self.visit(node.condition)
         if type_symbol != BuiltinTypes.BOOLEAN.value:
             raise SemanticError(
@@ -615,7 +629,7 @@ class SymbolTableVisitor(Visitor):
         self.visit(node.expr)
 
     @override
-    def visit_WhileStatement(self, node: WhileStatement) -> None:
+    def visit_WhileStatement(self, node: WhileStatement[Symbol]) -> None:
         type_symbol = self.visit(node.condition)
         if type_symbol != BuiltinTypes.BOOLEAN.value:
             raise SemanticError(
@@ -642,7 +656,7 @@ class SymbolTableVisitor(Visitor):
         self.loop_depth -= 1
 
     @override
-    def visit_ForStatement(self, node: ForStatement) -> None:
+    def visit_ForStatement(self, node: ForStatement[Symbol]) -> None:
         var_symbol = self.get_current_scope().lookup_variable(node.var.value)
         init_state_type = self.visit(node.init_state)
         end_state_type = self.visit(node.end_state)
@@ -694,7 +708,7 @@ class SymbolTableVisitor(Visitor):
 
     @override
     def visit_TypeDecl(self, node: TypeDecl[Symbol]) -> None:
-        type_symbol = self.visit(node.type_node)
+        type_symbol = self.visit_not_none(node.type_node)
         if isinstance(type_symbol, RangedArraySymbol):
             self.get_current_scope().define(
                 RangedArraySymbol[Any, Any](
@@ -749,15 +763,15 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(const_type)
 
     @override
-    def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> TypeSymbol:
-        element_type = self.visit(node.element_type)
+    def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> TypeSymbol[PythonTypes]:
+        element_type = self.visit_not_none(node.element_type)
         type_symbol = DynamicArraySymbol(
             "DYNAMIC_ARRAY", element_type, BuiltinTypes.INTEGER.value
         )
         return type_symbol
 
     @override
-    def visit_Array(self, node: Array[Symbol]) -> TypeSymbol:
+    def visit_Array(self, node: Array[Symbol]) -> TypeSymbol[PythonTypes]:
         if isinstance(node.index_type, StandardType):
             index_type = self.get_current_scope().lookup_type(node.index_type.value)
             if index_type is None:
@@ -772,14 +786,16 @@ class SymbolTableVisitor(Visitor):
                 ErrorCode.INCORRECT_TYPE,
                 node,
             )
-        element_type = self.visit(node.element_type)
-        type_symbol = RangedArraySymbol[Any, Any]("ARRAY", element_type, index_type)
+        element_type = self.visit_not_none(node.element_type)
+        type_symbol = RangedArraySymbol[PythonTypes, PythonTypes](
+            "ARRAY", element_type, index_type
+        )
         return type_symbol
 
-    def visit_IndexOf(self, node: IndexOf[Symbol]) -> TypeSymbol:
-        index_type = self.visit(node.index_value)
-        var_type = self.visit(node.var_node)
-        if not var_type.indexable:
+    def visit_IndexOf(self, node: IndexOf[Symbol]) -> TypeSymbol[PythonTypes]:
+        index_type = self.visit_not_none(node.index_value)
+        var_type = self.visit_not_none(node.var_node)
+        if not isinstance(var_type, ArraySymbol):
             raise SemanticError()
         if index_type != var_type.index_type:
             raise SemanticError()
@@ -794,8 +810,8 @@ class SymbolTableVisitor(Visitor):
         return var_type.element_type
 
     def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> None:
-        left_type = self.visit(node.left)
-        right_type = self.visit(node.right)
+        left_type = self.visit_not_none(node.left)
+        right_type = self.visit_not_none(node.right)
         if right_type is None:
             raise SemanticError(
                 f"type of {node.right} in assignment is unkown",

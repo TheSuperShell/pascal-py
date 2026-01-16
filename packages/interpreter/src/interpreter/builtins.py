@@ -5,6 +5,7 @@ from interpreter.symbols import (
     BuiltinInput,
     FType,
     ParamMode,
+    PythonTypes,
     Symbol,
     TypeSymbol,
     VarSymbol,
@@ -80,7 +81,9 @@ class StdIO:
         print(value, sep="", end="")
 
 
-def create_builtin_functions(io: IO = StdIO()) -> list[BuiltinCallableSymbol]:
+def create_builtin_functions(
+    io: IO = StdIO(),
+) -> list[BuiltinCallableSymbol[PythonTypes]]:
     def write(args: BuiltinInput) -> None:
         for val, val_type in args:
             to_string = val_type.to_string if val_type and val_type.to_string else str

@@ -5,6 +5,7 @@ from interpreter.errors import InterpreterError
 from dataclasses import dataclass, field
 from typing import Any, override
 from interpreter.symbols import (
+    PythonTypes,
     RangedArraySymbol,
     BuiltinCallableSymbol,
     BuiltinInput,
@@ -17,6 +18,7 @@ from interpreter.symbols import (
     Symbol,
     TypeSymbol,
     VarRef,
+    cast,
 )
 from parser import (
     Assign,
@@ -60,7 +62,7 @@ from interpreter.visitor import Visitor
 
 
 class ExitScope(Exception):
-    def __init__(self, value: Any = None) -> None:
+    def __init__(self, value: PythonTypes | None = None) -> None:
         self.value = value
 
 
@@ -70,7 +72,7 @@ class ContinueLoop(Exception): ...
 class BreakLoop(Exception): ...
 
 
-_OPERATIONS: dict[TokenType, Callable[[Any, Any], Any]] = {
+_OPERATIONS: dict[TokenType, Callable[[Any, Any], PythonTypes]] = {
     TokenType.PLUS: lambda x, y: x + y,
     TokenType.MINUS: lambda x, y: x - y,
     TokenType.MULTIPLICATION: lambda x, y: x * y,
@@ -94,12 +96,12 @@ _UNARY_OP: dict[TokenType, Callable[[Any], Any]] = {
 
 
 @dataclass(slots=True)
-class Interpreter(Visitor):
+class Interpreter(Visitor[PythonTypes]):
     logger: logging.Logger
     call_stack: CallStack = field(default_factory=CallStack)
 
     @override
-    def visit_Program(self, node: Program) -> Any:
+    def visit_Program(self, node: Program[Symbol]) -> None:
         program_name = node.name
 
         ar = ActivationRecord(program_name, ARType.PROGRAM, 1)
@@ -117,36 +119,36 @@ class Interpreter(Visitor):
         self.call_stack.pop()
 
     @override
-    def visit_Block(self, node: Block) -> Any:
+    def visit_Block(self, node: Block[Symbol]) -> None:
         for decl in node.declarations:
             self.visit(decl)
         self.visit(node.compund_statement)
 
     @override
-    def visit_Compound(self, node: Compound) -> Any:
+    def visit_Compound(self, node: Compound[Symbol]) -> None:
         for child in node.children:
             self.visit(child)
 
     @override
-    def visit_Procedure(self, node: Procedure) -> Any:
+    def visit_Procedure(self, node: Procedure[Symbol]) -> None:
         return
 
     @override
-    def visit_Function(self, node: Function) -> Any:
+    def visit_Function(self, node: Function[Symbol]) -> None:
         return
 
     @override
-    def visit_Param(self, node: Param) -> Any:
-        return None
+    def visit_Param(self, node: Param[Symbol]) -> PythonTypes:
+        return 0
 
     @override
-    def visit_Literal(self, node: Literal[Any, Symbol]) -> Any:
+    def visit_Literal(self, node: Literal[PythonTypes, Symbol]) -> PythonTypes:
         return node.value
 
     @override
-    def visit_Assign(self, node: Assign) -> Any:
+    def visit_Assign(self, node: Assign[Symbol]) -> None:
         var_name = node.left.value
-        var_value = self.visit(node.right)
+        var_value = self.visit_not_none(node.right)
         var_type = node.left.type_symbol
         if isinstance(var_type, RangeSymbol):
             assert var_type.ordinal_rank and var_type.ordinal_value
@@ -160,7 +162,7 @@ class Interpreter(Visitor):
         return None
 
     @override
-    def visit_Var(self, node: Var) -> Any:
+    def visit_Var(self, node: Var[Symbol]) -> PythonTypes:
         var_name = node.value
         if isinstance(node.symbol, ConstSymbol):
             return node.symbol.value
@@ -173,12 +175,13 @@ class Interpreter(Visitor):
         return val
 
     @override
-    def visit_UnaryOp(self, node: UnaryOp) -> Any:
-        return _UNARY_OP[node.token.token_type](self.visit(node.expr))
+    def visit_UnaryOp(self, node: UnaryOp[Symbol]) -> PythonTypes:
+        value = self.visit_not_none(node.expr)
+        return _UNARY_OP[node.token.token_type](value)
 
     @override
-    def visit_VarDecl(self, node: VarDecl[Symbol]) -> Any:
-        var_ref = VarRef[Any](node.var_node.value)
+    def visit_VarDecl(self, node: VarDecl[Symbol]) -> None:
+        var_ref = VarRef[PythonTypes](node.var_node.value)
         if node.default_value is not None:
             var_ref.set(node.default_value.value)
         elif isinstance(node.var_node.type_symbol, RangedArraySymbol):
@@ -187,7 +190,7 @@ class Interpreter(Visitor):
             var_ref.set(array)
         self.call_stack.peek()[node.var_node.value] = var_ref
 
-    def _array_init(self, type_symbol: RangedArraySymbol) -> list[Any]:
+    def _array_init(self, type_symbol: RangedArraySymbol) -> list[PythonTypes | None]:
         index_type = type_symbol.index_type
         assert isinstance(index_type, RangeSymbol)
         length = index_type.max_value - index_type.min_value
@@ -196,16 +199,16 @@ class Interpreter(Visitor):
         return [self._array_init(type_symbol.element_type) for _ in range(length)]
 
     @override
-    def visit_StandardType(self, node: StandardType) -> Any:
-        return
+    def visit_StandardType(self, node: StandardType[Symbol]) -> PythonTypes:
+        return 0
 
     @override
-    def visit_BinOp(self, node: BinOp) -> Any:
+    def visit_BinOp(self, node: BinOp[Symbol]) -> PythonTypes:
         left = self.visit(node.left)
         right = self.visit(node.right)
         return _OPERATIONS[node.token.token_type](left, right)
 
-    def _visit_ref(self, node: AST[Symbol]) -> Ref:
+    def _visit_ref(self, node: AST[Symbol]) -> Ref[PythonTypes]:
         assert isinstance(node, Var)
         variable = self.call_stack.lookup(node.value)
         if variable is None:
@@ -213,8 +216,8 @@ class Interpreter(Visitor):
         return variable
 
     def _visit_builtin_callable(
-        self, symbol: BuiltinCallableSymbol, node: Call[Symbol]
-    ) -> Any:
+        self, symbol: BuiltinCallableSymbol[PythonTypes], node: Call[Symbol]
+    ) -> PythonTypes | None:
         inputs: BuiltinInput = []
         for i, param in enumerate(node.actual_params):
             mode_ind = i  # if symbol.params else 0
@@ -224,14 +227,17 @@ class Interpreter(Visitor):
                 else symbol.param_modes[0]
             )
             val = (
-                self.visit(param) if mode == ParamMode.VALUE else self._visit_ref(param)
+                self.visit_not_none(param)
+                if mode == ParamMode.VALUE
+                else self._visit_ref(param)
             )
+            assert isinstance(param.type_symbol, TypeSymbol)
             inputs.append((val, param.type_symbol))
         self.logger.debug(f"CALL builtin: {symbol.name}")
         return symbol.func(inputs)
 
     @override
-    def visit_Call(self, node: Call[Symbol]) -> Any:
+    def visit_Call(self, node: Call[Symbol]) -> PythonTypes | None:
         proc_symbol = node.proc_symbol
         if proc_symbol is None:
             raise InterpreterError(f"{node.name} is not recognised")
@@ -249,12 +255,13 @@ class Interpreter(Visitor):
         )
         formal_params = proc_symbol.params
         actual_params = node.actual_params
+        assert formal_params is not None
         for param_symbol, param_mode, actual_param in zip(
             formal_params, proc_symbol.param_modes, actual_params
         ):
             param_type = param_symbol.symbol_type
             if param_mode == ParamMode.VALUE:
-                input_value = self.visit(actual_param)
+                input_value = self.visit_not_none(actual_param)
                 var_ref = VarRef(param_symbol.name, input_value)
                 if isinstance(param_type, RangeSymbol):
                     assert param_type.ordinal_rank
@@ -273,8 +280,8 @@ class Interpreter(Visitor):
                 assert var_ref is not None
             ar[param_symbol.name] = var_ref
 
-        ar["result"] = VarRef("result")
-        ar[node.name] = VarRef(node.name)
+        ar["result"] = VarRef[PythonTypes]("result")
+        ar[node.name] = VarRef[PythonTypes](node.name)
 
         self.call_stack.push(ar)
 
@@ -287,9 +294,9 @@ class Interpreter(Visitor):
         except ExitScope as e:
             result = e.value
         if result is None:
-            result = ar.get("result")
+            result = ar.get_value("result")
         if result is None:
-            result = ar.get(proc_name)
+            result = ar.get_value(proc_name)
 
         self.logger.debug(f"LEAVE PROCEDURE: {proc_name}")
         self.logger.debug(self.call_stack)
@@ -298,25 +305,29 @@ class Interpreter(Visitor):
         return result
 
     @override
-    def visit_IfStatement(self, node: IfStatement) -> Any:
-        if self.visit(node.main_condition):
+    def visit_IfStatement(self, node: IfStatement[Symbol]) -> None:
+        if self._visit_condition(node.main_condition):
             return
         for secondary in node.secondary_conditions:
-            if self.visit(secondary):
+            if self._visit_condition(secondary):
                 return
         if node.else_condition is None:
             return
         self.visit(node.else_condition)
 
-    @override
-    def visit_Condition(self, node: Condition) -> bool:
+    def _visit_condition(self, node: Condition[Symbol]) -> bool:
         result = self.visit(node.condition)
         if result:
             self.visit(node.expr)
+        assert result is bool
         return result
 
     @override
-    def visit_Exit(self, node: Exit) -> Any:
+    def visit_Condition(self, node: Condition[Symbol]) -> None:
+        return
+
+    @override
+    def visit_Exit(self, node: Exit[Symbol]) -> None:
         self.logger.debug(f"EXIT {self.call_stack.peek().name}")
         result = None
         if node.expr is not None:
@@ -324,7 +335,7 @@ class Interpreter(Visitor):
         raise ExitScope(result)
 
     @override
-    def visit_WhileStatement(self, node: WhileStatement) -> None:
+    def visit_WhileStatement(self, node: WhileStatement[Symbol]) -> None:
         with contextlib.suppress(BreakLoop):
             while self.visit(node.condition):
                 with contextlib.suppress(ContinueLoop):
@@ -355,7 +366,7 @@ class Interpreter(Visitor):
             and init_state_ts.ordinal_value
             and end_state_ts.ordinal_rank
         )
-        init_state = self.visit(node.init_state)
+        init_state = self.visit_not_none(node.init_state)
         self.call_stack.peek()[node.var.value].set(init_state)
         end_state = self.visit(node.end_state)
         end_state_ord: int = end_state_ts.ordinal_rank(end_state)
@@ -386,25 +397,27 @@ class Interpreter(Visitor):
         return
 
     @override
-    def visit_Range(self, node: Range[Symbol]) -> None:
-        return
+    def visit_Range(self, node: Range[Symbol]) -> PythonTypes:
+        return 0
 
     @override
-    def visit_Array(self, node: Array[Symbol]) -> None:
-        return
+    def visit_Array(self, node: Array[Symbol]) -> PythonTypes:
+        return 0
 
     @override
-    def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> Any:
-        return
+    def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> PythonTypes:
+        return 0
 
     @override
-    def visit_Enum(self, node: Enum[Symbol]) -> Any:
+    def visit_Enum(self, node: Enum[Symbol]) -> PythonTypes:
         for i, item in enumerate(node.items):
             self.call_stack.peek()[item.value].set(i)
+        return 0
 
     @override
-    def visit_IndexOf(self, node: IndexOf[Symbol]) -> Any:
-        array: list[Any] = self.visit(node.var_node)
+    def visit_IndexOf(self, node: IndexOf[Symbol]) -> PythonTypes:
+        array = self.visit_not_none(node.var_node)
+        assert isinstance(array, list)
         array_type = node.var_node.type_symbol
         assert isinstance(array_type, RangedArraySymbol)
         index_value = array_type.get_index_from_index_value(
@@ -421,19 +434,23 @@ class Interpreter(Visitor):
                 raise InterpreterError(
                     "index our of range", ErrorCode.INDEX_OUT_OF_RANGE
                 )
+            assert isinstance(val, list)
             val = val[index_value]
+        if val is None:
+            raise InterpreterError("array value is not assigned")
         return val
 
     @override
-    def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> Any:
+    def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> None:
         value = self.visit(node.right)
-        array: list[Any] = self.visit(node.left.var_node)
+        array = self.visit_not_none(node.left.var_node)
+        assert isinstance(array, list)
         array_type = node.left.var_node.type_symbol
         assert isinstance(array_type, RangedArraySymbol) or isinstance(
             array_type, DynamicArraySymbol
         )
         index_value = array_type.get_index_from_index_value(
-            self.visit(node.left.index_value)
+            cast(self.visit_not_none(node.left.index_value), int)
         )
         if index_value < 0 or index_value >= len(array):
             raise InterpreterError(
@@ -441,6 +458,7 @@ class Interpreter(Visitor):
             )
         for ind in node.left.other_indicies:
             array = array[index_value]
+            assert isinstance(array, list)
             array_type = array_type.element_type
             assert isinstance(array_type, RangedArraySymbol)
             index_value = array_type.get_index_from_index_value(self.visit(ind))

@@ -219,17 +219,19 @@ class ParamMode(StrEnum):
     REF = auto()
 
 
-class CallableSymbol(Symbol, ABC):
+class CallableSymbol(Generic[T], TypeSymbol[T], ABC):
     __slots__ = "return_type", "param_modes", "params"
 
     def __init__(
         self,
         name: str,
-        return_type: TypeSymbol[PythonTypes] | None = None,
+        f_type: FType,
+        return_type: TypeSymbol[T] | None = None,
         param_modes: Sequence[ParamMode] | None = None,
         params: Sequence[VarSymbol[PythonTypes]] | None = None,
     ) -> None:
-        super().__init__(name, SymbolKind.CALLABLE)
+        super().__init__(name, f_type)
+        self.kind = SymbolKind.CALLABLE
         self.return_type: TypeSymbol[PythonTypes] | None = return_type
         self.param_modes: list[ParamMode] = (
             list(param_modes) if param_modes is not None else []
@@ -239,18 +241,18 @@ class CallableSymbol(Symbol, ABC):
         )
 
 
-class CustomCallableSymbol(CallableSymbol):
+class CustomCallableSymbol(Generic[T], CallableSymbol[T]):
     __slots__ = "block_ast"
 
     def __init__(
         self,
         name: str,
-        return_type: TypeSymbol[PythonTypes] | None = None,
+        return_type: TypeSymbol[T] | None = None,
         param_modes: Sequence[ParamMode] | None = None,
         params: Sequence[VarSymbol[PythonTypes]] | None = None,
         block_ast: AST[Symbol] | None = None,
     ) -> None:
-        super().__init__(name, return_type, param_modes, params)
+        super().__init__(name, FType("CALLABLE"), return_type, param_modes, params)
         self.block_ast: AST[Symbol] | None = block_ast
 
     def __str__(self) -> str:
@@ -260,18 +262,18 @@ class CustomCallableSymbol(CallableSymbol):
 type BuiltinInput = Sequence[tuple[PythonTypes | Ref[PythonTypes], TypeSymbol | None]]
 
 
-class BuiltinCallableSymbol(CallableSymbol):
+class BuiltinCallableSymbol(Generic[T], CallableSymbol[T]):
     __slots__ = "func"
 
     def __init__(
         self,
         name: str,
         func: Callable[[BuiltinInput], PythonTypes | None],
-        return_type: TypeSymbol[PythonTypes] | None = None,
+        return_type: TypeSymbol[T] | None = None,
         param_modes: Sequence[ParamMode] | None = None,
         params: Sequence[VarSymbol[PythonTypes]] | None = None,
     ) -> None:
-        super().__init__(name, return_type, param_modes, params)
+        super().__init__(name, FType("CALLABLE"), return_type, param_modes, params)
         self.func: Callable[[BuiltinInput], PythonTypes | None] = func
 
     def __str__(self) -> str:

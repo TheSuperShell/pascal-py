@@ -5,6 +5,7 @@ from interpreter.symbols import (
     BuiltinCallableSymbol,
     CustomCallableSymbol,
     ConstSymbol,
+    PythonTypes,
     Ref,
     Symbol,
     SymbolKind,
@@ -13,7 +14,6 @@ from interpreter.symbols import (
 )
 from interpreter.builtins import create_builtin_functions
 from dataclasses import dataclass, field
-from typing import Any
 
 
 class ARType(StrEnum):
@@ -27,21 +27,21 @@ class ActivationRecord:
     name: str
     ar_type: ARType
     nesting_level: int
-    members: dict[str, Ref[Any]] = field(default_factory=dict)
+    members: dict[str, Ref[PythonTypes]] = field(default_factory=dict)
 
-    def __setitem__(self, key: str, value: Ref[Any]) -> None:
+    def __setitem__(self, key: str, value: Ref[PythonTypes]) -> None:
         self.members[key.upper()] = value
 
-    def __getitem__(self, key: str) -> Ref[Any]:
+    def __getitem__(self, key: str) -> Ref[PythonTypes]:
         return self.members[key.upper()]
 
     def __contains__(self, key: str) -> bool:
         return key.upper() in self.members
 
-    def get(self, key: str) -> Ref[Any] | None:
+    def get(self, key: str) -> Ref[PythonTypes] | None:
         return self.members.get(key.upper())
 
-    def get_value(self, key: str) -> Any | None:
+    def get_value(self, key: str) -> PythonTypes | None:
         if key not in self:
             return None
         return self.members[key.upper()].get()
@@ -82,13 +82,13 @@ class CallStack:
             raise Exception("stack is empty")
         return self._records[-1]
 
-    def lookup(self, key: str) -> Ref | None:
+    def lookup(self, key: str) -> Ref[PythonTypes] | None:
         for record in reversed(self._records):
             if key in record:
                 return record[key]
         return None
 
-    def lookup_value(self, key: str) -> Any | None:
+    def lookup_value(self, key: str) -> PythonTypes | None:
         for record in reversed(self._records):
             if key in record:
                 return record[key].get()
@@ -187,7 +187,7 @@ class ScopedSymbolTable:
 
     def lookup_variable(
         self, name: str, *, current_scope_only: bool = False
-    ) -> VarSymbol | ConstSymbol | None:
+    ) -> VarSymbol[PythonTypes] | ConstSymbol[PythonTypes] | None:
         result = self.lookup(
             name, SymbolKind.VARIABLE, current_scope_only=current_scope_only
         )
@@ -200,7 +200,7 @@ class ScopedSymbolTable:
 
     def lookup_type(
         self, name: str, *, current_scope_only: bool = False
-    ) -> TypeSymbol | None:
+    ) -> TypeSymbol[PythonTypes] | None:
         result = self.lookup(
             name, SymbolKind.TYPE, current_scope_only=current_scope_only
         )
