@@ -263,6 +263,9 @@ class Interpreter(Visitor):
                 assert var_ref is not None
             ar[param_symbol.name] = var_ref
 
+        ar["result"] = VarRef("result")
+        ar[node.name] = VarRef(node.name)
+
         self.call_stack.push(ar)
 
         self.logger.debug(f"ENTER PROCEDURE: {proc_name}")
