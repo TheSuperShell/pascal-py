@@ -115,9 +115,20 @@ def create_builtin_functions(io: IO = StdIO()) -> list[BuiltinCallableSymbol]:
             BuiltinTypes.INTEGER.value,
         )
     )
+    result.append(
+        BuiltinCallableSymbol(
+            "setlength", 0, setlength, [ParamMode.REF, ParamMode.VALUE], None
+        )
+    )
     return result
 
 
 def length(args: BuiltinInput) -> int:
     text = args[0][0]
     return len(text)
+
+
+def setlength(args: BuiltinInput) -> None:
+    arr = args[0][0]
+    size = args[1][0]
+    arr.set([None for _ in range(size)])

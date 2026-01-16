@@ -45,6 +45,10 @@ class TypeSymbol[T](Symbol):
         return SymbolKind.TYPE
 
     @property
+    def indexable(self) -> bool:
+        return False
+
+    @property
     def is_ordinal(self) -> bool:
         return self.ordinal_rank is not None and self.ordinal_value is not None
 
@@ -80,6 +84,11 @@ class ArraySymbol[I, T](TypeSymbol[list[T]]):
     element_type: TypeSymbol[T]
     index_type: RangeSymbol[I]
 
+    @property
+    @override
+    def indexable(self) -> bool:
+        return True
+
     def get_index_from_index_value(self, value: I) -> int:
         assert self.index_type.ordinal_rank
         value_ord = self.index_type.ordinal_rank(value)
@@ -92,6 +101,25 @@ class ArraySymbol[I, T](TypeSymbol[list[T]]):
             self.element_type == value.element_type
             and self.index_type == value.index_type
         )
+
+
+@dataclass(slots=True)
+class DynamicArraySymbol[T](TypeSymbol[T]):
+    element_type: TypeSymbol[T]
+    index_type: TypeSymbol[int]
+
+    @property
+    @override
+    def indexable(self) -> bool:
+        return True
+
+    def get_index_from_index_value(self, value: int) -> int:
+        return value
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, DynamicArraySymbol):
+            return False
+        return self.element_type == value.element_type
 
 
 @dataclass(slots=True)

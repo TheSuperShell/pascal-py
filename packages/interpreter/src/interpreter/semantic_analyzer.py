@@ -9,6 +9,7 @@ from interpreter.symbols import (
     BuiltinCallableSymbol,
     CustomCallableSymbol,
     ConstSymbol,
+    DynamicArraySymbol,
     EnumSymbol,
     FType,
     ParamMode,
@@ -42,6 +43,7 @@ from parser.parser import (
     Condition,
     ConstDecl,
     Continue,
+    DynamicArray,
     Enum,
     Exit,
     ForInStatement,
@@ -718,6 +720,20 @@ class SymbolTableVisitor(Visitor):
                 )
             )
             return
+        if isinstance(type_symbol, DynamicArraySymbol):
+            self.get_current_scope().define(
+                DynamicArraySymbol[Any](
+                    node.var_node.value,
+                    0,
+                    type_symbol.f_type,
+                    None,
+                    None,
+                    str,
+                    type_symbol.element_type,
+                    type_symbol.index_type,
+                )
+            )
+            return
         if isinstance(type_symbol, RangeSymbol):
             self.get_current_scope().define(
                 RangeSymbol(
@@ -759,8 +775,23 @@ class SymbolTableVisitor(Visitor):
         self.get_current_scope().define(const_type)
 
     @override
+    def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> TypeSymbol:
+        element_type = self.visit(node.element_type)
+        type_symbol = DynamicArraySymbol(
+            "DYNAMIC_ARRAY",
+            0,
+            FType("DYNAMIC_ARRAY"),
+            None,
+            None,
+            str,
+            element_type,
+            BuiltinTypes.INTEGER.value,
+        )
+        return type_symbol
+
+    @override
     def visit_Array(self, node: Array[Symbol]) -> TypeSymbol:
-        if isinstance(node.index_type, Var):
+        if isinstance(node.index_type, StandardType):
             index_type = self.get_current_scope().lookup_type(node.index_type.value)
             if index_type is None:
                 raise SemanticError(
@@ -790,7 +821,7 @@ class SymbolTableVisitor(Visitor):
     def visit_IndexOf(self, node: IndexOf[Symbol]) -> TypeSymbol:
         index_type = self.visit(node.index_value)
         var_type = self.visit(node.var_node)
-        if not isinstance(var_type, ArraySymbol):
+        if not var_type.indexable:
             raise SemanticError()
         if index_type != var_type.index_type:
             raise SemanticError()

@@ -198,12 +198,12 @@ class ConstDecl[S](AST[S]):
         return f"ConstDecl({self.var_node}:{self.literal})"
 
 
-type Type[S] = StandardType[S] | Range[S] | Enum[S] | Array[S]
+type Type[S] = StandardType[S] | Range[S] | Enum[S] | Array[S] | DynamicArray[S]
 
 
 @dataclass(frozen=True, slots=True)
 class Array[S](AST[S]):
-    index_type: "Range[S] | Var[S]"
+    index_type: "Range[S] | StandardType[S]"
     element_type: Type[S]
     type_symbol: S | None = None
 
@@ -212,6 +212,18 @@ class Array[S](AST[S]):
 
     def __repr__(self) -> str:
         return f"ARRAY({self.index_type=}, {self.element_type=})"
+
+
+@dataclass(frozen=True, slots=True)
+class DynamicArray[S](AST[S]):
+    element_type: Type[S]
+    type_symbol: S | None = None
+
+    def __str__(self) -> str:
+        return f"{self.element_type}[]"
+
+    def __repr__(self) -> str:
+        return f"DynamicArray({self.element_type=})"
 
 
 @dataclass(slots=True)
@@ -706,34 +718,22 @@ class Parser[S]:
             return self.array_decl()
         return self.range_statement()
 
-    def array_decl(self) -> Array[S]:
+    def array_decl(self) -> Array[S] | DynamicArray[S]:
         """
         array_decl:
-            ARRAY OPEN_BRACKET (ID (DOT DOT ID)? | literal DOT DOT literal) CLOSE_BRACKET OF type_spec
+            ARRAY (OPEN_BRACKET range_statement CLOSE_BRACKET)? OF type_spec
         """
         self.eat(TokenType.ARRAY)
-        self.eat(TokenType.OPEN_BRACKET)
-        if self.current_token.token_type == TokenType.ID:
-            init_index = Var(self.current_token)
-            self.eat(TokenType.ID)
-            if self.current_token.token_type == TokenType.DOT:
-                self.eat(TokenType.DOT)
-                self.eat(TokenType.DOT)
-                end_index = Var(self.current_token)
-                self.eat(TokenType.ID)
-                index_type = Range[S](init_index, end_index)
-            else:
-                index_type = init_index
-        else:
-            init_index = self.literal()
-            self.eat(TokenType.DOT)
-            self.eat(TokenType.DOT)
-            end_index = self.literal()
-            index_type = Range[S](init_index, end_index)
-        self.eat(TokenType.CLOSE_BRACKET)
+        if self.current_token.token_type == TokenType.OPEN_BRACKET:
+            self.eat(TokenType.OPEN_BRACKET)
+            index_type = self.range_statement()
+            self.eat(TokenType.CLOSE_BRACKET)
+            self.eat(TokenType.OF)
+            element_type = self.type_spec()
+            return Array[S](index_type, element_type)
         self.eat(TokenType.OF)
         element_type = self.type_spec()
-        return Array[S](index_type, element_type)
+        return DynamicArray[S](element_type)
 
     def enum_decl(self) -> Enum[S]:
         """

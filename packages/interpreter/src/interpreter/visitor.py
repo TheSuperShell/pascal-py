@@ -21,6 +21,7 @@ from parser.parser import (
     Condition,
     ConstDecl,
     Continue,
+    DynamicArray,
     Enum,
     Exit,
     ForInStatement,
@@ -134,3 +135,6 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_ForInStatement(self, node: ForInStatement[Symbol]) -> None: ...
+
+    @abstractmethod
+    def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> Any: ...

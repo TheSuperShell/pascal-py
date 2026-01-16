@@ -10,6 +10,7 @@ from interpreter.symbols import (
     BuiltinInput,
     CustomCallableSymbol,
     ConstSymbol,
+    DynamicArraySymbol,
     ParamMode,
     RangeSymbol,
     Symbol,
@@ -37,6 +38,7 @@ from parser.parser import (
     Condition,
     ConstDecl,
     Continue,
+    DynamicArray,
     Enum,
     Exit,
     ForInStatement,
@@ -211,8 +213,12 @@ class Interpreter(Visitor):
     ) -> Any:
         inputs: BuiltinInput = []
         for i, param in enumerate(node.actual_params):
-            mode_ind = i if symbol.params else 0
-            mode = symbol.param_modes[mode_ind]
+            mode_ind = i  # if symbol.params else 0
+            mode = (
+                symbol.param_modes[mode_ind]
+                if i < len(symbol.param_modes)
+                else symbol.param_modes[0]
+            )
             val = (
                 self.visit(param) if mode == ParamMode.VALUE else self._visit_ref(param)
             )
@@ -384,6 +390,10 @@ class Interpreter(Visitor):
         return
 
     @override
+    def visit_DynamicArray(self, node: DynamicArray[Symbol]) -> Any:
+        return
+
+    @override
     def visit_Enum(self, node: Enum[Symbol]) -> Any:
         for i, item in enumerate(node.items):
             self.call_stack.peek()[item.value].set(i)
@@ -415,7 +425,9 @@ class Interpreter(Visitor):
         value = self.visit(node.right)
         array: list[Any] = self.visit(node.left.var_node)
         array_type = node.left.var_node.type_symbol
-        assert isinstance(array_type, ArraySymbol)
+        assert isinstance(array_type, ArraySymbol) or isinstance(
+            array_type, DynamicArraySymbol
+        )
         index_value = array_type.get_index_from_index_value(
             self.visit(node.left.index_value)
         )
