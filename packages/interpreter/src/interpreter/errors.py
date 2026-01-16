@@ -8,12 +8,12 @@ class InterpreterError(Exception):
         self.error_code = error_code
 
 
-class SemanticError(Exception):
+class SemanticError[S](Exception):
     def __init__(
         self,
         message: str | None = None,
         error_code: ErrorCode | None = None,
-        node: AST | None = None,
+        node: AST[S] | None = None,
     ) -> None:
         self.message = message
         self.error_code = error_code

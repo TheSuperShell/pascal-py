@@ -296,6 +296,7 @@ class Call[S](AST[S]):
     actual_params: tuple[AST[S], ...]
     token: Token
     proc_symbol: S | None = None
+    type_symbol: S | None = None
 
     def __str__(self) -> str:
         return f"{self.name}({self.actual_params})"
@@ -406,6 +407,7 @@ class Break[S](AST[S]):
 class Range[S](AST[S]):
     start_val: Literal[Any, S] | Var[S]
     end_val: Literal[Any, S] | Var[S]
+    type_symbol: S | None = None
 
     def __str__(self) -> str:
         return f"{self.start_val}..{self.end_val}"
@@ -417,6 +419,7 @@ class Range[S](AST[S]):
 @dataclass(slots=True)
 class Enum[S](AST[S]):
     items: list[Var[S]]
+    type_symbol: S | None = None
 
     def __str__(self) -> str:
         return f"({self.items})"
@@ -882,7 +885,7 @@ class Parser[S]:
         """
         self.eat(TokenType.IF)
         main_condition = self.condition()
-        other_conditions: list[Condition] = []
+        other_conditions: list[Condition[S]] = []
         last_condition = None
         while self.current_token.token_type == TokenType.ELSE:
             self.eat(TokenType.ELSE)

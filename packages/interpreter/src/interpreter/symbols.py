@@ -33,7 +33,7 @@ class VarRef[T]:
 type PythonTypes = int | str | bool | float | list[PythonTypes | None]
 
 
-def cast[T](v: PythonTypes | Ref, expected_type: type[T]) -> T:
+def cast[T](v: PythonTypes | Ref[PythonTypes], expected_type: type[T]) -> T:
     assert isinstance(v, expected_type)
     return v
 
@@ -259,7 +259,9 @@ class CustomCallableSymbol(Generic[T], CallableSymbol[T]):
         return f"<{self.__class__.__name__}(name={self.name}, params={self.params}, return_type={self.return_type})>"
 
 
-type BuiltinInput = Sequence[tuple[PythonTypes | Ref[PythonTypes], TypeSymbol | None]]
+type BuiltinInput = Sequence[
+    tuple[PythonTypes | Ref[PythonTypes], TypeSymbol[PythonTypes] | None]
+]
 
 
 class BuiltinCallableSymbol(Generic[T], CallableSymbol[T]):

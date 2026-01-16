@@ -174,7 +174,7 @@ class ScopedSymbolTable:
 
     def lookup_callable(
         self, name: str, *, current_scope_only: bool = False
-    ) -> BuiltinCallableSymbol | CustomCallableSymbol | None:
+    ) -> BuiltinCallableSymbol[PythonTypes] | CustomCallableSymbol[PythonTypes] | None:
         result = self.lookup(
             name, SymbolKind.CALLABLE, current_scope_only=current_scope_only
         )

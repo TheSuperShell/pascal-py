@@ -8,7 +8,6 @@ from interpreter.symbols import (
     PythonTypes,
     RangedArraySymbol,
     BuiltinCallableSymbol,
-    BuiltinInput,
     CustomCallableSymbol,
     ConstSymbol,
     DynamicArraySymbol,
@@ -190,7 +189,9 @@ class Interpreter(Visitor[PythonTypes]):
             var_ref.set(array)
         self.call_stack.peek()[node.var_node.value] = var_ref
 
-    def _array_init(self, type_symbol: RangedArraySymbol) -> list[PythonTypes | None]:
+    def _array_init(
+        self, type_symbol: RangedArraySymbol[PythonTypes, PythonTypes]
+    ) -> list[PythonTypes | None]:
         index_type = type_symbol.index_type
         assert isinstance(index_type, RangeSymbol)
         length = index_type.max_value - index_type.min_value
@@ -218,7 +219,9 @@ class Interpreter(Visitor[PythonTypes]):
     def _visit_builtin_callable(
         self, symbol: BuiltinCallableSymbol[PythonTypes], node: Call[Symbol]
     ) -> PythonTypes | None:
-        inputs: BuiltinInput = []
+        inputs: list[
+            tuple[PythonTypes | Ref[PythonTypes], TypeSymbol[PythonTypes] | None]
+        ] = []
         for i, param in enumerate(node.actual_params):
             mode_ind = i  # if symbol.params else 0
             mode = (
@@ -262,7 +265,9 @@ class Interpreter(Visitor[PythonTypes]):
             param_type = param_symbol.symbol_type
             if param_mode == ParamMode.VALUE:
                 input_value = self.visit_not_none(actual_param)
-                var_ref = VarRef(param_symbol.name, input_value)
+                var_ref: Ref[PythonTypes] | None = VarRef[PythonTypes](
+                    param_symbol.name, input_value
+                )
                 if isinstance(param_type, RangeSymbol):
                     assert param_type.ordinal_rank
                     var_value_ord = param_type.ordinal_rank(input_value)
@@ -277,7 +282,7 @@ class Interpreter(Visitor[PythonTypes]):
             else:
                 assert isinstance(actual_param, Var)
                 var_ref = self.call_stack.lookup(actual_param.value)
-                assert var_ref is not None
+            assert var_ref is not None
             ar[param_symbol.name] = var_ref
 
         ar["result"] = VarRef[PythonTypes]("result")
@@ -319,7 +324,7 @@ class Interpreter(Visitor[PythonTypes]):
         result = self.visit(node.condition)
         if result:
             self.visit(node.expr)
-        assert result is bool
+        assert isinstance(result, bool)
         return result
 
     @override
@@ -381,11 +386,11 @@ class Interpreter(Visitor[PythonTypes]):
                 )
 
     @override
-    def visit_Break(self, node: Break) -> None:
+    def visit_Break(self, node: Break[Symbol]) -> None:
         raise BreakLoop()
 
     @override
-    def visit_Continue(self, node: Continue) -> None:
+    def visit_Continue(self, node: Continue[Symbol]) -> None:
         raise ContinueLoop()
 
     @override
@@ -443,7 +448,7 @@ class Interpreter(Visitor[PythonTypes]):
     @override
     def visit_AssignIndex(self, node: AssignIndex[Symbol]) -> None:
         value = self.visit(node.right)
-        array = self.visit_not_none(node.left.var_node)
+        array: PythonTypes | None = self.visit_not_none(node.left.var_node)
         assert isinstance(array, list)
         array_type = node.left.var_node.type_symbol
         assert isinstance(array_type, RangedArraySymbol) or isinstance(
@@ -468,6 +473,6 @@ class Interpreter(Visitor[PythonTypes]):
                 )
         array[index_value] = value
 
-    def interpret(self, tree: AST) -> AST:
+    def interpret(self, tree: AST[Symbol]) -> AST[Symbol]:
         self.visit(tree)
         return tree

@@ -236,7 +236,7 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
     @override
     def visit_Procedure(self, node: Procedure[Symbol]) -> None:
         proc_name = node.name
-        proc_symbol = CustomCallableSymbol(proc_name, params=[])
+        proc_symbol = CustomCallableSymbol[PythonTypes](proc_name, params=[])
         self.get_current_scope().define(proc_symbol)
 
         self.logger.debug(f"ENTER scope: {proc_name}")
@@ -512,7 +512,7 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
         )
 
     def _bin_string_concat(
-        self, left: Symbol, right: Symbol, node: BinOp
+        self, left: Symbol, right: Symbol, node: BinOp[Symbol]
     ) -> TypeSymbol[PythonTypes]:
         if left in (BuiltinTypes.CHAR.value, BuiltinTypes.STRING.value) and right in (
             BuiltinTypes.CHAR.value,
@@ -693,14 +693,14 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
         self.loop_depth -= 1
 
     @override
-    def visit_Break(self, node: Break) -> None:
+    def visit_Break(self, node: Break[Symbol]) -> None:
         if self.loop_depth <= 0:
             raise SemanticError(
                 "break should be within loop", ErrorCode.OUTSIDE_LOOP, node
             )
 
     @override
-    def visit_Continue(self, node: Continue) -> None:
+    def visit_Continue(self, node: Continue[Symbol]) -> None:
         if self.loop_depth <= 0:
             raise SemanticError(
                 "continue should be within loop", ErrorCode.OUTSIDE_LOOP, node
@@ -803,7 +803,7 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
             var_type = var_type.element_type
             if not isinstance(var_type, RangedArraySymbol):
                 raise SemanticError("variable index dimention is wrong")
-            index_type = self.visit(index_node)
+            index_type = self.visit_not_none(index_node)
             if index_type != var_type.index_type:
                 raise SemanticError()
         node.type_symbol = var_type

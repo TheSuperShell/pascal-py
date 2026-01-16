@@ -87,7 +87,7 @@ def create_builtin_functions(
     def write(args: BuiltinInput) -> None:
         for val, val_type in args:
             to_string = val_type.to_string if val_type and val_type.to_string else str
-            io.write(to_string(val))
+            io.write(to_string(val))  # type: ignore
 
     def writeln(args: BuiltinInput) -> None:
         write(args)
@@ -96,7 +96,7 @@ def create_builtin_functions(
     def readln(args: BuiltinInput) -> None:
         cast(args[0][0], VarRef).set(io.read())
 
-    result = []
+    result: list[BuiltinCallableSymbol[PythonTypes]] = []
     result.append(
         BuiltinCallableSymbol("writeln", writeln, None, [ParamMode.VALUE], None)
     )
