@@ -120,7 +120,7 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
             self.visit(child)
 
     def _analyze_function_return(
-        self, stmt: AST[Symbol], in_assigned: bool
+        self, func_name: str, stmt: AST[Symbol], in_assigned: bool
     ) -> tuple[bool, bool]:
         if isinstance(stmt, Exit):
             if stmt.expr is not None:
@@ -130,23 +130,27 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
                     "function exited, but returned no value", ErrorCode.NO_RETURN, stmt
                 )
         if isinstance(stmt, Assign):
-            if stmt.left.value.lower() in ("result"):
+            if stmt.left.value.lower() in ("result", func_name.lower()):
                 return True, True
             return in_assigned, True
         if isinstance(stmt, IfStatement):
             thens = [
-                self._analyze_function_return(stmt.main_condition.expr, in_assigned)
+                self._analyze_function_return(
+                    func_name, stmt.main_condition.expr, in_assigned
+                )
             ]
             for other_cond in stmt.secondary_conditions:
                 thens.append(
-                    self._analyze_function_return(other_cond.expr, in_assigned)
+                    self._analyze_function_return(
+                        func_name, other_cond.expr, in_assigned
+                    )
                 )
             if stmt.else_condition is None:
                 else_out = in_assigned
                 else_fall = True
             else:
                 else_out, else_fall = self._analyze_function_return(
-                    stmt.else_condition, in_assigned
+                    func_name, stmt.else_condition, in_assigned
                 )
             thens.append((else_out, else_fall))
             fall = any(a[1] for a in thens)
@@ -156,7 +160,7 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
             return out, fall
 
         if isinstance(stmt, WhileStatement) or isinstance(stmt, ForStatement):
-            self._analyze_function_return(stmt.expr, in_assigned)
+            self._analyze_function_return(func_name, stmt.expr, in_assigned)
             return in_assigned, True
 
         if isinstance(stmt, Block):
@@ -165,7 +169,9 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
             for child in stmt.compund_statement.children:
                 if not fall:
                     break
-                assigned, fall = self._analyze_function_return(child, assigned)
+                assigned, fall = self._analyze_function_return(
+                    func_name, child, assigned
+                )
             return assigned, fall
         return in_assigned, True
 
@@ -221,7 +227,7 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
         self.logger.debug(function_scope)
 
         return_assigned, can_fallthrough = self._analyze_function_return(
-            node.block, False
+            node.name, node.block, False
         )
         if can_fallthrough and not return_assigned:
             raise SemanticError(
@@ -549,6 +555,26 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
         node.type_symbol = type_symbol
         return type_symbol
 
+    def _visit_builtin_call(
+        self, node: Call[Symbol], callable_symbol: BuiltinCallableSymbol
+    ) -> TypeSymbol[PythonTypes] | None:
+        inputs = [self.visit(param) for param in node.actual_params]
+        inputs_are_valid = callable_symbol.params.check_input(
+            inputs, lambda x, y: x == y
+        )
+        if not inputs_are_valid:
+            raise SemanticError(
+                "callable inputs are invalid", ErrorCode.INCORRECT_INPUT_TYPE, node
+            )
+        param_modes = callable_symbol.params.get_param_modes(node.actual_params)
+        for param, mode in zip(node.actual_params, param_modes):
+            if mode == ParamMode.REF and not isinstance(param, Var):
+                raise SemanticError()
+        if callable_symbol.return_type is not None:
+            node.type_symbol = callable_symbol.return_type
+            return callable_symbol.return_type
+        return None
+
     @override
     def visit_Call(self, node: Call[Symbol]) -> TypeSymbol[PythonTypes] | None:
         callable_name = node.name
@@ -558,18 +584,15 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
             raise SemanticError(
                 f"no callable found: {callable_name}", ErrorCode.ID_NOT_FOUND, node
             )
-        if not (
-            isinstance(callable_symbol, CustomCallableSymbol)
-            or isinstance(callable_symbol, BuiltinCallableSymbol)
-        ):
+        if isinstance(callable_symbol, BuiltinCallableSymbol):
+            return self._visit_builtin_call(node, callable_symbol)
+        if not isinstance(callable_symbol, CustomCallableSymbol):
             raise SemanticError(
                 f"{callable_name} is not a callable",
                 ErrorCode.INCORRECT_CALL_TYPE,
                 node,
             )
-        if callable_symbol.params is not None and len(callable_symbol.params) != len(
-            node.actual_params
-        ):
+        if len(callable_symbol.params) != len(node.actual_params):
             raise SemanticError(
                 f"{callable_name} expected "
                 f"{len(callable_symbol.params)} number of inputs, "
@@ -577,32 +600,28 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
                 ErrorCode.INCORRECT_NUMBER_OF_INPUTS,
                 node,
             )
-        if callable_symbol.params is not None:
-            for i, param_node in enumerate(node.actual_params):
-                if callable_symbol.param_modes[i] == ParamMode.REF and not isinstance(
-                    param_node, Var
-                ):
-                    raise SemanticError(
-                        f"out param should be a variable, not {node.actual_params}"
-                    )
-                expected_type = callable_symbol.params[i].symbol_type
-                param_type = self.visit(param_node)
-                if param_type is None:
-                    raise SemanticError(
-                        f"unkown function input type {param_node}",
-                        ErrorCode.UNKOWN_TYPE,
-                        node,
-                    )
-                if param_type != expected_type:
-                    raise SemanticError(
-                        f"incorrect callable {callable_name} input type for value {param_node}: "
-                        f"expected {expected_type} got {param_type}",
-                        ErrorCode.INCORRECT_INPUT_TYPE,
-                        node,
-                    )
-        else:
-            for param in node.actual_params:
-                self.visit(param)
+        for i, param_node in enumerate(node.actual_params):
+            if callable_symbol.param_modes[i] == ParamMode.REF and not isinstance(
+                param_node, Var
+            ):
+                raise SemanticError(
+                    f"out param should be a variable, not {node.actual_params}"
+                )
+            expected_type = callable_symbol.params[i].symbol_type
+            param_type = self.visit(param_node)
+            if param_type is None:
+                raise SemanticError(
+                    f"unkown function input type {param_node}",
+                    ErrorCode.UNKOWN_TYPE,
+                    node,
+                )
+            if param_type != expected_type:
+                raise SemanticError(
+                    f"incorrect callable {callable_name} input type for value {param_node}: "
+                    f"expected {expected_type} got {param_type}",
+                    ErrorCode.INCORRECT_INPUT_TYPE,
+                    node,
+                )
         if callable_symbol.return_type is not None:
             node.type_symbol = callable_symbol.return_type
             return callable_symbol.return_type

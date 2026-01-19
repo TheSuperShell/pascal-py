@@ -1,14 +1,17 @@
 from enum import Enum
 from typing import Any, Protocol
 from interpreter.symbols import (
+    AnySubtype,
+    AnyType,
     BuiltinCallableSymbol,
     BuiltinInput,
     FType,
     ParamMode,
+    ParameterSequence,
     PythonTypes,
+    RepeatingParameterSequence,
     Symbol,
     TypeSymbol,
-    VarSymbol,
     cast,
 )
 from interpreter.symbols import VarRef
@@ -98,16 +101,33 @@ def create_builtin_functions(
 
     result: list[BuiltinCallableSymbol[PythonTypes]] = []
     result.append(
-        BuiltinCallableSymbol("writeln", writeln, None, [ParamMode.VALUE], None)
+        BuiltinCallableSymbol(
+            "writeln",
+            writeln,
+            None,
+            RepeatingParameterSequence[PythonTypes](
+                ParameterSequence[PythonTypes]((AnyType(),), (ParamMode.VALUE,))
+            ),
+        )
     )
-    result.append(BuiltinCallableSymbol("write", write, None, [ParamMode.VALUE]))
+    result.append(
+        BuiltinCallableSymbol(
+            "write",
+            write,
+            None,
+            RepeatingParameterSequence[PythonTypes](
+                ParameterSequence[PythonTypes]((AnyType(),), (ParamMode.VALUE,))
+            ),
+        )
+    )
     result.append(
         BuiltinCallableSymbol(
             "readln",
             readln,
             None,
-            [ParamMode.REF],
-            [VarSymbol("inp_var", BuiltinTypes.STRING.value)],
+            ParameterSequence[PythonTypes](
+                (BuiltinTypes.STRING.value,), (ParamMode.REF,)
+            ),
         )
     )
     result.append(
@@ -115,13 +135,20 @@ def create_builtin_functions(
             "length",
             length,
             BuiltinTypes.INTEGER.value,
-            [ParamMode.VALUE],
-            [VarSymbol("text", BuiltinTypes.STRING.value)],
+            ParameterSequence[PythonTypes](
+                (BuiltinTypes.STRING.value,), (ParamMode.VALUE,)
+            ),
         )
     )
     result.append(
         BuiltinCallableSymbol(
-            "setlength", setlength, None, [ParamMode.REF, ParamMode.VALUE]
+            "setlength",
+            setlength,
+            None,
+            ParameterSequence[PythonTypes](
+                (AnySubtype((FType("ARRAY"),)), BuiltinTypes.INTEGER.value),
+                (ParamMode.REF, ParamMode.VALUE),
+            ),
         )
     )
     return result

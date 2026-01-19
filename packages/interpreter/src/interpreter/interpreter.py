@@ -222,13 +222,9 @@ class Interpreter(Visitor[PythonTypes]):
         inputs: list[
             tuple[PythonTypes | Ref[PythonTypes], TypeSymbol[PythonTypes] | None]
         ] = []
-        for i, param in enumerate(node.actual_params):
-            mode_ind = i  # if symbol.params else 0
-            mode = (
-                symbol.param_modes[mode_ind]
-                if i < len(symbol.param_modes)
-                else symbol.param_modes[0]
-            )
+        for param, mode in zip(
+            node.actual_params, symbol.params.get_param_modes(node.actual_params)
+        ):
             val = (
                 self.visit_not_none(param)
                 if mode == ParamMode.VALUE
@@ -258,7 +254,6 @@ class Interpreter(Visitor[PythonTypes]):
         )
         formal_params = proc_symbol.params
         actual_params = node.actual_params
-        assert formal_params is not None
         for param_symbol, param_mode, actual_param in zip(
             formal_params, proc_symbol.param_modes, actual_params
         ):

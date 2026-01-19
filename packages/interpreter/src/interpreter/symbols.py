@@ -220,29 +220,21 @@ class ParamMode(StrEnum):
 
 
 class CallableSymbol(Generic[T], TypeSymbol[T], ABC):
-    __slots__ = "return_type", "param_modes", "params"
+    __slots__ = "return_type"
 
     def __init__(
         self,
         name: str,
         f_type: FType,
         return_type: TypeSymbol[T] | None = None,
-        param_modes: Sequence[ParamMode] | None = None,
-        params: Sequence[VarSymbol[PythonTypes]] | None = None,
     ) -> None:
         super().__init__(name, f_type)
         self.kind = SymbolKind.CALLABLE
         self.return_type: TypeSymbol[PythonTypes] | None = return_type
-        self.param_modes: list[ParamMode] = (
-            list(param_modes) if param_modes is not None else []
-        )
-        self.params: list[VarSymbol[PythonTypes]] | None = (
-            list(params) if params is not None else None
-        )
 
 
 class CustomCallableSymbol(Generic[T], CallableSymbol[T]):
-    __slots__ = "block_ast"
+    __slots__ = "block_ast", "params", "param_modes"
 
     def __init__(
         self,
@@ -252,7 +244,13 @@ class CustomCallableSymbol(Generic[T], CallableSymbol[T]):
         params: Sequence[VarSymbol[PythonTypes]] | None = None,
         block_ast: AST[Symbol] | None = None,
     ) -> None:
-        super().__init__(name, FType("CALLABLE"), return_type, param_modes, params)
+        super().__init__(name, FType("CALLABLE"), return_type)
+        self.params: list[VarSymbol[PythonTypes]] = (
+            list(params) if params is not None else []
+        )
+        self.param_modes: list[ParamMode] = (
+            list(param_modes) if param_modes is not None else []
+        )
         self.block_ast: AST[Symbol] | None = block_ast
 
     def __str__(self) -> str:
@@ -264,18 +262,94 @@ type BuiltinInput = Sequence[
 ]
 
 
+class ParameterTypeChecker[S: PythonTypes](Protocol):
+    def check_input(
+        self,
+        inputs: Sequence[TypeSymbol[S] | None],
+        type_compare_func: Callable[[TypeSymbol[S], TypeSymbol[S]], bool],
+    ) -> bool: ...
+    def get_param_modes(self, inputs: Sequence[AST[Symbol]]) -> list[ParamMode]: ...
+
+
+class AnyType: ...
+
+
+@dataclass(slots=True, frozen=True)
+class AnySubtype:
+    subtypes: tuple[FType, ...]
+
+
+@dataclass(slots=True, frozen=True)
+class ParameterSequence(Generic[T]):
+    parameters: tuple[TypeSymbol[T] | AnyType | AnySubtype, ...]
+    param_modes: tuple[ParamMode, ...]
+
+    def check_input(
+        self,
+        inputs: Sequence[TypeSymbol[T] | None],
+        type_compare_func: Callable[[TypeSymbol[T], TypeSymbol[T]], bool],
+    ) -> bool:
+        if len(self.parameters) != len(inputs):
+            return False
+        for inp, param in zip(inputs, self.parameters):
+            if isinstance(param, AnyType):
+                continue
+            if inp is None:
+                return False
+            if isinstance(param, AnySubtype):
+                if inp.f_type not in param.subtypes:
+                    return False
+                continue
+            if not type_compare_func(inp, param):
+                return False
+        return True
+
+    def get_param_modes(self, inputs: Sequence[AST[Symbol]]) -> list[ParamMode]:
+        return list(self.param_modes)
+
+
+@dataclass(slots=True, frozen=True)
+class RepeatingParameterSequence(Generic[T]):
+    sequence: ParameterSequence[T]
+
+    def check_input(
+        self,
+        inputs: Sequence[TypeSymbol[T] | None],
+        type_compare_func: Callable[[TypeSymbol[T], TypeSymbol[T]], bool],
+    ) -> bool:
+        n = len(self.sequence.parameters)
+        inputs_queue = (inputs[i : i + n] for i in range(0, len(inputs), n))
+        for inp in inputs_queue:
+            if len(inp) != n:
+                return False
+            if not self.sequence.check_input(inp, type_compare_func):
+                return False
+        return True
+
+    def get_param_modes(self, inputs: Sequence[AST[Symbol]]) -> list[ParamMode]:
+        n = len(inputs) // len(self.sequence.param_modes)
+        result = []
+        for _ in range(n):
+            result.extend(self.sequence.param_modes)
+        return result
+
+
 class BuiltinCallableSymbol(Generic[T], CallableSymbol[T]):
-    __slots__ = "func"
+    __slots__ = "func", "params"
 
     def __init__(
         self,
         name: str,
         func: Callable[[BuiltinInput], PythonTypes | None],
         return_type: TypeSymbol[T] | None = None,
-        param_modes: Sequence[ParamMode] | None = None,
-        params: Sequence[VarSymbol[PythonTypes]] | None = None,
+        params: ParameterTypeChecker | None = None,
     ) -> None:
-        super().__init__(name, FType("CALLABLE"), return_type, param_modes, params)
+        super().__init__(name, FType("CALLABLE"), return_type)
+        self.params = (
+            params
+            if params is not None
+            else ParameterSequence(tuple[TypeSymbol[T]](), tuple())
+        )
         self.func: Callable[[BuiltinInput], PythonTypes | None] = func
 
     def __str__(self) -> str:
