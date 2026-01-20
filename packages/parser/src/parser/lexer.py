@@ -2,48 +2,12 @@ from parser.errors import LexerError
 from parser.token import Token, TokenType
 
 
-_RESERVED_KEYWORDS: dict[str, Token] = {
-    "BEGIN": Token.begin(),
-    "END": Token.end(),
-    "DIV": Token.int_div(),
-    "PROGRAM": Token.program(),
-    "VAR": Token.var(),
-    "INTEGER": Token.integer(),
-    "REAL": Token.real(),
-    "BOOLEAN": Token.boolean(),
-    "PROCEDURE": Token.procedure(),
-    "FUNCTION": Token.function(),
-    "EXIT": Token.exit(),
-    "TRUE": Token.const_bool(True),
-    "FALSE": Token.const_bool(False),
-    "AND": Token.And(),
-    "OR": Token.Or(),
-    "NOT": Token.Not(),
-    "IF": Token.If(),
-    "ELSE": Token.Else(),
-    "THEN": Token.then(),
-    "CHAR": Token.char(),
-    "STRING": Token.string(),
-    "WHILE": Token.While(),
-    "DO": Token.do(),
-    "FOR": Token.For(),
-    "TO": Token.to(),
-    "CONTINUE": Token.Continue(),
-    "BREAK": Token.Break(),
-    "TYPE": Token.Type(),
-    "CONST": Token.const(),
-    "ARRAY": Token.array(),
-    "OF": Token.of(),
-    "IN": Token.In(),
-    "OUT": Token.out(),
-}
-
-
 class Lexer:
-    __slots__ = ("file_text", "index", "stop", "char")
+    __slots__ = ("file_text", "index", "stop", "char", "reserved_keywords")
 
     def __init__(self, file_text: str) -> None:
         self.file_text: str = file_text.strip()
+        self.reserved_keywords = TokenType.get_reserved_keywords()
         self.restart()
 
     def __iter__(self) -> "Lexer":
@@ -85,9 +49,10 @@ class Lexer:
         end_index = self.index
         self.advance()
         if end_index - current_index == 1:
-            return Token.const_char(self.file_text[current_index])
-        return Token.const_string(
-            self.file_text[current_index:end_index].replace("\\", "")
+            return Token.with_value(TokenType.CHAR_CONST, self.file_text[current_index])
+        return Token.with_value(
+            TokenType.STRING_CONST,
+            self.file_text[current_index:end_index].replace("\\", ""),
         )
 
     def number(self) -> Token:
@@ -96,18 +61,23 @@ class Lexer:
             self.advance()
         next_char = self.peek()
         if self.char != "." or next_char is None or not next_char.isdigit():
-            return Token.const_int(self.file_text[current_index : self.index])
+            return Token.with_value(
+                TokenType.INTEGER_CONST, self.file_text[current_index : self.index]
+            )
         self.advance()
         while self.char is not None and self.char.isdigit():
             self.advance()
-        return Token.const_float(self.file_text[current_index : self.index])
+        return Token.with_value(
+            TokenType.REAL_CONST, self.file_text[current_index : self.index]
+        )
 
     def _id(self) -> Token:
         current_index = self.index
         while self.char is not None and (self.char.isalnum() or self.char == "_"):
             self.advance()
         word = self.file_text[current_index : self.index]
-        return _RESERVED_KEYWORDS.get(word.upper(), Token.Id(word))
+        token_type = self.reserved_keywords.get(word.upper(), TokenType.ID)
+        return Token.with_value(token_type, word)
 
     def peek(self) -> str | None:
         peek_pos = self.index + 1
@@ -126,70 +96,38 @@ class Lexer:
             self.skip_space()
         if self.char is None:
             self.stop = True
-            return Token(TokenType.EOF)
-        if self.char == "+":
+            return Token.new(TokenType.EOF)
+        if self.char in self.reserved_keywords:
+            char = self.char
             self.advance()
-            return Token.plus()
-        if self.char == "-":
-            self.advance()
-            return Token.minus()
-        if self.char == "*":
-            self.advance()
-            return Token.mult()
-        if self.char == "/":
-            self.advance()
-            return Token.float_div()
-        if self.char == "=":
-            self.advance()
-            return Token.eq()
+            return Token.new(self.reserved_keywords[char])
         if self.char == ">":
             self.advance()
             if self.char == "=":
                 self.advance()
-                return Token.get()
-            return Token.gt()
+                return Token.new(TokenType.MORE_OR_EQUAL)
+            return Token.new(TokenType.MORE)
         if self.char == "<":
             self.advance()
             if self.char == ">":
                 self.advance()
-                return Token.neq()
+                return Token.new(TokenType.NOT_EQUAL)
             if self.char == "=":
                 self.advance()
-                return Token.let()
-            return Token.lt()
-        if self.char == "(":
-            self.advance()
-            return Token.open_p()
-        if self.char == ")":
-            self.advance()
-            return Token.close_p()
-        if self.char == "[":
-            self.advance()
-            return Token.open_bracket()
-        if self.char == "]":
-            self.advance()
-            return Token.close_bracket()
+                return Token.new(TokenType.LESS_OR_EQUAL)
+            return Token.new(TokenType.LESS)
         if self.char.isdigit():
             return self.number()
         if self.char == "'":
             return self.string()
-        if self.char.isalnum() or self.char == "_":
-            return self._id()
-        if self.char == ";":
-            self.advance()
-            return Token.semi()
-        if self.char == ",":
-            self.advance()
-            return Token.comma()
         if self.char == ":":
             if self.peek() == "=":
                 self.advance()
                 self.advance()
-                return Token.assign()
+                return Token.new(TokenType.ASSIGN)
             self.advance()
-            return Token.colon()
-        if self.char == ".":
-            self.advance()
-            return Token.dot()
+            return Token.new(TokenType.COLON)
+        if self.char.isalnum() or self.char == "_":
+            return self._id()
         lineno, pos = self.get_cursor_pos()
         raise LexerError(f"uknown symbol {self.char} on {lineno} line number at {pos}")

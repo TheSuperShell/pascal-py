@@ -1084,8 +1084,9 @@ class Parser[S]:
         node = self.compare_expr()
 
         while self.current_token.token_type == TokenType.AND:
+            and_tok = self.current_token
             self.eat(TokenType.AND)
-            node = BinOp[S](node, Token.And(), self.compare_expr())
+            node = BinOp[S](node, and_tok, self.compare_expr())
         return node
 
     def expr(self) -> AST[S]:
@@ -1095,8 +1096,9 @@ class Parser[S]:
         """
         node = self.bool_expr()
         while self.current_token.token_type == TokenType.OR:
+            or_tok = self.current_token
             self.eat(TokenType.OR)
-            node = BinOp[S](node, Token.Or(), self.bool_expr())
+            node = BinOp[S](node, or_tok, self.bool_expr())
         return node
 
     def parse(self) -> AST[S]:

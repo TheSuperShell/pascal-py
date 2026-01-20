@@ -363,7 +363,9 @@ class SymbolTableVisitor(Visitor[TypeSymbol[PythonTypes]]):
             )
         self.get_current_scope().define(var_symbol)
         if node.default_value is not None:
-            self.visit_Assign(Assign(node.var_node, Token.assign(), node.default_value))
+            self.visit_Assign(
+                Assign(node.var_node, Token.new(TokenType.ASSIGN), node.default_value)
+            )
 
     @override
     def visit_StandardType(self, node: StandardType[Symbol]) -> TypeSymbol[PythonTypes]:
